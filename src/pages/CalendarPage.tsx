@@ -73,12 +73,6 @@ export default function CalendarPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const res = await supabase.functions.invoke("google-calendar-api", {
-        body: null,
-        headers: { "Content-Type": "application/json" },
-      });
-
-      // Use fetch directly for query params
       const statusRes = await fetch(
         `https://${projectId}.supabase.co/functions/v1/google-calendar-api?action=status`,
         { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
