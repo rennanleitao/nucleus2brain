@@ -15,6 +15,7 @@ import SettingsPage from "./pages/SettingsPage";
 import Auth from "./pages/Auth";
 import ImportPage from "./pages/ImportPage";
 import History from "./pages/History";
+import SpaceDetail from "./pages/SpaceDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/spaces" element={<Spaces />} />
+        <Route path="/spaces/:id" element={<SpaceDetail />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/calendar" element={<CalendarPage />} />

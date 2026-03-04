@@ -1,6 +1,80 @@
 import { supabase } from "@/lib/supabase";
 import { Database } from "@/types/database";
 
+// ---- FILE UPLOAD ----
+export async function uploadAttachment(spaceId: string, file: File) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const path = `${user.id}/${spaceId}/${Date.now()}_${file.name}`;
+  const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file);
+  if (uploadError) throw uploadError;
+  const { data, error } = await supabase.from("attachments").insert({
+    user_id: user.id,
+    space_id: spaceId,
+    file_name: file.name,
+    file_path: path,
+    file_size: file.size,
+    content_type: file.type,
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchAttachments(spaceId: string) {
+  const { data, error } = await supabase.from("attachments").select("*").eq("space_id", spaceId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteAttachment(id: string, filePath: string) {
+  await supabase.storage.from("attachments").remove([filePath]);
+  const { error } = await supabase.from("attachments").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export function getAttachmentUrl(filePath: string) {
+  const { data } = supabase.storage.from("attachments").getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
+// ---- SPACE DETAIL ----
+export async function fetchSpace(id: string) {
+  const { data, error } = await supabase.from("spaces").select("*").eq("id", id).single();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchTasksBySpace(spaceId: string) {
+  const { data, error } = await supabase.from("tasks").select("*, spaces(name)").eq("space_id", spaceId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchNotesBySpace(spaceId: string) {
+  const { data, error } = await supabase.from("notes").select("*, spaces(name)").eq("space_id", spaceId).order("updated_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchLinksBySpace(spaceId: string) {
+  const { data, error } = await supabase.from("links").select("*").eq("space_id", spaceId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function createLink(link: { title: string; url: string; description?: string | null; space_id?: string | null }) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data, error } = await supabase.from("links").insert({ ...link, user_id: user.id }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteLink(id: string) {
+  const { error } = await supabase.from("links").delete().eq("id", id);
+  if (error) throw error;
+}
+
 type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
 type TaskInsert = Database["public"]["Tables"]["tasks"]["Insert"];
 type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
