@@ -6,9 +6,11 @@ import {
   Calendar, 
   Bot, 
   Settings,
-  Zap
+  Zap,
+  LogOut
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar,
   SidebarContent,
@@ -32,12 +34,9 @@ const navItems = [
   { title: "AI Assistant", url: "/assistant", icon: Bot },
 ];
 
-const bottomItems = [
-  { title: "Settings", url: "/settings", icon: Settings },
-];
-
 export function AppSidebar() {
   const { state } = useSidebar();
+  const { user, signOut } = useAuth();
   const collapsed = state === "collapsed";
 
   return (
@@ -83,23 +82,32 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="space-y-1">
         <SidebarMenu>
-          {bottomItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
-                <NavLink
-                  to={item.url}
-                  className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                  activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                >
-                  <item.icon className="h-4 w-4" />
-                  {!collapsed && <span>{item.title}</span>}
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink
+                to="/settings"
+                className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+                activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+              >
+                <Settings className="h-4 w-4" />
+                {!collapsed && <span>Settings</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={signOut} className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer">
+              <LogOut className="h-4 w-4" />
+              {!collapsed && <span>Sign Out</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
+        {!collapsed && user && (
+          <div className="px-3 py-2">
+            <p className="text-[11px] text-sidebar-foreground truncate">{user.email}</p>
+          </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );

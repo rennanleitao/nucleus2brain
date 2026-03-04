@@ -1,9 +1,30 @@
-import { mockSpaces } from "@/data/mockData";
+import { useEffect, useState } from "react";
+import { fetchSpaces } from "@/lib/api";
 import { SpaceCard } from "@/components/SpaceCard";
-import { FolderOpen, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CreateSpaceDialog } from "@/components/CreateSpaceDialog";
+import { FolderOpen } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Spaces() {
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    try {
+      setSpaces(await fetchSpaces());
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  if (loading) {
+    return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
+  }
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -13,14 +34,19 @@ export default function Spaces() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Organize your work into knowledge hubs</p>
         </div>
-        <Button size="sm" className="gradient-primary text-primary-foreground border-0">
-          <Plus className="h-4 w-4 mr-1" /> New Space
-        </Button>
+        <CreateSpaceDialog onCreated={load} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {mockSpaces.map(s => <SpaceCard key={s.id} space={s} />)}
-      </div>
+      {spaces.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {spaces.map(s => <SpaceCard key={s.id} space={s} />)}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <FolderOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">No spaces yet. Create your first one!</p>
+        </div>
+      )}
     </div>
   );
 }
