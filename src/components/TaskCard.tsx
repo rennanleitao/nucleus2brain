@@ -42,7 +42,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onTog
       isCompleted ? "opacity-60" : ""
     }`}>
       <button
-        onClick={() => onToggle?.(task.id)}
+        onClick={(e) => { e.stopPropagation(); onToggle?.(task.id); }}
         className={`mt-0.5 flex-shrink-0 transition-colors ${
           isCompleted ? "text-status-completed" : "text-muted-foreground hover:text-primary"
         }`}
@@ -71,7 +71,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onTog
       </Badge>
 
       {onDelete && (
-        <button onClick={() => onDelete(task.id)}
+        <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
           className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all flex-shrink-0">
           <Trash2 className="h-3.5 w-3.5" />
         </button>
