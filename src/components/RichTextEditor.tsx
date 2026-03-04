@@ -42,10 +42,10 @@ export function RichTextEditor({
       const html = editor.getHTML();
       onChange(html);
 
-      // Detect #tags in text
+      // Detect #tags in text — only completed tags (followed by space, punctuation, or end of line)
       if (onTagsDetected) {
         const text = editor.getText();
-        const tagMatches = text.match(/#(\w[\w-]*)/g);
+        const tagMatches = text.match(/#(\w[\w-]*)(?=[\s,.;:!?\n]|$)/g);
         const tags = tagMatches ? [...new Set(tagMatches.map(t => t.slice(1)))] : [];
         onTagsDetected(tags);
       }

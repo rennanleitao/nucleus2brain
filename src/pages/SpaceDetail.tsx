@@ -265,9 +265,10 @@ export default function SpaceDetail() {
                 onChange={(html) => { setEditNoteContent(html); setNoteDirty(true); }}
                 onTagsDetected={(tags) => {
                   setEditNoteTags(prev => {
-                    const merged = [...new Set([...prev, ...tags])];
-                    if (merged.length !== prev.length) setNoteDirty(true);
-                    return merged;
+                    if (JSON.stringify(tags.sort()) !== JSON.stringify([...prev].sort())) {
+                      setNoteDirty(true);
+                    }
+                    return [...new Set([...tags])];
                   });
                 }}
                 placeholder="Comece a escrever... Use #tag para criar tags"
