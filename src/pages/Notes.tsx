@@ -271,6 +271,8 @@ export default function Notes() {
                 content={editContent}
                 onChange={(html) => { setEditContent(html); setDirty(true); }}
                 onTagsDetected={handleTagsDetected}
+                noteId={selectedNote?.id}
+                existingTags={allTags}
                 placeholder="Comece a escrever... Use #tag para criar tags, e o botão ☑ para criar checklists"
                 className="border-0 rounded-none min-h-full"
               />

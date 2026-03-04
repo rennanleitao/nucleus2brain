@@ -271,6 +271,8 @@ export default function SpaceDetail() {
                     return [...new Set([...tags])];
                   });
                 }}
+                noteId={selectedNote?.id}
+                existingTags={[...new Set(notes.flatMap((n: any) => n.tags || []))]}
                 placeholder="Comece a escrever... Use #tag para criar tags"
               />
             </div>

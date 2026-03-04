@@ -186,3 +186,30 @@ export async function deleteNote(id: string) {
   const { error } = await supabase.from("notes").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ---- TAGGED SNIPPETS ----
+export async function createTaggedSnippet(noteId: string, tag: string, snippetText: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("tagged_snippets")
+    .insert({ user_id: user.id, note_id: noteId, tag, snippet_text: snippetText })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchTaggedSnippets() {
+  const { data, error } = await supabase
+    .from("tagged_snippets")
+    .select("*, notes(title)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTaggedSnippet(id: string) {
+  const { error } = await supabase.from("tagged_snippets").delete().eq("id", id);
+  if (error) throw error;
+}
