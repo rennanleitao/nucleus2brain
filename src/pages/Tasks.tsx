@@ -3,6 +3,7 @@ import { fetchTasks, fetchSpaces, updateTask, deleteTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
+import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CheckSquare } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ export default function Tasks() {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [followUpTask, setFollowUpTask] = useState<any | null>(null);
 
   const load = async () => {
     try {
@@ -43,6 +45,9 @@ export default function Tasks() {
     const newStatus = task.status === "completed" ? "todo" : "completed";
     try {
       await updateTask(id, { status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null });
+      if (newStatus === "completed") {
+        setFollowUpTask(task);
+      }
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -105,6 +110,16 @@ export default function Tasks() {
           open={!!editingTask}
           onOpenChange={(open) => !open && setEditingTask(null)}
           onUpdated={load}
+        />
+      )}
+
+      {followUpTask && (
+        <FollowUpDialog
+          completedTask={followUpTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!followUpTask}
+          onOpenChange={(open) => !open && setFollowUpTask(null)}
+          onCreated={load}
         />
       )}
     </div>
