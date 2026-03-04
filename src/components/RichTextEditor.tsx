@@ -5,6 +5,7 @@ import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { useEffect } from "react";
+import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo,
@@ -19,10 +20,12 @@ interface RichTextEditorProps {
   editable?: boolean;
   className?: string;
   onTagsDetected?: (tags: string[]) => void;
+  noteId?: string | null;
+  existingTags?: string[];
 }
 
 export function RichTextEditor({
-  content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected,
+  content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [],
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -148,6 +151,11 @@ export function RichTextEditor({
         </ToolbarButton>
       </div>
 
+
+      {/* Bubble Menu for tagging selections */}
+      {editable && (
+        <TagBubbleMenu editor={editor} noteId={noteId} existingTags={existingTags} />
+      )}
 
       {/* Editor */}
       <EditorContent editor={editor} />
