@@ -1,16 +1,25 @@
-import { Space } from "@/types";
-import { useNavigate } from "react-router-dom";
+import { forwardRef } from "react";
 
 interface SpaceCardProps {
-  space: Space;
+  space: {
+    id: string;
+    name: string;
+    description?: string | null;
+    icon: string;
+    tasks?: { count: number }[];
+    notes?: { count: number }[];
+  };
+  onClick?: () => void;
 }
 
-export function SpaceCard({ space }: SpaceCardProps) {
-  const navigate = useNavigate();
+export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick }, ref) => {
+  const taskCount = space.tasks?.[0]?.count ?? 0;
+  const noteCount = space.notes?.[0]?.count ?? 0;
 
   return (
     <button
-      onClick={() => navigate(`/spaces/${space.id}`)}
+      ref={ref}
+      onClick={onClick}
       className="flex flex-col gap-3 p-5 rounded-xl border border-border bg-card hover:shadow-elevated hover:border-primary/20 transition-all text-left animate-fade-in"
     >
       <div className="text-2xl">{space.icon}</div>
@@ -21,9 +30,11 @@ export function SpaceCard({ space }: SpaceCardProps) {
         )}
       </div>
       <div className="flex gap-3 text-[11px] text-muted-foreground">
-        <span>{space.taskCount} tasks</span>
-        <span>{space.noteCount} notes</span>
+        <span>{taskCount} tasks</span>
+        <span>{noteCount} notes</span>
       </div>
     </button>
   );
-}
+});
+
+SpaceCard.displayName = "SpaceCard";

@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { mockTasks } from "@/data/mockData";
+import { useEffect, useState } from "react";
+import { fetchTasks, fetchSpaces, updateTask, deleteTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
-import { Task, TaskStatus } from "@/types";
-import { CheckSquare, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CreateTaskDialog } from "@/components/CreateTaskDialog";
+import { CheckSquare } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
-const statusFilters: { value: TaskStatus | "all"; label: string }[] = [
+const statusFilters = [
   { value: "all", label: "All" },
   { value: "todo", label: "To Do" },
   { value: "in_progress", label: "In Progress" },
@@ -15,16 +15,51 @@ const statusFilters: { value: TaskStatus | "all"; label: string }[] = [
 ];
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [filter, setFilter] = useState<string>("all");
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    try {
+      const [t, s] = await Promise.all([fetchTasks(), fetchSpaces()]);
+      setTasks(t); setSpaces(s);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
 
   const filtered = filter === "all" ? tasks : tasks.filter(t => t.status === filter);
 
-  const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(t =>
-      t.id === id ? { ...t, status: t.status === "completed" ? "todo" : "completed" } : t
-    ));
+  const toggleTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const newStatus = task.status === "completed" ? "todo" : "completed";
+    try {
+      await updateTask(id, { status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null });
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteTask(id);
+      toast.success("Task deleted");
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -35,9 +70,7 @@ export default function Tasks() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{tasks.filter(t => t.status !== "completed").length} active tasks</p>
         </div>
-        <Button size="sm" className="gradient-primary text-primary-foreground border-0">
-          <Plus className="h-4 w-4 mr-1" /> New Task
-        </Button>
+        <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
       </div>
 
       <Tabs value={filter} onValueChange={setFilter}>
@@ -50,9 +83,12 @@ export default function Tasks() {
 
       <div className="space-y-2">
         {filtered.length > 0 ? (
-          filtered.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)
+          filtered.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onDelete={handleDelete} />)
         ) : (
-          <p className="text-sm text-muted-foreground py-8 text-center">No tasks in this view</p>
+          <div className="text-center py-12">
+            <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No tasks here</p>
+          </div>
         )}
       </div>
     </div>

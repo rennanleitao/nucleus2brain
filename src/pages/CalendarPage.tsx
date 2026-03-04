@@ -1,4 +1,3 @@
-import { mockEvents } from "@/data/mockData";
 import { Calendar as CalIcon } from "lucide-react";
 
 export default function CalendarPage() {
@@ -18,31 +17,7 @@ export default function CalendarPage() {
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             Connect your Google account to sync meetings, create events from the AI assistant, and link tasks to calendar events.
           </p>
-          <button className="text-xs text-primary font-medium hover:underline">
-            Connect Google Calendar →
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-sm font-semibold mb-3">Upcoming Events</h2>
-        <div className="space-y-2">
-          {mockEvents.map(event => {
-            const start = new Date(event.startTime);
-            const end = new Date(event.endTime);
-            const dateStr = start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-            const timeStr = `${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })} – ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
-
-            return (
-              <div key={event.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card animate-fade-in">
-                <div className="w-1 h-8 rounded-full gradient-primary flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">{event.title}</p>
-                  <p className="text-xs text-muted-foreground">{dateStr} · {timeStr}</p>
-                </div>
-              </div>
-            );
-          })}
+          <p className="text-xs text-muted-foreground">Coming soon — use the AI Assistant to manage your schedule for now.</p>
         </div>
       </div>
     </div>
