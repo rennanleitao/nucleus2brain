@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchTasks, fetchSpaces, updateTask, deleteTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
+import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { CheckSquare } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ export default function Tasks() {
   const [spaces, setSpaces] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [editingTask, setEditingTask] = useState<any | null>(null);
 
   const load = async () => {
     try {
@@ -83,7 +85,11 @@ export default function Tasks() {
 
       <div className="space-y-2">
         {filtered.length > 0 ? (
-          filtered.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onDelete={handleDelete} />)
+          filtered.map(t => (
+            <div key={t.id} onClick={() => setEditingTask(t)} className="cursor-pointer">
+              <TaskCard task={t} onToggle={() => toggleTask(t.id)} onDelete={() => handleDelete(t.id)} />
+            </div>
+          ))
         ) : (
           <div className="text-center py-12">
             <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
@@ -91,6 +97,16 @@ export default function Tasks() {
           </div>
         )}
       </div>
+
+      {editingTask && (
+        <EditTaskDialog
+          task={editingTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!editingTask}
+          onOpenChange={(open) => !open && setEditingTask(null)}
+          onUpdated={load}
+        />
+      )}
     </div>
   );
 }
