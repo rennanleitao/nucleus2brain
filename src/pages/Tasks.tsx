@@ -69,10 +69,10 @@ export default function Tasks() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
             <CheckSquare className="h-5 w-5 text-muted-foreground" /> Tasks
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{tasks.filter(t => t.status !== "completed").length} active tasks</p>
@@ -81,9 +81,9 @@ export default function Tasks() {
       </div>
 
       <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList className="bg-muted">
+        <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-wrap sm:flex-nowrap">
           {statusFilters.map(f => (
-            <TabsTrigger key={f.value} value={f.value} className="text-xs">{f.label}</TabsTrigger>
+            <TabsTrigger key={f.value} value={f.value} className="text-xs flex-shrink-0">{f.label}</TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
