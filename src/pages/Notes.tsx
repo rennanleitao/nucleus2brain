@@ -112,8 +112,13 @@ export default function Notes() {
   const handleTagsDetected = (tags: string[]) => {
     setEditTags(prev => {
       const merged = [...new Set([...prev, ...tags])];
-      if (merged.length !== prev.length) setDirty(true);
-      return merged;
+      // Remove tags that are no longer in the text
+      const cleaned = merged.filter(t => tags.includes(t) || !prev.includes(t) === false);
+      // Simpler: just use detected tags + manually added ones that aren't text-derived
+      if (JSON.stringify(tags.sort()) !== JSON.stringify(prev.sort())) {
+        setDirty(true);
+      }
+      return [...new Set([...tags])];
     });
   };
 

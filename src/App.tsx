@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Spaces from "./pages/Spaces";
 import Tasks from "./pages/Tasks";
 import Notes from "./pages/Notes";
+import Tags from "./pages/Tags";
 import CalendarPage from "./pages/CalendarPage";
 import Assistant from "./pages/Assistant";
 import SettingsPage from "./pages/SettingsPage";
@@ -43,6 +44,7 @@ function AppRoutes() {
         <Route path="/spaces/:id" element={<SpaceDetail />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/notes" element={<Notes />} />
+        <Route path="/tags" element={<Tags />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/assistant" element={<Assistant />} />
             <Route path="/import" element={<ImportPage />} />
