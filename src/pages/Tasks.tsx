@@ -37,7 +37,7 @@ export default function Tasks() {
 
   useEffect(() => { load(); }, []);
 
-  const filtered = filter === "all" ? tasks : tasks.filter(t => t.status === filter);
+  const filtered = filter === "all" ? tasks.filter(t => t.status !== "completed" && t.status !== "cancelled") : tasks.filter(t => t.status === filter);
 
   const toggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
