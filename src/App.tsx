@@ -13,6 +13,7 @@ import CalendarPage from "./pages/CalendarPage";
 import Assistant from "./pages/Assistant";
 import SettingsPage from "./pages/SettingsPage";
 import Auth from "./pages/Auth";
+import ImportPage from "./pages/ImportPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,7 +42,8 @@ function AppRoutes() {
         <Route path="/notes" element={<Notes />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/assistant" element={<Assistant />} />
-        <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>

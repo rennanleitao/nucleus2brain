@@ -5,6 +5,7 @@ import {
   FileText, 
   Calendar, 
   Bot, 
+  Upload,
   Settings,
   Zap,
   LogOut
@@ -32,6 +33,7 @@ const navItems = [
   { title: "Notes", url: "/notes", icon: FileText },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "AI Assistant", url: "/assistant", icon: Bot },
+  { title: "Import", url: "/import", icon: Upload },
 ];
 
 export function AppSidebar() {
