@@ -3,18 +3,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   fetchSpace, fetchTasksBySpace, fetchNotesBySpace, fetchLinksBySpace,
   fetchAttachments, uploadAttachment, deleteAttachment, getAttachmentUrl,
-  createTask, createNote, createLink, deleteLink, updateTask, deleteTask, deleteNote,
+  createTask, createNote, createLink, deleteLink, updateTask, updateNote, deleteTask, deleteNote,
 } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
-import { EditNoteDialog } from "@/components/EditNoteDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload,
+  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -31,9 +32,16 @@ export default function SpaceDetail() {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<any>(null);
-  const [editingNote, setEditingNote] = useState<any>(null);
+  const [selectedNote, setSelectedNote] = useState<any>(null);
   const [followUpTask, setFollowUpTask] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Note editor state
+  const [editNoteTitle, setEditNoteTitle] = useState("");
+  const [editNoteContent, setEditNoteContent] = useState("");
+  const [editNoteTags, setEditNoteTags] = useState<string[]>([]);
+  const [noteDirty, setNoteDirty] = useState(false);
+  const [noteSaving, setNoteSaving] = useState(false);
 
   // Link creation
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
@@ -41,11 +49,6 @@ export default function SpaceDetail() {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkDesc, setLinkDesc] = useState("");
 
-  // Note creation
-  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
-  const [noteTitle, setNoteTitle] = useState("");
-  const [noteContent, setNoteContent] = useState("");
-  const [noteTags, setNoteTags] = useState("");
 
   const load = async () => {
     if (!id) return;
@@ -115,16 +118,41 @@ export default function SpaceDetail() {
     } catch (err: any) { toast.error(err.message); }
   };
 
-  const handleCreateNote = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!noteTitle.trim()) return;
+  const stripHtml = (html: string) => {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  };
+
+  const openNoteEditor = (note: any) => {
+    setSelectedNote(note);
+    setEditNoteTitle(note.title);
+    setEditNoteContent(note.content || "");
+    setEditNoteTags(note.tags || []);
+    setNoteDirty(false);
+  };
+
+  const handleCreateNewNote = async () => {
     try {
-      const tags = noteTags.split(",").map(t => t.trim()).filter(Boolean);
-      await createNote({ title: noteTitle.trim(), content: noteContent, space_id: id!, tags });
-      toast.success("Nota criada!");
-      setNoteTitle(""); setNoteContent(""); setNoteTags(""); setNoteDialogOpen(false);
+      const newNote = await createNote({ title: "Nova nota", content: "", tags: [], space_id: id! });
+      await load();
+      openNoteEditor(newNote);
+    } catch (err: any) { toast.error(err.message); }
+  };
+
+  const handleSaveNote = async () => {
+    if (!selectedNote || !editNoteTitle.trim()) return;
+    setNoteSaving(true);
+    try {
+      await updateNote(selectedNote.id, {
+        title: editNoteTitle.trim(),
+        content: editNoteContent,
+        tags: editNoteTags,
+      });
+      setNoteDirty(false);
       load();
     } catch (err: any) { toast.error(err.message); }
+    finally { setNoteSaving(false); }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -197,57 +225,92 @@ export default function SpaceDetail() {
 
         {/* NOTES TAB */}
         <TabsContent value="notes" className="space-y-3">
-          <div className="flex justify-end">
-            <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gradient-primary text-primary-foreground border-0">
-                  <Plus className="h-4 w-4 mr-1" /> Nova Nota
+          {selectedNote ? (
+            /* Inline rich editor */
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => { if (noteDirty) handleSaveNote(); setSelectedNote(null); }}>
+                  <ArrowLeftIcon className="h-4 w-4 mr-1" /> Voltar
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader><DialogTitle>Nova Nota</DialogTitle></DialogHeader>
-                <form onSubmit={handleCreateNote} className="space-y-3">
-                  <input type="text" placeholder="Título" value={noteTitle} onChange={e => setNoteTitle(e.target.value)}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
-                  <textarea placeholder="Conteúdo..." value={noteContent} onChange={e => setNoteContent(e.target.value)}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-32 resize-none" />
-                  <input type="text" placeholder="Tags (separadas por vírgula)" value={noteTags} onChange={e => setNoteTags(e.target.value)}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                  <Button type="submit" className="w-full gradient-primary text-primary-foreground border-0">Criar Nota</Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-          {notes.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {notes.map(note => (
-                <div key={note.id} onClick={() => setEditingNote(note)}
-                  className="group p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all cursor-pointer">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-sm font-semibold">{note.title}</h3>
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-3 mb-2 whitespace-pre-wrap">{note.content}</p>
-                  <div className="flex gap-1 flex-wrap">
-                    {(note.tags || []).map((tag: string) => (
-                      <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">{tag}</Badge>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                {noteDirty && (
+                  <Button size="sm" onClick={handleSaveNote} disabled={noteSaving}
+                    className="gradient-primary text-primary-foreground border-0 text-xs">
+                    {noteSaving ? "Salvando..." : "Salvar"}
+                  </Button>
+                )}
+                <div className="flex-1" />
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => { handleDeleteNote(selectedNote.id); setSelectedNote(null); }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <input type="text" value={editNoteTitle}
+                onChange={e => { setEditNoteTitle(e.target.value); setNoteDirty(true); }}
+                className="w-full text-xl font-bold bg-transparent outline-none placeholder:text-muted-foreground"
+                placeholder="Título da nota" />
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Tag className="h-3 w-3 text-muted-foreground" />
+                {editNoteTags.map(tag => (
+                  <Badge key={tag} variant="secondary" className="text-[10px] gap-1 cursor-pointer hover:bg-destructive/20"
+                    onClick={() => { setEditNoteTags(prev => prev.filter(t => t !== tag)); setNoteDirty(true); }}>
+                    #{tag} <X className="h-2.5 w-2.5" />
+                  </Badge>
+                ))}
+                {editNoteTags.length === 0 && (
+                  <span className="text-[11px] text-muted-foreground">Use #tag no texto para criar tags</span>
+                )}
+              </div>
+              <RichTextEditor
+                content={editNoteContent}
+                onChange={(html) => { setEditNoteContent(html); setNoteDirty(true); }}
+                onTagsDetected={(tags) => {
+                  setEditNoteTags(prev => {
+                    const merged = [...new Set([...prev, ...tags])];
+                    if (merged.length !== prev.length) setNoteDirty(true);
+                    return merged;
+                  });
+                }}
+                placeholder="Comece a escrever... Use #tag para criar tags"
+              />
             </div>
           ) : (
-            <div className="text-center py-8">
-              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Nenhuma nota neste espaço</p>
-            </div>
+            /* Note list */
+            <>
+              <div className="flex justify-end">
+                <Button size="sm" className="gradient-primary text-primary-foreground border-0" onClick={handleCreateNewNote}>
+                  <Plus className="h-4 w-4 mr-1" /> Nova Nota
+                </Button>
+              </div>
+              {notes.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {notes.map(note => (
+                    <div key={note.id} onClick={() => openNoteEditor(note)}
+                      className="group p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all cursor-pointer">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-sm font-semibold">{note.title}</h3>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }}
+                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-3 mb-2">{stripHtml(note.content || "")}</p>
+                      <div className="flex gap-1 flex-wrap">
+                        {(note.tags || []).map((tag: string) => (
+                          <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">#{tag}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma nota neste espaço</p>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
-
-        {/* LINKS TAB */}
         <TabsContent value="links" className="space-y-3">
           <div className="flex justify-end">
             <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
@@ -340,10 +403,6 @@ export default function SpaceDetail() {
       {editingTask && (
         <EditTaskDialog task={editingTask} spaces={[{ id: space.id, name: space.name }]}
           open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)} onUpdated={load} />
-      )}
-      {editingNote && (
-        <EditNoteDialog note={editingNote} spaces={[{ id: space.id, name: space.name }]}
-          open={!!editingNote} onOpenChange={(open) => !open && setEditingNote(null)} onUpdated={load} />
       )}
       {followUpTask && (
         <FollowUpDialog completedTask={followUpTask} spaces={[{ id: space.id, name: space.name }]}
