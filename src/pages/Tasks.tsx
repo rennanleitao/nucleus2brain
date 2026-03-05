@@ -11,12 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-const statusFilters = [
+const dateGroupFilters = [
   { value: "all", label: "All" },
-  { value: "todo", label: "To Do" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "waiting", label: "Waiting" },
-  { value: "completed", label: "Done" },
+  { value: "todo", label: "To-do" },
+  { value: "today", label: "Today" },
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+  { value: "done", label: "Done" },
 ];
 
 export default function Tasks() {
@@ -25,7 +26,7 @@ export default function Tasks() {
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
   const [filter, setFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
+  
   const [groupBy, setGroupBy] = useState("space");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -54,26 +55,33 @@ export default function Tasks() {
 
   const filtered = useMemo(() => {
     let result = tasks;
+    const today = new Date().toISOString().split("T")[0];
+    const in7 = new Date(Date.now() + 6 * 86400000).toISOString().split("T")[0];
+    const in30 = new Date(Date.now() + 29 * 86400000).toISOString().split("T")[0];
+
     if (filter === "all") {
       result = result.filter(t => t.status !== "completed" && t.status !== "cancelled");
-    } else {
-      result = result.filter(t => t.status === filter);
+    } else if (filter === "todo") {
+      result = result.filter(t => !t.due_date && t.status !== "completed" && t.status !== "cancelled");
+    } else if (filter === "today") {
+      result = result.filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date <= today);
+    } else if (filter === "week") {
+      result = result.filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date >= today && t.due_date <= in7);
+    } else if (filter === "month") {
+      result = result.filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date >= today && t.due_date <= in30);
+    } else if (filter === "done") {
+      result = result.filter(t => t.status === "completed");
     }
+
     if (priorityFilter !== "all") {
       result = result.filter(t => t.priority === priorityFilter);
     }
-    const today = new Date().toISOString().split("T")[0];
-    const in7 = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
-    if (dateFilter === "overdue") result = result.filter(t => t.due_date && t.due_date < today);
-    else if (dateFilter === "today") result = result.filter(t => t.due_date === today);
-    else if (dateFilter === "week") result = result.filter(t => t.due_date && t.due_date >= today && t.due_date <= in7);
-    else if (dateFilter === "no_date") result = result.filter(t => !t.due_date);
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(t => t.title.toLowerCase().includes(q));
     }
     return result;
-  }, [tasks, filter, priorityFilter, dateFilter, search]);
+  }, [tasks, filter, priorityFilter, search]);
 
   const grouped = useMemo(() => {
     if (groupBy !== "space") return null;
@@ -214,7 +222,7 @@ export default function Tasks() {
 
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-nowrap">
-          {statusFilters.map(f => (
+          {dateGroupFilters.map(f => (
             <TabsTrigger key={f.value} value={f.value} className="text-small flex-shrink-0 min-h-[40px] touch-manipulation">{f.label}</TabsTrigger>
           ))}
         </TabsList>
@@ -229,16 +237,6 @@ export default function Tasks() {
             <SelectItem value="high">High</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="low">Low</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Date" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All dates</SelectItem>
-            <SelectItem value="overdue">Overdue</SelectItem>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="week">This week</SelectItem>
-            <SelectItem value="no_date">No date</SelectItem>
           </SelectContent>
         </Select>
         <Select value={groupBy} onValueChange={setGroupBy}>
