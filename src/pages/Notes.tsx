@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace } from "@/lib/api";
+import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask } from "@/lib/api";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare,
+  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
@@ -30,6 +31,9 @@ export default function Notes() {
   const [editSpaceId, setEditSpaceId] = useState("");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
+  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [tasksExpanded, setTasksExpanded] = useState(true);
 
   const load = async () => {
     try {
@@ -43,7 +47,20 @@ export default function Notes() {
     }
   };
 
+  const loadLinkedTasks = useCallback(async (spaceId: string) => {
+    if (!spaceId) { setLinkedTasks([]); return; }
+    try {
+      const tasks = await fetchTasksBySpace(spaceId);
+      setLinkedTasks(tasks);
+    } catch { setLinkedTasks([]); }
+  }, []);
+
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (editSpaceId) loadLinkedTasks(editSpaceId);
+    else setLinkedTasks([]);
+  }, [editSpaceId, loadLinkedTasks]);
 
   const allTags = [...new Set(notes.flatMap(n => n.tags || []))].sort();
 
@@ -289,29 +306,97 @@ export default function Notes() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-auto">
-                <RichTextEditor
-                  content={editContent}
-                  onChange={(html) => { setEditContent(html); setDirty(true); }}
-                  onTagsDetected={handleTagsDetected}
-                  onTaskDetected={async (taskTitle) => {
-                    if (editSpaceId) {
-                      try {
-                        await createTask({ title: taskTitle, space_id: editSpaceId });
-                        toast.success(`Task criada: ${taskTitle}`);
-                      } catch (err: any) {
-                        toast.error(err.message);
+              <div className="flex-1 overflow-auto flex flex-col">
+                <div className="flex-1">
+                  <RichTextEditor
+                    content={editContent}
+                    onChange={(html) => { setEditContent(html); setDirty(true); }}
+                    onTagsDetected={handleTagsDetected}
+                    onTaskDetected={async (taskTitle) => {
+                      if (editSpaceId) {
+                        try {
+                          const task = await createTask({ title: taskTitle, space_id: editSpaceId });
+                          toast.success(`Task criada: ${taskTitle}`);
+                          loadLinkedTasks(editSpaceId);
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        }
+                      } else {
+                        try {
+                          await createTask({ title: taskTitle });
+                          toast.success(`Task criada: ${taskTitle}`);
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        }
                       }
-                    } else {
-                      toast("Associe um espaço à nota para criar tasks com ()");
-                    }
-                  }}
-                  noteId={selectedNote?.id}
-                  existingTags={allTags}
-                  placeholder="Comece a escrever... Use #tag para criar tags, (texto) para criar tasks"
-                  className="border-0 rounded-none min-h-full"
-                />
+                    }}
+                    noteId={selectedNote?.id}
+                    existingTags={allTags}
+                    placeholder="Comece a escrever... Use #tag para criar tags, () task para criar tasks"
+                    className="border-0 rounded-none min-h-full"
+                  />
+                </div>
+
+                {/* Linked Tasks Panel */}
+                {linkedTasks.length > 0 && (
+                  <div className="border-t border-border bg-muted/20">
+                    <button
+                      onClick={() => setTasksExpanded(!tasksExpanded)}
+                      className="w-full flex items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <CheckSquare className="h-3.5 w-3.5" />
+                        Tasks do Space ({linkedTasks.length})
+                      </span>
+                      {tasksExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                    </button>
+                    {tasksExpanded && (
+                      <div className="px-3 pb-3 space-y-1">
+                        {linkedTasks.map(task => (
+                          <button
+                            key={task.id}
+                            onClick={() => setEditingTask(task)}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-accent/50 transition-colors group"
+                          >
+                            <div className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                              task.status === "completed" ? "bg-primary border-primary" : "border-muted-foreground/40"
+                            }`}>
+                              {task.status === "completed" && (
+                                <svg className="h-2.5 w-2.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs flex-1 truncate ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
+                              {task.title}
+                            </span>
+                            {task.due_date && (
+                              <span className={`text-[10px] flex-shrink-0 ${
+                                task.due_date < new Date().toISOString().split("T")[0] ? "text-destructive" : "text-muted-foreground"
+                              }`}>
+                                {new Date(task.due_date + "T00:00:00").toLocaleDateString("pt-BR")}
+                              </span>
+                            )}
+                            {task.priority === "high" && (
+                              <span className="text-[10px] text-destructive font-medium flex-shrink-0">Alta</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {editingTask && (
+                <EditTaskDialog
+                  task={editingTask}
+                  spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+                  open={!!editingTask}
+                  onOpenChange={(open) => !open && setEditingTask(null)}
+                  onUpdated={() => { setEditingTask(null); if (editSpaceId) loadLinkedTasks(editSpaceId); }}
+                />
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
