@@ -20,6 +20,7 @@ import History from "./pages/History";
 import SpaceDetail from "./pages/SpaceDetail";
 import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PwaInstallPrompt />
       <BrowserRouter>
         <AuthProvider>
           <AppRoutes />
