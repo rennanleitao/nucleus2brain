@@ -17,7 +17,7 @@ export function CreateTaskDialog({ spaces, onCreated }: CreateTaskDialogProps) {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [status, setStatus] = useState<"todo" | "in_progress" | "waiting">("todo");
-  const [spaceId, setSpaceId] = useState<string>("");
+  const [spaceId, setSpaceId] = useState<string>(spaces.length === 1 ? spaces[0].id : "");
   const [dueDate, setDueDate] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +34,7 @@ export function CreateTaskDialog({ spaces, onCreated }: CreateTaskDialogProps) {
         due_date: dueDate || null,
       });
       toast.success("Task created!");
-      setTitle(""); setDescription(""); setPriority("medium"); setStatus("todo"); setSpaceId(""); setDueDate("");
+      setTitle(""); setDescription(""); setPriority("medium"); setStatus("todo"); setSpaceId(spaces.length === 1 ? spaces[0].id : ""); setDueDate("");
       setOpen(false);
       onCreated();
     } catch (err: any) {
