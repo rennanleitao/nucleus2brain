@@ -82,7 +82,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
-  const [notifPermission, setNotifPermission] = useState(Notification?.permission || "default");
+  const [notifPermission, setNotifPermission] = useState(typeof globalThis.Notification !== "undefined" ? globalThis.Notification.permission : "default");
 
   useEffect(() => {
     if (!user) return;
