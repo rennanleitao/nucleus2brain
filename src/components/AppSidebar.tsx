@@ -14,7 +14,6 @@ import {
   LogOut,
   Sun,
   Moon,
-  Smartphone
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,45 +48,6 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const collapsed = state === "collapsed";
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-
-  useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-    }
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-
-    const installedHandler = () => setIsInstalled(true);
-    window.addEventListener('appinstalled', installedHandler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-      window.removeEventListener('appinstalled', installedHandler);
-    };
-  }, []);
-
-  const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      setDeferredPrompt(null);
-    } else {
-      // For iOS Safari, show instructions
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS) {
-        alert('Para instalar no iPhone:\n1. Toque no ícone de compartilhar (⬆️) na barra do Safari\n2. Role para baixo e toque em "Adicionar à Tela de Início"');
-      } else {
-        alert('Para instalar o app:\nAbra o menu do navegador (⋮) e selecione "Instalar aplicativo" ou "Adicionar à tela inicial"');
-      }
-    }
-  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -134,14 +94,6 @@ export function AppSidebar() {
 
       <SidebarFooter className="space-y-1">
         <SidebarMenu>
-          {!isInstalled && (
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={handleInstall} className="text-primary hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer">
-                <Smartphone className="h-4 w-4" />
-                {!collapsed && <span>Instalar App</span>}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <NavLink
