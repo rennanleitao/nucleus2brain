@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type TaskStatus = "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
@@ -16,6 +16,7 @@ interface TaskCardProps {
   };
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
+  hideSpace?: boolean;
 }
 
 const statusIcons: Record<TaskStatus, React.ElementType> = {
@@ -27,15 +28,30 @@ const statusIcons: Record<TaskStatus, React.ElementType> = {
 };
 
 const priorityStyles: Record<TaskPriority, string> = {
-  high: "bg-priority-high/10 text-priority-high border-priority-high/20",
-  medium: "bg-priority-medium/10 text-priority-medium border-priority-medium/20",
-  low: "bg-priority-low/10 text-priority-low border-priority-low/20",
+  high: "bg-foreground/10 text-foreground border-foreground/20",
+  medium: "bg-muted text-muted-foreground border-border",
+  low: "bg-muted text-muted-foreground/60 border-border",
 };
 
-export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onToggle, onDelete }, ref) => {
+function formatDueDate(dateStr: string, isOverdue: boolean) {
+  if (isOverdue) return "Overdue";
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+
+  if (target.getTime() === today.getTime()) return "Today";
+  if (target.getTime() === tomorrow.getTime()) return "Tomorrow";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onToggle, onDelete, hideSpace }, ref) => {
   const StatusIcon = statusIcons[task.status];
   const isCompleted = task.status === "completed";
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !isCompleted;
+  const isOverdue = !!(task.due_date && new Date(task.due_date) < new Date() && !isCompleted);
 
   return (
     <div ref={ref} className={`group flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:shadow-card transition-all animate-fade-in ${
@@ -44,23 +60,24 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onTog
       <button
         onClick={(e) => { e.stopPropagation(); onToggle?.(task.id); }}
         className={`mt-0.5 flex-shrink-0 transition-colors ${
-          isCompleted ? "text-status-completed" : "text-muted-foreground hover:text-primary"
+          isCompleted ? "text-muted-foreground" : "text-muted-foreground hover:text-primary"
         }`}
       >
         <StatusIcon className="h-4 w-4" />
       </button>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-small font-medium leading-tight ${isCompleted ? "line-through" : ""}`}>
+        <p className={`text-small font-medium leading-tight ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
           {task.title}
         </p>
-        <div className="flex items-center gap-2 mt-1.5">
-          {task.spaces?.name && (
-            <span className="text-[11px] text-muted-foreground">{task.spaces.name}</span>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          {!hideSpace && task.spaces?.name && (
+            <span className="text-micro text-muted-foreground">{task.spaces.name}</span>
           )}
           {task.due_date && (
-            <span className={`text-[11px] ${isOverdue ? "text-priority-high font-medium" : "text-muted-foreground"}`}>
-              {isOverdue ? "Overdue" : new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+              <CalendarDays className="h-3 w-3" />
+              {formatDueDate(task.due_date, isOverdue)}
             </span>
           )}
         </div>
