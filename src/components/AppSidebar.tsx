@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { PwaInstallButton } from "@/components/PwaInstallPrompt";
 import { 
   LayoutDashboard, 
   FolderOpen, 
@@ -111,6 +112,9 @@ export function AppSidebar() {
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {!collapsed && <span>{isDark ? "Light Mode" : "Dark Mode"}</span>}
             </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <PwaInstallButton collapsed={collapsed} />
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut} className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer">
