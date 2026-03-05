@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   fetchSpace, fetchTasksBySpace, fetchNotesBySpace, fetchLinksBySpace,
@@ -11,19 +12,21 @@ import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { ShareSpaceDialog } from "@/components/ShareSpaceDialog";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon, Pencil,
+  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon, Pencil, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function SpaceDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,6 +41,7 @@ export default function SpaceDetail() {
   const [followUpTask, setFollowUpTask] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [editSpaceOpen, setEditSpaceOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Note editor state
   const [editNoteTitle, setEditNoteTitle] = useState("");
@@ -186,9 +190,14 @@ export default function SpaceDetail() {
             {space.description && <p className="text-small text-muted-foreground">{space.description}</p>}
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setEditSpaceOpen(true)}>
-          <Pencil className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => setShareOpen(true)}>
+            <Users className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setEditSpaceOpen(true)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {editSpaceOpen && (
@@ -200,6 +209,14 @@ export default function SpaceDetail() {
           onDeleted={() => navigate("/spaces")}
         />
       )}
+
+      <ShareSpaceDialog
+        spaceId={space.id}
+        spaceName={space.name}
+        isOwner={user?.id === space.user_id}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+      />
 
       {/* Summary badges */}
       <div className="flex gap-2 flex-wrap">

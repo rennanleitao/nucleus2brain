@@ -286,6 +286,82 @@ export type Database = {
           },
         ]
       }
+      space_invites: {
+        Row: {
+          accepted: boolean
+          created_at: string
+          expires_at: string
+          id: string
+          invite_token: string
+          invited_by: string
+          invited_email: string | null
+          role: Database["public"]["Enums"]["space_role"]
+          space_id: string
+        }
+        Insert: {
+          accepted?: boolean
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invited_by: string
+          invited_email?: string | null
+          role?: Database["public"]["Enums"]["space_role"]
+          space_id: string
+        }
+        Update: {
+          accepted?: boolean
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invited_by?: string
+          invited_email?: string | null
+          role?: Database["public"]["Enums"]["space_role"]
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_invites_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["space_role"]
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["space_role"]
+          space_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["space_role"]
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_members_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spaces: {
         Row: {
           created_at: string
@@ -400,9 +476,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_edit_space: {
+        Args: { _space_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_space_member: {
+        Args: { _space_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
+      space_role: "owner" | "editor" | "viewer"
       task_priority: "low" | "medium" | "high"
       task_status:
         | "todo"
@@ -537,6 +621,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      space_role: ["owner", "editor", "viewer"],
       task_priority: ["low", "medium", "high"],
       task_status: ["todo", "in_progress", "waiting", "completed", "cancelled"],
     },
