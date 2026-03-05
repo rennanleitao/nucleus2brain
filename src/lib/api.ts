@@ -45,7 +45,7 @@ export async function fetchSpace(id: string) {
 }
 
 export async function fetchTasksBySpace(spaceId: string) {
-  const { data, error } = await supabase.from("tasks").select("*, spaces(name)").eq("space_id", spaceId).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("tasks").select("*, spaces(name), notes(title)").eq("space_id", spaceId).order("created_at", { ascending: false });
   if (error) throw error;
   return data;
 }
@@ -88,7 +88,7 @@ type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 export async function fetchTasks() {
   const { data, error } = await supabase
     .from("tasks")
-    .select("*, spaces(name)")
+    .select("*, spaces(name), notes(title)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;

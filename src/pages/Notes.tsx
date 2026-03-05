@@ -110,7 +110,7 @@ export default function Notes() {
       // Create tasks for each detected pattern
       for (const title of taskTitles) {
         try {
-          await createTask({ title, space_id: editSpaceId || null });
+          await createTask({ title, space_id: editSpaceId || null, note_id: selectedNote.id } as any);
           toast.success(`Task criada: ${title}`);
         } catch (err: any) {
           toast.error(`Erro ao criar task "${title}": ${err.message}`);

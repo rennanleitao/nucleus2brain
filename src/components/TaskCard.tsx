@@ -1,5 +1,5 @@
 import { forwardRef, useState } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, Plus, X } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, Plus, X, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
@@ -23,6 +23,8 @@ interface TaskCardProps {
     priority: TaskPriority;
     due_date?: string | null;
     spaces?: { name: string } | null;
+    notes?: { title: string } | null;
+    note_id?: string | null;
   };
   subtasks?: Subtask[];
   onToggle?: (id: string) => void;
@@ -102,6 +104,12 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {!hideSpace && task.spaces?.name && (
               <span className="text-micro text-muted-foreground">{task.spaces.name}</span>
+            )}
+            {task.notes?.title && (
+              <span className="text-micro text-muted-foreground flex items-center gap-0.5">
+                <FileText className="h-3 w-3" />
+                {task.notes.title}
+              </span>
             )}
             {task.due_date && (
               <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
