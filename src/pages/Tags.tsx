@@ -161,7 +161,7 @@ export default function Tags() {
                       ) : selectedSnippets.map(s => (
                         <div key={s.id} className="p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all">
                           <div className="flex items-start justify-between gap-2">
-                            <blockquote className="border-l-2 border-primary pl-3 text-small italic text-foreground flex-1 min-w-0">
+                            <blockquote className="border-l-2 border-foreground/20 pl-3 text-small italic text-foreground flex-1 min-w-0">
                               "{s.snippet_text}"
                             </blockquote>
                             <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
@@ -169,14 +169,19 @@ export default function Tags() {
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
-                          {s.notes?.title && (
-                            <button
-                              onClick={() => navigate("/notes", { state: { noteId: s.note_id } })}
-                              className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1 hover:text-primary transition-colors"
-                            >
-                              <FileText className="h-3 w-3" /> {s.notes.title}
-                            </button>
-                          )}
+                          <div className="flex items-center gap-3 mt-2">
+                            {s.notes?.title && (
+                              <button
+                                onClick={() => navigate("/notes", { state: { noteId: s.note_id } })}
+                                className="text-micro text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors"
+                              >
+                                <FileText className="h-3 w-3" /> {s.notes.title}
+                              </button>
+                            )}
+                            <span className="text-micro text-muted-foreground">
+                              {new Date(s.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
