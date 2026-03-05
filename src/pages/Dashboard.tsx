@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { fetchTasks, updateTask, fetchSpaces, createTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
+import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -170,7 +171,10 @@ export default function Dashboard() {
             {activeCount} active · {overdueTasks.length} overdue
           </p>
         </div>
-        <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
+        <div className="flex gap-2">
+          <VoiceTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
+          <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
+        </div>
       </div>
 
       {/* AI Briefing */}
