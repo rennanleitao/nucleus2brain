@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/types/database";
 
 // ---- FILE UPLOAD ----
