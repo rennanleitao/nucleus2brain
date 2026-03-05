@@ -24,10 +24,12 @@ export default function Spaces() {
 
   useEffect(() => { load(); }, []);
 
-  const filtered = spaces.filter(s =>
-    !search || s.name.toLowerCase().includes(search.toLowerCase()) ||
-    (s.description || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = spaces
+    .filter(s =>
+      !search || s.name.toLowerCase().includes(search.toLowerCase()) ||
+      (s.description || "").toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   if (loading) {
     return <div className="p-6 flex items-center justify-center"><p className="text-small text-muted-foreground">Loading...</p></div>;
@@ -57,10 +59,10 @@ export default function Spaces() {
       </div>
 
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-1">
           {filtered.map(s => (
             <div key={s.id} onDoubleClick={() => setEditingSpace(s)} title="Duplo clique para editar">
-              <SpaceCard space={s} />
+              <SpaceCard space={s} variant="list" />
             </div>
           ))}
         </div>

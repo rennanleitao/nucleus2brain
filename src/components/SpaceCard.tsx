@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
+import { ChevronRight } from "lucide-react";
 
 interface SpaceCardProps {
   space: {
@@ -12,9 +13,10 @@ interface SpaceCardProps {
     notes?: { count: number }[];
   };
   onClick?: () => void;
+  variant?: "card" | "list";
 }
 
-export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick }, ref) => {
+export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card" }, ref) => {
   const navigate = useNavigate();
   const taskCount = space.tasks?.[0]?.count ?? 0;
   const noteCount = space.notes?.[0]?.count ?? 0;
@@ -23,6 +25,26 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
     if (onClick) onClick();
     else navigate(`/spaces/${space.id}`);
   };
+
+  if (variant === "list") {
+    return (
+      <button
+        ref={ref}
+        onClick={handleClick}
+        className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors text-left animate-fade-in touch-manipulation active:scale-[0.99] group"
+      >
+        <SpaceIcon iconKey={space.icon} className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <h3 className="text-small font-medium truncate">{space.name}</h3>
+        </div>
+        <div className="flex items-center gap-3 text-micro text-muted-foreground flex-shrink-0">
+          <span>{taskCount} tasks</span>
+          <span>{noteCount} notes</span>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 group-hover:text-muted-foreground transition-colors" />
+      </button>
+    );
+  }
 
   return (
     <button
