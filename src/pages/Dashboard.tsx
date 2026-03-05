@@ -156,13 +156,6 @@ export default function Dashboard() {
     }
   };
 
-  const greeting = (() => {
-    const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 18) return "Good afternoon";
-    return "Good evening";
-  })();
-
   const activeCount = tasks.filter(t => t.status !== "completed" && t.status !== "cancelled").length;
 
   if (loading) {
@@ -173,9 +166,8 @@ export default function Dashboard() {
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-fade-in">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-title flex items-center gap-2">{greeting}</h1>
-          <p className="text-small text-muted-foreground mt-1">
-            {activeCount} active tasks · {overdueTasks.length} overdue
+          <p className="text-small text-muted-foreground">
+            {activeCount} active · {overdueTasks.length} overdue
           </p>
         </div>
         <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
