@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { fetchSpaces } from "@/lib/api";
 import { SpaceCard } from "@/components/SpaceCard";
 import { CreateSpaceDialog } from "@/components/CreateSpaceDialog";
+import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Spaces() {
   const [spaces, setSpaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingSpace, setEditingSpace] = useState<any>(null);
 
   const load = async () => {
     try {
@@ -39,13 +41,27 @@ export default function Spaces() {
 
       {spaces.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {spaces.map(s => <SpaceCard key={s.id} space={s} />)}
+          {spaces.map(s => (
+            <div key={s.id} onDoubleClick={() => setEditingSpace(s)} title="Duplo clique para editar">
+              <SpaceCard space={s} />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="text-center py-12">
           <FolderOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">No spaces yet. Create your first one!</p>
         </div>
+      )}
+
+      {editingSpace && (
+        <EditSpaceDialog
+          space={editingSpace}
+          open={!!editingSpace}
+          onOpenChange={(open) => { if (!open) setEditingSpace(null); }}
+          onUpdated={() => { setEditingSpace(null); load(); }}
+          onDeleted={() => { setEditingSpace(null); load(); }}
+        />
       )}
     </div>
   );
