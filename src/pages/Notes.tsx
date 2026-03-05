@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SpaceIcon } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -255,11 +257,22 @@ export default function Notes() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <select value={editSpaceId} onChange={e => { setEditSpaceId(e.target.value); setDirty(true); }}
-                    className="bg-background border border-border rounded-lg px-2 py-1 text-xs outline-none focus:border-primary">
-                    <option value="">Sem espaço</option>
-                    {spaces.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
-                  </select>
+                  <Select value={editSpaceId || "none"} onValueChange={v => { setEditSpaceId(v === "none" ? "" : v); setDirty(true); }}>
+                    <SelectTrigger className="w-auto h-7 text-xs gap-1.5 px-2">
+                      <SelectValue placeholder="Sem espaço" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem espaço</SelectItem>
+                      {spaces.map(s => (
+                        <SelectItem key={s.id} value={s.id}>
+                          <span className="flex items-center gap-2">
+                            <SpaceIcon iconKey={s.icon} className="h-4 w-4" />
+                            {s.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
                   <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
                     <Tag className="h-3 w-3 text-muted-foreground flex-shrink-0" />
