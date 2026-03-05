@@ -24,7 +24,7 @@ export default function Tasks() {
   const [filter, setFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
-  const [groupBy, setGroupBy] = useState("none");
+  const [groupBy, setGroupBy] = useState("space");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<any | null>(null);
@@ -92,6 +92,15 @@ export default function Tasks() {
         ungrouped.push(t);
       }
     }
+    // Sort tasks by due_date within each group
+    const sortByDate = (tasks: any[]) => tasks.sort((a, b) => {
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return a.due_date.localeCompare(b.due_date);
+    });
+    Object.values(groups).forEach(g => sortByDate(g.tasks));
+    sortByDate(ungrouped);
     return { groups: Object.values(groups).sort((a, b) => a.name.localeCompare(b.name)), ungrouped };
   }, [filtered, groupBy]);
 

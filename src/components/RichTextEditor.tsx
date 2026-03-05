@@ -20,12 +20,13 @@ interface RichTextEditorProps {
   editable?: boolean;
   className?: string;
   onTagsDetected?: (tags: string[]) => void;
+  onTaskDetected?: (taskTitle: string) => void;
   noteId?: string | null;
   existingTags?: string[];
 }
 
 export function RichTextEditor({
-  content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [],
+  content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, onTaskDetected, noteId = null, existingTags = [],
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -45,12 +46,32 @@ export function RichTextEditor({
       const html = editor.getHTML();
       onChange(html);
 
-      // Detect #tags in text — only completed tags (followed by space, punctuation, or end of line)
+      const text = editor.getText();
+
+      // Detect #tags in text
       if (onTagsDetected) {
-        const text = editor.getText();
         const tagMatches = text.match(/#(\w[\w-]*)(?=[\s,.;:!?\n])/g);
         const tags = tagMatches ? [...new Set(tagMatches.map(t => t.slice(1)))] : [];
         onTagsDetected(tags);
+      }
+
+      // Detect (task title) pattern for inline task creation
+      if (onTaskDetected) {
+        const taskMatches = text.match(/\(([^)]{2,})\)/g);
+        if (taskMatches) {
+          for (const match of taskMatches) {
+            const taskTitle = match.slice(1, -1).trim();
+            if (taskTitle && !taskTitle.startsWith("#")) {
+              onTaskDetected(taskTitle);
+              // Remove the () pattern from text after detection
+              const newHtml = editor.getHTML().replace(`(${taskTitle})`, taskTitle);
+              if (newHtml !== editor.getHTML()) {
+                editor.commands.setContent(newHtml);
+                onChange(newHtml);
+              }
+            }
+          }
+        }
       }
     },
     editorProps: {
