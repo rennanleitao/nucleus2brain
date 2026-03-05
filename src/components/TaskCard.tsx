@@ -84,12 +84,12 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
 
   return (
     <div ref={ref} className={`group rounded-lg border border-border bg-card hover:shadow-card transition-all animate-fade-in ${isCompleted ? "opacity-60" : ""}`}>
-      <div className="flex items-start gap-3 p-3">
+      <div className="flex items-start gap-3 p-3 sm:p-3">
         <button
           onClick={(e) => { e.stopPropagation(); onToggle?.(task.id); }}
-          className={`mt-0.5 flex-shrink-0 transition-colors ${isCompleted ? "text-muted-foreground" : "text-muted-foreground hover:text-primary"}`}
+          className={`mt-0.5 flex-shrink-0 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -m-2 touch-manipulation ${isCompleted ? "text-muted-foreground" : "text-muted-foreground hover:text-primary"}`}
         >
-          <StatusIcon className="h-4 w-4" />
+          <StatusIcon className="h-5 w-5 sm:h-4 sm:w-4" />
         </button>
 
         <div className="flex-1 min-w-0">
@@ -123,8 +123,8 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
 
         {onDelete && (
           <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all flex-shrink-0">
-            <Trash2 className="h-3.5 w-3.5" />
+            className="opacity-0 group-hover:opacity-100 sm:opacity-0 text-muted-foreground hover:text-destructive transition-all flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center -m-2 touch-manipulation">
+            <Trash2 className="h-4 w-4" />
           </button>
         )}
       </div>

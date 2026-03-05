@@ -40,27 +40,27 @@ export function QuickCapture() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex-1 max-w-md mx-4">
-      <div className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-all ${
+    <form onSubmit={handleSubmit} className="flex-1 max-w-md mx-2 sm:mx-4">
+      <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 sm:py-1.5 transition-all ${
         focused ? "border-primary bg-card shadow-elevated" : "border-border bg-secondary/50"
       }`}>
         {loading ? (
-          <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+          <Loader2 className="h-4 w-4 text-primary animate-spin flex-shrink-0" />
         ) : (
-          <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+          <Zap className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         )}
         <input
           type="text"
-          placeholder="Quick capture — type a task and press Enter..."
+          placeholder={focused ? "Type a task and press Enter..." : "Quick capture..."}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 min-w-0"
           disabled={loading}
         />
         {value && (
-          <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+          <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono flex-shrink-0">
             ↵
           </kbd>
         )}

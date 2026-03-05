@@ -157,8 +157,8 @@ export default function Notes() {
                 <FileText className="h-4 w-4 text-muted-foreground" /> Notas
                 <Badge variant="secondary" className="text-[10px] ml-1">{notes.length}</Badge>
               </h2>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleCreateNote}>
-                <Plus className="h-4 w-4" />
+              <Button size="icon" variant="ghost" className="h-10 w-10 touch-manipulation" onClick={handleCreateNote}>
+                <Plus className="h-5 w-5" />
               </Button>
             </div>
 
@@ -192,7 +192,7 @@ export default function Notes() {
                 <button
                   key={note.id}
                   onClick={() => selectNote(note)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
+                  className={`w-full text-left p-3 sm:p-3 rounded-lg transition-colors touch-manipulation active:scale-[0.98] ${
                     selectedNote?.id === note.id
                       ? "bg-accent text-accent-foreground"
                       : "hover:bg-accent/50"
@@ -229,9 +229,9 @@ export default function Notes() {
             <>
               <div className="p-3 sm:p-4 border-b border-border space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  {isMobile && (
-                    <Button size="icon" variant="ghost" className="h-8 w-8 flex-shrink-0" onClick={handleBack}>
-                      <ArrowLeft className="h-4 w-4" />
+                   {isMobile && (
+                     <Button size="icon" variant="ghost" className="h-10 w-10 flex-shrink-0 touch-manipulation" onClick={handleBack}>
+                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                   )}
                   <input
