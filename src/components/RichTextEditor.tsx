@@ -56,25 +56,49 @@ export function RichTextEditor({
       }
 
       // Detect () task title pattern for inline task creation
+      // Matches "()" followed by optional space and task name, only on completed lines
       if (onTaskDetected) {
-        const taskMatches = text.match(/\(\)\s+([^\n]{2,})/g);
+        const taskMatches = text.match(/\(\)\s*(.{2,})/g);
         if (taskMatches) {
+          // Only process if user just pressed Enter (text ends with newline or cursor moved to new line)
+          const htmlContent = editor.getHTML();
           for (const match of taskMatches) {
-            const taskTitle = match.replace(/^\(\)\s+/, "").trim();
-            if (taskTitle && !taskTitle.startsWith("#")) {
-              onTaskDetected(taskTitle);
-              // Replace "() task title" with a checklist item in the editor
-              const currentHtml = editor.getHTML();
-              const escapedMatch = match.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              const newHtml = currentHtml.replace(
-                new RegExp(escapedMatch),
-                ""
-              );
-              editor.commands.setContent(newHtml);
-              // Append a task list item at the end or where cursor is
-              editor.chain().focus().enter().toggleTaskList().insertContent(taskTitle).run();
-              onChange(editor.getHTML());
-            }
+            const taskTitle = match.replace(/^\(\)\s*/, "").trim();
+            if (!taskTitle || taskTitle.startsWith("#")) continue;
+
+            // Check this pattern exists in a completed paragraph (not being actively typed)
+            // We detect completion by checking if there's content after this line or it ends
+            const matchInHtml = htmlContent.includes(`()${taskTitle}`) || htmlContent.includes(`() ${taskTitle}`);
+            if (!matchInHtml) continue;
+
+            // Remove the raw text pattern from HTML
+            let newHtml = htmlContent
+              .replace(`() ${taskTitle}`, "")
+              .replace(`()${taskTitle}`, "");
+
+            // Clean up empty paragraphs left behind
+            newHtml = newHtml.replace(/<p>\s*<\/p>/g, "");
+
+            editor.commands.setContent(newHtml || "<p></p>");
+
+            // Insert a task list checklist item
+            editor
+              .chain()
+              .focus()
+              .insertContent({
+                type: "taskList",
+                content: [
+                  {
+                    type: "taskItem",
+                    attrs: { checked: false },
+                    content: [{ type: "paragraph", content: [{ type: "text", text: taskTitle }] }],
+                  },
+                ],
+              })
+              .run();
+
+            onChange(editor.getHTML());
+            onTaskDetected(taskTitle);
           }
         }
       }
