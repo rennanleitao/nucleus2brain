@@ -55,20 +55,25 @@ export function RichTextEditor({
         onTagsDetected(tags);
       }
 
-      // Detect (task title) pattern for inline task creation
+      // Detect () task title pattern for inline task creation
       if (onTaskDetected) {
-        const taskMatches = text.match(/\(([^)]{2,})\)/g);
+        const taskMatches = text.match(/\(\)\s+([^\n]{2,})/g);
         if (taskMatches) {
           for (const match of taskMatches) {
-            const taskTitle = match.slice(1, -1).trim();
+            const taskTitle = match.replace(/^\(\)\s+/, "").trim();
             if (taskTitle && !taskTitle.startsWith("#")) {
               onTaskDetected(taskTitle);
-              // Remove the () pattern from text after detection
-              const newHtml = editor.getHTML().replace(`(${taskTitle})`, taskTitle);
-              if (newHtml !== editor.getHTML()) {
-                editor.commands.setContent(newHtml);
-                onChange(newHtml);
-              }
+              // Replace "() task title" with a checklist item in the editor
+              const currentHtml = editor.getHTML();
+              const escapedMatch = match.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const newHtml = currentHtml.replace(
+                new RegExp(escapedMatch),
+                ""
+              );
+              editor.commands.setContent(newHtml);
+              // Append a task list item at the end or where cursor is
+              editor.chain().focus().enter().toggleTaskList().insertContent(taskTitle).run();
+              onChange(editor.getHTML());
             }
           }
         }
