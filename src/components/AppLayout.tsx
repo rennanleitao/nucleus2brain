@@ -16,7 +16,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center justify-between border-b border-border px-4 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex items-center gap-3">
-              <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+              <SidebarTrigger className="h-9 w-9 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground touch-manipulation" />
             </div>
             <QuickCapture />
             <button
