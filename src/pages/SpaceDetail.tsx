@@ -308,18 +308,9 @@ export default function SpaceDetail() {
                     return [...new Set([...tags])];
                   });
                 }}
-                onTaskDetected={async (taskTitle) => {
-                  try {
-                    await createTask({ title: taskTitle, space_id: id! });
-                    toast.success(`Task criada: ${taskTitle}`);
-                    load();
-                  } catch (err: any) {
-                    toast.error(err.message);
-                  }
-                }}
                 noteId={selectedNote?.id}
                 existingTags={[...new Set(notes.flatMap((n: any) => n.tags || []))]}
-                placeholder="Comece a escrever... Use #tag para tags, (texto) para criar tasks"
+                placeholder="Comece a escrever... Use #tag para tags, ()Task para criar tasks ao salvar"
               />
             </div>
           ) : (
