@@ -245,6 +245,19 @@ export default function SpaceDetail() {
 
         {/* NOTES TAB */}
         <TabsContent value="notes" className="space-y-3">
+          {/* Fixed tasks box in notes tab */}
+          {tasks.filter(t => t.status !== "completed" && t.status !== "cancelled").length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+              <h3 className="text-small font-semibold flex items-center gap-1.5">
+                <CheckSquare className="h-4 w-4 text-muted-foreground" /> Tasks deste espaço
+              </h3>
+              <div className="space-y-1.5">
+                {tasks.filter(t => t.status !== "completed" && t.status !== "cancelled").map(t => (
+                  <TaskCard key={t.id} task={t} onToggle={() => toggleTask(t.id)} hideSpace />
+                ))}
+              </div>
+            </div>
+          )}
           {selectedNote ? (
             /* Inline rich editor */
             <div className="space-y-3">
@@ -291,9 +304,18 @@ export default function SpaceDetail() {
                     return [...new Set([...tags])];
                   });
                 }}
+                onTaskDetected={async (taskTitle) => {
+                  try {
+                    await createTask({ title: taskTitle, space_id: id! });
+                    toast.success(`Task criada: ${taskTitle}`);
+                    load();
+                  } catch (err: any) {
+                    toast.error(err.message);
+                  }
+                }}
                 noteId={selectedNote?.id}
                 existingTags={[...new Set(notes.flatMap((n: any) => n.tags || []))]}
-                placeholder="Comece a escrever... Use #tag para criar tags"
+                placeholder="Comece a escrever... Use #tag para tags, (texto) para criar tasks"
               />
             </div>
           ) : (

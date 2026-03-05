@@ -48,7 +48,7 @@ function AppRoutes() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/assistant" element={<Assistant />} />
             <Route path="/import" element={<ImportPage />} />
-            <Route path="/history" element={<History />} />
+            
             <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

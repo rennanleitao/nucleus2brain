@@ -7,7 +7,7 @@ import {
   Calendar, 
   Bot, 
   Upload,
-  History,
+  
   Settings,
   Tag,
   Zap,
@@ -39,7 +39,7 @@ const navItems = [
   { title: "Notes", url: "/notes", icon: FileText },
   { title: "Tags", url: "/tags", icon: Tag },
   { title: "Calendar", url: "/calendar", icon: Calendar },
-  { title: "History", url: "/history", icon: History },
+  
   { title: "AI Assistant", url: "/assistant", icon: Bot },
   { title: "Import", url: "/import", icon: Upload },
 ];

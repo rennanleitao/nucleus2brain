@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote } from "@/lib/api";
+import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace } from "@/lib/api";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X,
+  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -281,9 +281,21 @@ export default function Notes() {
                   content={editContent}
                   onChange={(html) => { setEditContent(html); setDirty(true); }}
                   onTagsDetected={handleTagsDetected}
+                  onTaskDetected={async (taskTitle) => {
+                    if (editSpaceId) {
+                      try {
+                        await createTask({ title: taskTitle, space_id: editSpaceId });
+                        toast.success(`Task criada: ${taskTitle}`);
+                      } catch (err: any) {
+                        toast.error(err.message);
+                      }
+                    } else {
+                      toast("Associe um espaço à nota para criar tasks com ()");
+                    }
+                  }}
                   noteId={selectedNote?.id}
                   existingTags={allTags}
-                  placeholder="Comece a escrever... Use #tag para criar tags"
+                  placeholder="Comece a escrever... Use #tag para criar tags, (texto) para criar tasks"
                   className="border-0 rounded-none min-h-full"
                 />
               </div>
