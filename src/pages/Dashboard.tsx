@@ -269,12 +269,12 @@ export default function Dashboard() {
             value={chatInput}
             onChange={e => setChatInput(e.target.value)}
             placeholder="Pergunte algo ou peça para criar uma task..."
-            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-xs outline-none focus:border-primary placeholder:text-muted-foreground/60"
+            className="flex-1 bg-background border border-border rounded-lg px-3 py-2.5 sm:py-2 text-sm sm:text-xs outline-none focus:border-primary placeholder:text-muted-foreground/60 min-w-0"
             disabled={chatLoading}
           />
           <button type="submit" disabled={!chatInput.trim() || chatLoading}
-            className="bg-primary text-primary-foreground rounded-lg px-3 py-2 disabled:opacity-40 transition-opacity">
-            <Send className="h-3.5 w-3.5" />
+            className="bg-primary text-primary-foreground rounded-lg px-3 py-2.5 sm:py-2 disabled:opacity-40 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation">
+            <Send className="h-4 w-4" />
           </button>
         </form>
       </div>

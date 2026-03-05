@@ -209,17 +209,17 @@ export default function Tasks() {
       </div>
 
       <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-wrap sm:flex-nowrap">
+        <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-nowrap">
           {statusFilters.map(f => (
-            <TabsTrigger key={f.value} value={f.value} className="text-small flex-shrink-0">{f.label}</TabsTrigger>
+            <TabsTrigger key={f.value} value={f.value} className="text-small flex-shrink-0 min-h-[40px] touch-manipulation">{f.label}</TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
         <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-small"><SelectValue placeholder="Priority" /></SelectTrigger>
+          <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All priorities</SelectItem>
             <SelectItem value="high">High</SelectItem>
@@ -228,7 +228,7 @@ export default function Tasks() {
           </SelectContent>
         </Select>
         <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-small"><SelectValue placeholder="Date" /></SelectTrigger>
+          <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Date" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All dates</SelectItem>
             <SelectItem value="overdue">Overdue</SelectItem>
@@ -238,7 +238,7 @@ export default function Tasks() {
           </SelectContent>
         </Select>
         <Select value={groupBy} onValueChange={setGroupBy}>
-          <SelectTrigger className="w-[140px] h-8 text-small"><SelectValue placeholder="Group by" /></SelectTrigger>
+          <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none">No grouping</SelectItem>
             <SelectItem value="space">By Space</SelectItem>
