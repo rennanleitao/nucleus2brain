@@ -65,10 +65,10 @@ export default function History() {
     <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-title flex items-center gap-2">
             <HistoryIcon className="h-5 w-5 text-muted-foreground" /> Histórico
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{tasks.length} atividades concluídas</p>
+          <p className="text-small text-muted-foreground mt-1">{tasks.length} atividades concluídas</p>
         </div>
         <Tabs value={groupMode} onValueChange={(v) => setGroupMode(v as GroupMode)}>
           <TabsList className="bg-muted">
@@ -92,7 +92,7 @@ export default function History() {
           {Object.entries(groups).map(([label, items]) => (
             <div key={label}>
               <div className="flex items-center gap-2 mb-3">
-                <h2 className="text-sm font-semibold text-foreground capitalize">{label}</h2>
+                <h2 className="text-h2 text-foreground capitalize">{label}</h2>
                 <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
               </div>
               <div className="space-y-1.5">
@@ -100,7 +100,7 @@ export default function History() {
                   <div key={t.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
                     <div className={`h-2 w-2 rounded-full flex-shrink-0 ${t.status === "completed" ? "bg-[hsl(var(--status-completed))]" : "bg-[hsl(var(--status-cancelled))]"}`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground line-through opacity-70">{t.title}</p>
+                      <p className="text-small text-foreground line-through opacity-70">{t.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         {groupMode === "date" && t.spaces?.name && (
                           <span className="text-[11px] text-muted-foreground">{t.spaces.name}</span>

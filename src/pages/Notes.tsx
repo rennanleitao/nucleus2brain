@@ -153,7 +153,7 @@ export default function Notes() {
         <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border flex flex-col bg-muted/20 flex-shrink-0`}>
           <div className="p-3 border-b border-border space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold flex items-center gap-1.5">
+              <h2 className="text-small font-semibold flex items-center gap-1.5">
                 <FileText className="h-4 w-4 text-muted-foreground" /> Notas
                 <Badge variant="secondary" className="text-[10px] ml-1">{notes.length}</Badge>
               </h2>
@@ -198,7 +198,7 @@ export default function Notes() {
                       : "hover:bg-accent/50"
                   }`}
                 >
-                  <p className="text-sm font-medium truncate">{note.title}</p>
+                  <p className="text-small font-medium truncate">{note.title}</p>
                   <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
                     {stripHtml(note.content || "Sem conteúdo")}
                   </p>
@@ -237,7 +237,7 @@ export default function Notes() {
                   <input
                     type="text" value={editTitle}
                     onChange={e => { setEditTitle(e.target.value); setDirty(true); }}
-                    className="flex-1 text-lg sm:text-xl font-bold bg-transparent outline-none placeholder:text-muted-foreground min-w-0"
+                    className="flex-1 text-h1 bg-transparent outline-none placeholder:text-muted-foreground min-w-0"
                     placeholder="Título da nota"
                   />
                   <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -292,7 +292,7 @@ export default function Notes() {
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-3">Selecione uma nota ou crie uma nova</p>
+                <p className="text-small text-muted-foreground mb-3">Selecione uma nota ou crie uma nova</p>
                 <Button onClick={handleCreateNote} className="gradient-primary text-primary-foreground border-0">
                   <Plus className="h-4 w-4 mr-1" /> Nova Nota
                 </Button>

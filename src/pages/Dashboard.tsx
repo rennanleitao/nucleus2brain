@@ -11,8 +11,8 @@ function SectionHeader({ icon: Icon, title, count }: { icon: React.ElementType; 
   return (
     <div className="flex items-center gap-2 mb-3">
       <Icon className="h-4 w-4 text-muted-foreground" />
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{count}</span>
+      <h2 className="text-h2">{title}</h2>
+      <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{count}</span>
     </div>
   );
 }
@@ -76,8 +76,8 @@ export default function Dashboard() {
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-fade-in">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{greeting}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-title flex items-center gap-2">{greeting}</h1>
+          <p className="text-small text-muted-foreground mt-1">
             {activeCount} active tasks · {overdueTasks.length} overdue
           </p>
         </div>
@@ -89,9 +89,9 @@ export default function Dashboard() {
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-primary uppercase tracking-wider">Focus</span>
+            <span className="text-micro font-semibold text-primary uppercase tracking-wider">Focus</span>
           </div>
-          <p className="text-sm text-foreground/80 leading-relaxed">
+          <p className="text-small text-foreground/80 leading-relaxed">
             {overdueTasks.length > 0 && `You have ${overdueTasks.length} overdue task${overdueTasks.length > 1 ? "s" : ""} to address. `}
             {todayTasks.length > 0 && `${todayTasks.length} task${todayTasks.length > 1 ? "s" : ""} due today.`}
             {todayTasks.length === 0 && overdueTasks.length === 0 && "All clear! Great job staying on top of things."}
@@ -115,7 +115,7 @@ export default function Dashboard() {
             {todayTasks.length > 0 ? (
               todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No tasks due today</p>
+              <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
             )}
           </div>
         </section>

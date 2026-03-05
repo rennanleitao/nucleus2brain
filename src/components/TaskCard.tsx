@@ -51,7 +51,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onTog
       </button>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium leading-tight ${isCompleted ? "line-through" : ""}`}>
+        <p className={`text-small font-medium leading-tight ${isCompleted ? "line-through" : ""}`}>
           {task.title}
         </p>
         <div className="flex items-center gap-2 mt-1.5">

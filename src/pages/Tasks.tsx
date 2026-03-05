@@ -72,10 +72,10 @@ export default function Tasks() {
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-title flex items-center gap-2">
             <CheckSquare className="h-5 w-5 text-muted-foreground" /> Tasks
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{tasks.filter(t => t.status !== "completed").length} active tasks</p>
+          <p className="text-small text-muted-foreground mt-1">{tasks.filter(t => t.status !== "completed").length} active tasks</p>
         </div>
         <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
       </div>
@@ -83,7 +83,7 @@ export default function Tasks() {
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-wrap sm:flex-nowrap">
           {statusFilters.map(f => (
-            <TabsTrigger key={f.value} value={f.value} className="text-xs flex-shrink-0">{f.label}</TabsTrigger>
+            <TabsTrigger key={f.value} value={f.value} className="text-small flex-shrink-0">{f.label}</TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
@@ -98,7 +98,7 @@ export default function Tasks() {
         ) : (
           <div className="text-center py-12">
             <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No tasks here</p>
+            <p className="text-small text-muted-foreground">No tasks here</p>
           </div>
         )}
       </div>

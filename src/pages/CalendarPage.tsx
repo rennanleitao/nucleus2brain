@@ -376,16 +376,16 @@ export default function CalendarPage() {
     return (
       <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-title flex items-center gap-2">
             <CalIcon className="h-5 w-5 text-muted-foreground" /> Calendar
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Conecte o Google Calendar para sincronizar seus eventos</p>
+          <p className="text-small text-muted-foreground mt-1">Conecte o Google Calendar para sincronizar seus eventos</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-8">
           <div className="text-center py-8 space-y-4">
             <CalIcon className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h3 className="text-base font-semibold">Conectar Google Calendar</h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            <h3 className="text-h2">Conectar Google Calendar</h3>
+            <p className="text-small text-muted-foreground max-w-md mx-auto">
               Visualize, crie e gerencie eventos diretamente do Nucleus. Selecione quais calendários exibir.
             </p>
             <Button onClick={connectGoogle} className="gradient-primary text-primary-foreground">
@@ -403,10 +403,10 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-title flex items-center gap-2">
             <CalIcon className="h-5 w-5 text-muted-foreground" /> Calendar
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{connectedEmail}</p>
+          <p className="text-micro text-muted-foreground mt-0.5">{connectedEmail}</p>
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={showCreateEvent} onOpenChange={setShowCreateEvent}>

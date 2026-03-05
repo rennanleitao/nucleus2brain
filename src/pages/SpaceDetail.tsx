@@ -182,8 +182,8 @@ export default function SpaceDetail() {
         <div className="flex items-center gap-3 flex-1">
           <SpaceIcon iconKey={space.icon} className="h-7 w-7 text-muted-foreground" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{space.name}</h1>
-            {space.description && <p className="text-sm text-muted-foreground">{space.description}</p>}
+            <h1 className="text-title">{space.name}</h1>
+            {space.description && <p className="text-small text-muted-foreground">{space.description}</p>}
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setEditSpaceOpen(true)}>

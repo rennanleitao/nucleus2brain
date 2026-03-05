@@ -142,10 +142,10 @@ export default function Assistant() {
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
       <div className="p-4 border-b border-border">
-        <h1 className="text-lg font-bold flex items-center gap-2">
+        <h1 className="text-h1 flex items-center gap-2">
           <Bot className="h-5 w-5 text-primary" /> AI Assistant
         </h1>
-        <p className="text-xs text-muted-foreground">Create tasks, prioritize, plan — powered by AI</p>
+        <p className="text-micro text-muted-foreground">Create tasks, prioritize, plan — powered by AI</p>
       </div>
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
@@ -156,7 +156,7 @@ export default function Assistant() {
                 <Bot className="h-3.5 w-3.5 text-primary-foreground" />
               </div>
             )}
-            <div className={`max-w-[75%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
+            <div className={`max-w-[75%] rounded-xl px-4 py-2.5 text-small leading-relaxed ${
               msg.role === "user"
                 ? "bg-primary text-primary-foreground"
                 : "bg-card border border-border"
