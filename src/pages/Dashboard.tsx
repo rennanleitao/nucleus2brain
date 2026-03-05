@@ -1,9 +1,19 @@
-import { useEffect, useState } from "react";
-import { fetchTasks, updateTask, fetchSpaces } from "@/lib/api";
+import { useEffect, useState, useRef } from "react";
+import { fetchTasks, updateTask, fetchSpaces, createTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
-import { Clock, AlertTriangle, TrendingUp, Sparkles } from "lucide-react";
+import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import { useAuth } from "@/hooks/useAuth";
+
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -18,9 +28,18 @@ function SectionHeader({ icon: Icon, title, count }: { icon: React.ElementType; 
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    { id: "1", role: "assistant", content: "Olá! Como posso ajudar? Posso criar tasks, priorizar seu dia ou responder perguntas." },
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
     try {
@@ -34,6 +53,84 @@ export default function Dashboard() {
   };
 
   useEffect(() => { load(); }, []);
+  useEffect(() => { chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
+
+  const sendChatMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading) return;
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: chatInput };
+    const newMessages = [...chatMessages, userMsg];
+    setChatMessages(newMessages);
+    setChatInput("");
+    setChatLoading(true);
+
+    let context: any = {};
+    try {
+      context = {
+        tasks: tasks.slice(0, 20).map(t => ({ id: t.id, title: t.title, status: t.status, priority: t.priority, due_date: t.due_date, space: t.spaces?.name })),
+        spaces: spaces.map((s: any) => ({ id: s.id, name: s.name })),
+        today: new Date().toISOString().split("T")[0],
+      };
+    } catch {}
+
+    let assistantContent = "";
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })), context }),
+      });
+      if (!resp.ok) throw new Error("AI request failed");
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error("No stream");
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const json = line.slice(6).trim();
+          if (json === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(json);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantContent += content;
+              setChatMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant" && last.id.startsWith("ai-"))
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+                return [...prev, { id: "ai-" + Date.now(), role: "assistant", content: assistantContent }];
+              });
+            }
+          } catch { buffer = line + "\n" + buffer; break; }
+        }
+      }
+      const actionMatch = assistantContent.match(/```action\s*\n?([\s\S]*?)```/);
+      if (actionMatch) {
+        try {
+          const action = JSON.parse(actionMatch[1]);
+          if (action.action === "create_task") {
+            await createTask({ title: action.title, priority: action.priority || "medium", due_date: action.due_date || null, description: action.description || null });
+            toast.success(`Task criada: ${action.title}`);
+            load();
+          }
+        } catch {}
+      }
+    } catch (err: any) {
+      if (!assistantContent) {
+        setChatMessages(prev => [...prev, { id: "err-" + Date.now(), role: "assistant", content: "Desculpe, ocorreu um erro. Tente novamente." }]);
+      }
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   const todayTasks = tasks.filter(t => t.due_date === today && t.status !== "completed");
   const overdueTasks = tasks.filter(t => t.due_date && t.due_date < today && t.status !== "completed");
@@ -128,6 +225,66 @@ export default function Dashboard() {
             </div>
           </section>
         )}
+      </div>
+
+      {/* Assistant Chat */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="p-3 border-b border-border flex items-center gap-2">
+          <Bot className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Assistant</span>
+        </div>
+        <div className="max-h-64 overflow-auto p-3 space-y-3">
+          {chatMessages.map(msg => (
+            <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
+              {msg.role === "assistant" && (
+                <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Bot className="h-3 w-3 text-primary" />
+                </div>
+              )}
+              <div className={`max-w-[80%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+              }`}>
+                {msg.role === "assistant" ? (
+                  <div className="prose prose-xs max-w-none dark:prose-invert">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : msg.content}
+              </div>
+              {msg.role === "user" && (
+                <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                  <User className="h-3 w-3 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          ))}
+          {chatLoading && chatMessages[chatMessages.length - 1]?.role !== "assistant" && (
+            <div className="flex gap-2">
+              <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Bot className="h-3 w-3 text-primary" />
+              </div>
+              <div className="bg-muted rounded-lg px-3 py-2 flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse" />
+                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.2s]" />
+                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.4s]" />
+              </div>
+            </div>
+          )}
+          <div ref={chatBottomRef} />
+        </div>
+        <form onSubmit={sendChatMessage} className="p-3 border-t border-border flex gap-2">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={e => setChatInput(e.target.value)}
+            placeholder="Pergunte algo ou peça para criar uma task..."
+            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-xs outline-none focus:border-primary placeholder:text-muted-foreground/60"
+            disabled={chatLoading}
+          />
+          <button type="submit" disabled={!chatInput.trim() || chatLoading}
+            className="bg-primary text-primary-foreground rounded-lg px-3 py-2 disabled:opacity-40 transition-opacity">
+            <Send className="h-3.5 w-3.5" />
+          </button>
+        </form>
       </div>
     </div>
   );

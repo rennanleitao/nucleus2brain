@@ -143,9 +143,9 @@ export default function Assistant() {
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
       <div className="p-4 border-b border-border">
         <h1 className="text-h1 flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" /> AI Assistant
+          <Bot className="h-5 w-5 text-primary" /> Assistant
         </h1>
-        <p className="text-micro text-muted-foreground">Create tasks, prioritize, plan — powered by AI</p>
+        <p className="text-micro text-muted-foreground">Crie tasks, priorize, planeje — com ajuda de IA</p>
       </div>
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
