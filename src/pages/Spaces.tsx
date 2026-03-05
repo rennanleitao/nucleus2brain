@@ -3,13 +3,14 @@ import { fetchSpaces } from "@/lib/api";
 import { SpaceCard } from "@/components/SpaceCard";
 import { CreateSpaceDialog } from "@/components/CreateSpaceDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Spaces() {
   const [spaces, setSpaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSpace, setEditingSpace] = useState<any>(null);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     try {
@@ -23,8 +24,13 @@ export default function Spaces() {
 
   useEffect(() => { load(); }, []);
 
+  const filtered = spaces.filter(s =>
+    !search || s.name.toLowerCase().includes(search.toLowerCase()) ||
+    (s.description || "").toLowerCase().includes(search.toLowerCase())
+  );
+
   if (loading) {
-    return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
+    return <div className="p-6 flex items-center justify-center"><p className="text-small text-muted-foreground">Loading...</p></div>;
   }
 
   return (
@@ -39,9 +45,20 @@ export default function Spaces() {
         <CreateSpaceDialog onCreated={load} />
       </div>
 
-      {spaces.length > 0 ? (
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar spaces..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full bg-background border border-border rounded-lg pl-9 pr-3 py-2 text-small outline-none focus:border-foreground transition-colors"
+        />
+      </div>
+
+      {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {spaces.map(s => (
+          {filtered.map(s => (
             <div key={s.id} onDoubleClick={() => setEditingSpace(s)} title="Duplo clique para editar">
               <SpaceCard space={s} />
             </div>
@@ -50,7 +67,9 @@ export default function Spaces() {
       ) : (
         <div className="text-center py-12">
           <FolderOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-small text-muted-foreground">No spaces yet. Create your first one!</p>
+          <p className="text-small text-muted-foreground">
+            {search ? "Nenhum space encontrado" : "No spaces yet. Create your first one!"}
+          </p>
         </div>
       )}
 

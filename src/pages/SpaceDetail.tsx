@@ -220,23 +220,27 @@ export default function SpaceDetail() {
 
         {/* TASKS TAB */}
         <TabsContent value="tasks" className="space-y-3">
-          <div className="flex justify-end">
-            <CreateTaskDialog spaces={[{ id: space.id, name: space.name }]} onCreated={load} />
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-small font-semibold flex items-center gap-1.5">
+                <CheckSquare className="h-4 w-4 text-muted-foreground" /> Tasks
+              </h3>
+              <CreateTaskDialog spaces={[{ id: space.id, name: space.name }]} onCreated={load} />
+            </div>
+            {tasks.length > 0 ? (
+              <div className="space-y-2">
+                {tasks.map(t => (
+                  <div key={t.id} onClick={() => setEditingTask(t)} className="cursor-pointer">
+                    <TaskCard task={t} onToggle={() => toggleTask(t.id)} onDelete={() => handleDeleteTask(t.id)} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-small text-muted-foreground">Nenhuma tarefa neste espaço</p>
+              </div>
+            )}
           </div>
-          {tasks.length > 0 ? (
-            <div className="space-y-2">
-              {tasks.map(t => (
-                <div key={t.id} onClick={() => setEditingTask(t)} className="cursor-pointer">
-                  <TaskCard task={t} onToggle={() => toggleTask(t.id)} onDelete={() => handleDeleteTask(t.id)} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <CheckSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Nenhuma tarefa neste espaço</p>
-            </div>
-          )}
         </TabsContent>
 
         {/* NOTES TAB */}

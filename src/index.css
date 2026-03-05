@@ -10,61 +10,61 @@
     --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    /* Colors */
-    --background: 220 16% 96%;
-    --foreground: 220 20% 10%;
+    /* Colors — grayscale minimalist */
+    --background: 0 0% 97%;
+    --foreground: 0 0% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 250 65% 55%;
+    --primary: 0 0% 15%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 92%;
-    --secondary-foreground: 220 20% 20%;
+    --secondary: 0 0% 93%;
+    --secondary-foreground: 0 0% 15%;
 
-    --muted: 220 14% 94%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 170 60% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 0 0% 93%;
+    --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 89%;
-    --input: 220 14% 89%;
-    --ring: 250 65% 55%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 15%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 20% 10%;
-    --sidebar-foreground: 220 10% 75%;
-    --sidebar-primary: 250 65% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 18% 16%;
-    --sidebar-accent-foreground: 220 10% 85%;
-    --sidebar-border: 220 16% 18%;
-    --sidebar-ring: 250 65% 55%;
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 70%;
+    --sidebar-primary: 0 0% 85%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 0 0% 13%;
+    --sidebar-accent-foreground: 0 0% 85%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 0 0% 40%;
 
     /* Custom tokens */
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 220 16% 94%;
-    --priority-high: 0 72% 55%;
-    --priority-medium: 38 92% 50%;
-    --priority-low: 170 60% 45%;
-    --status-todo: 220 10% 60%;
-    --status-progress: 250 65% 55%;
-    --status-waiting: 38 92% 50%;
-    --status-completed: 170 60% 45%;
-    --status-cancelled: 0 10% 60%;
-    --gradient-primary: linear-gradient(135deg, hsl(250, 65%, 55%), hsl(280, 70%, 60%));
-    --gradient-accent: linear-gradient(135deg, hsl(170, 60%, 45%), hsl(200, 70%, 50%));
-    --shadow-card: 0 1px 3px 0 hsl(220 20% 10% / 0.04), 0 1px 2px -1px hsl(220 20% 10% / 0.04);
-    --shadow-elevated: 0 4px 16px -2px hsl(220 20% 10% / 0.08), 0 2px 4px -2px hsl(220 20% 10% / 0.04);
+    --surface-sunken: 0 0% 95%;
+    --priority-high: 0 65% 50%;
+    --priority-medium: 38 75% 50%;
+    --priority-low: 150 40% 45%;
+    --status-todo: 0 0% 55%;
+    --status-progress: 0 0% 30%;
+    --status-waiting: 38 75% 50%;
+    --status-completed: 150 40% 45%;
+    --status-cancelled: 0 0% 65%;
+    --gradient-primary: linear-gradient(135deg, hsl(0, 0%, 15%), hsl(0, 0%, 25%));
+    --gradient-accent: linear-gradient(135deg, hsl(0, 0%, 30%), hsl(0, 0%, 40%));
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.04), 0 1px 2px -1px hsl(0 0% 0% / 0.04);
+    --shadow-elevated: 0 4px 16px -2px hsl(0 0% 0% / 0.08), 0 2px 4px -2px hsl(0 0% 0% / 0.04);
   }
 }
 
