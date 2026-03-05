@@ -3,9 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { createSpace } from "@/lib/api";
+import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
-
-const ICONS = ["📁", "👥", "🚀", "💡", "🏠", "📚", "💼", "🎯", "⭐", "🔬", "📊", "🎨"];
 
 interface CreateSpaceDialogProps {
   onCreated: () => void;
@@ -16,7 +15,7 @@ export function CreateSpaceDialog({ onCreated }: CreateSpaceDialogProps) {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [icon, setIcon] = useState("📁");
+  const [icon, setIcon] = useState("folder");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +24,7 @@ export function CreateSpaceDialog({ onCreated }: CreateSpaceDialogProps) {
     try {
       await createSpace({ name: name.trim(), description: description.trim() || null, icon });
       toast.success("Space created!");
-      setName(""); setDescription(""); setIcon("📁");
+      setName(""); setDescription(""); setIcon("folder");
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -46,15 +45,8 @@ export function CreateSpaceDialog({ onCreated }: CreateSpaceDialogProps) {
         <DialogHeader><DialogTitle>Create Space</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Icon</label>
-            <div className="flex flex-wrap gap-1.5">
-              {ICONS.map(i => (
-                <button key={i} type="button" onClick={() => setIcon(i)}
-                  className={`text-lg p-1.5 rounded-lg transition-colors ${icon === i ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted"}`}>
-                  {i}
-                </button>
-              ))}
-            </div>
+            <label className="text-xs text-muted-foreground mb-1 block">Ícone</label>
+            <SpaceIconPicker value={icon} onChange={setIcon} />
           </div>
           <input type="text" placeholder="Space name" value={name} onChange={e => setName(e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />

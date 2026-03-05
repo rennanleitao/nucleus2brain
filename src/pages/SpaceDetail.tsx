@@ -8,14 +8,16 @@ import {
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
+import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { SpaceIcon } from "@/components/SpaceIconPicker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon,
+  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -35,6 +37,7 @@ export default function SpaceDetail() {
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [followUpTask, setFollowUpTask] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [editSpaceOpen, setEditSpaceOpen] = useState(false);
 
   // Note editor state
   const [editNoteTitle, setEditNoteTitle] = useState("");
@@ -177,13 +180,26 @@ export default function SpaceDetail() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center gap-3 flex-1">
-          <span className="text-3xl">{space.icon}</span>
+          <SpaceIcon iconKey={space.icon} className="h-7 w-7 text-muted-foreground" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{space.name}</h1>
             {space.description && <p className="text-sm text-muted-foreground">{space.description}</p>}
           </div>
         </div>
+        <Button variant="ghost" size="icon" onClick={() => setEditSpaceOpen(true)}>
+          <Pencil className="h-4 w-4" />
+        </Button>
       </div>
+
+      {editSpaceOpen && (
+        <EditSpaceDialog
+          space={space}
+          open={editSpaceOpen}
+          onOpenChange={setEditSpaceOpen}
+          onUpdated={load}
+          onDeleted={() => navigate("/spaces")}
+        />
+      )}
 
       {/* Summary badges */}
       <div className="flex gap-2 flex-wrap">

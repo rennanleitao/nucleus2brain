@@ -1,12 +1,13 @@
 import { forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { SpaceIcon } from "@/components/SpaceIconPicker";
 
 interface SpaceCardProps {
   space: {
     id: string;
     name: string;
     description?: string | null;
-    icon: string;
+    icon: string | null;
     tasks?: { count: number }[];
     notes?: { count: number }[];
   };
@@ -29,7 +30,7 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
       onClick={handleClick}
       className="flex flex-col gap-3 p-5 rounded-xl border border-border bg-card hover:shadow-elevated hover:border-primary/20 transition-all text-left animate-fade-in"
     >
-      <div className="text-2xl">{space.icon}</div>
+      <SpaceIcon iconKey={space.icon} className="h-6 w-6 text-muted-foreground" />
       <div>
         <h3 className="text-sm font-semibold">{space.name}</h3>
         {space.description && (

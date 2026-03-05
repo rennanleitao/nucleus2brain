@@ -144,6 +144,12 @@ export async function createSpace(space: Omit<SpaceInsert, "user_id">) {
   return data;
 }
 
+export async function updateSpace(id: string, updates: Partial<Omit<SpaceInsert, "user_id">>) {
+  const { data, error } = await supabase.from("spaces").update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteSpace(id: string) {
   const { error } = await supabase.from("spaces").delete().eq("id", id);
   if (error) throw error;
