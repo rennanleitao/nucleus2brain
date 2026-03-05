@@ -82,7 +82,7 @@ export default function Tags() {
       {showList && (
         <div className={`${isMobile ? "w-full" : "w-72"} border-r border-border flex flex-col bg-muted/20 flex-shrink-0`}>
           <div className="p-3 border-b border-border space-y-2">
-            <h2 className="text-sm font-semibold flex items-center gap-1.5">
+            <h2 className="text-small font-semibold flex items-center gap-1.5">
               <Tag className="h-4 w-4 text-muted-foreground" /> Tags
               <Badge variant="secondary" className="text-[10px] ml-1">{allTags.length}</Badge>
             </h2>
@@ -107,7 +107,7 @@ export default function Tags() {
                       selectedTag === tag ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
                     }`}
                   >
-                    <span className="text-sm font-medium">#{tag}</span>
+                    <span className="text-small font-medium">#{tag}</span>
                     <div className="flex items-center gap-1">
                       {noteCount > 0 && <Badge variant="secondary" className="text-[10px]">{noteCount} <FileText className="h-2.5 w-2.5 ml-0.5" /></Badge>}
                       {snippetCount > 0 && <Badge variant="outline" className="text-[10px]">{snippetCount} <Quote className="h-2.5 w-2.5 ml-0.5" /></Badge>}
@@ -136,7 +136,7 @@ export default function Tags() {
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 )}
-                <h2 className="text-lg font-bold flex items-center gap-2">
+                <h2 className="text-h1 flex items-center gap-2">
                   <Tag className="h-5 w-5 text-primary" /> #{selectedTag}
                 </h2>
               </div>
@@ -161,7 +161,7 @@ export default function Tags() {
                       ) : selectedSnippets.map(s => (
                         <div key={s.id} className="p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all">
                           <div className="flex items-start justify-between gap-2">
-                            <blockquote className="border-l-2 border-primary pl-3 text-sm italic text-foreground flex-1 min-w-0">
+                            <blockquote className="border-l-2 border-primary pl-3 text-small italic text-foreground flex-1 min-w-0">
                               "{s.snippet_text}"
                             </blockquote>
                             <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
@@ -198,7 +198,7 @@ export default function Tags() {
                         >
                           <div className="flex items-center gap-2 mb-1">
                             <FileText className="h-4 w-4 text-muted-foreground" />
-                            <h3 className="text-sm font-semibold">{note.title}</h3>
+                            <h3 className="text-small font-semibold">{note.title}</h3>
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-2 ml-6">
                             {stripHtml(note.content || "Sem conteúdo")}
@@ -214,7 +214,7 @@ export default function Tags() {
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Selecione uma tag para ver notas e trechos</p>
+                <p className="text-small text-muted-foreground">Selecione uma tag para ver notas e trechos</p>
               </div>
             </div>
           )}

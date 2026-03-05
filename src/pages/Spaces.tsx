@@ -31,10 +31,10 @@ export default function Spaces() {
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-title flex items-center gap-2">
             <FolderOpen className="h-5 w-5 text-muted-foreground" /> Spaces
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Organize your work into knowledge hubs</p>
+          <p className="text-small text-muted-foreground mt-1">Organize your work into knowledge hubs</p>
         </div>
         <CreateSpaceDialog onCreated={load} />
       </div>
@@ -50,7 +50,7 @@ export default function Spaces() {
       ) : (
         <div className="text-center py-12">
           <FolderOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No spaces yet. Create your first one!</p>
+          <p className="text-small text-muted-foreground">No spaces yet. Create your first one!</p>
         </div>
       )}
 

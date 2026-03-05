@@ -114,10 +114,10 @@ export default function ImportPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-title flex items-center gap-2">
           <Upload className="h-5 w-5 text-muted-foreground" /> Import
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Bring your notes from Evernote and Notion</p>
+        <p className="text-small text-muted-foreground mt-1">Bring your notes from Evernote and Notion</p>
       </div>
 
       {result && (
@@ -130,7 +130,7 @@ export default function ImportPage() {
             <CheckCircle2 className="h-5 w-5 text-status-completed flex-shrink-0" />
           )}
           <div>
-            <p className="text-sm font-medium">{result.imported} notes imported successfully</p>
+            <p className="text-small font-medium">{result.imported} notes imported successfully</p>
             {result.errors > 0 && <p className="text-xs text-muted-foreground">{result.errors} notes failed to import</p>}
             <p className="text-xs text-muted-foreground mt-0.5">Check your Notes page to see them!</p>
           </div>
@@ -146,7 +146,7 @@ export default function ImportPage() {
             <BookOpen className="h-6 w-6 text-[#14CC45]" />
           </div>
           <div className="text-center">
-            <h3 className="text-sm font-semibold">Evernote</h3>
+            <h3 className="text-small font-semibold">Evernote</h3>
             <p className="text-xs text-muted-foreground mt-1">
               Upload your <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.enex</code> file
             </p>
@@ -166,7 +166,7 @@ export default function ImportPage() {
             <FileText className="h-6 w-6 text-foreground/70" />
           </div>
           <div className="text-center">
-            <h3 className="text-sm font-semibold">Notion</h3>
+            <h3 className="text-small font-semibold">Notion</h3>
             <p className="text-xs text-muted-foreground mt-1">
               Upload <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.md</code> or <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.csv</code> files
             </p>
@@ -180,7 +180,7 @@ export default function ImportPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card p-4">
-        <h3 className="text-xs font-semibold mb-2">How to export your notes</h3>
+        <h3 className="text-micro font-semibold mb-2">How to export your notes</h3>
         <div className="space-y-2 text-xs text-muted-foreground">
           <p><strong>Evernote:</strong> Open desktop app → Right-click a notebook → Export Notes → Choose ENEX format → Save</p>
           <p><strong>Notion:</strong> Go to Settings & Members → Settings → Export all workspace content → Choose Markdown & CSV → Download and unzip</p>

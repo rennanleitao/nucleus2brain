@@ -47,8 +47,8 @@ export default function Auth() {
               <Zap className="h-5 w-5 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Nucleus</h1>
-          <p className="text-sm text-muted-foreground">Your Personal Operating System</p>
+          <h1 className="text-title">Nucleus</h1>
+          <p className="text-small text-muted-foreground">Your Personal Operating System</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

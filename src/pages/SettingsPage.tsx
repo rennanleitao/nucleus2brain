@@ -5,10 +5,10 @@ export default function SettingsPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-title flex items-center gap-2">
           <SettingsIcon className="h-5 w-5 text-muted-foreground" /> Settings
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Configure your personal OS</p>
+        <p className="text-small text-muted-foreground mt-1">Configure your personal OS</p>
       </div>
 
       <Tabs defaultValue="ai" className="space-y-4">
@@ -20,7 +20,7 @@ export default function SettingsPage() {
 
         <TabsContent value="ai" className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <h3 className="text-sm font-semibold">AI Provider Configuration</h3>
+            <h3 className="text-small font-semibold">AI Provider Configuration</h3>
             <p className="text-xs text-muted-foreground">
               Select your preferred AI provider and model. API keys are stored securely.
             </p>
@@ -58,11 +58,11 @@ export default function SettingsPage() {
 
         <TabsContent value="notifications" className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <h3 className="text-sm font-semibold">Notification Preferences</h3>
+            <h3 className="text-small font-semibold">Notification Preferences</h3>
             <div className="space-y-3">
               {["Browser notifications", "Email reminders", "Daily AI briefing"].map(label => (
                 <label key={label} className="flex items-center justify-between">
-                  <span className="text-sm">{label}</span>
+                  <span className="text-small">{label}</span>
                   <div className="w-9 h-5 rounded-full bg-muted relative cursor-pointer">
                     <div className="w-4 h-4 rounded-full bg-muted-foreground absolute left-0.5 top-0.5 transition-transform" />
                   </div>
@@ -74,11 +74,11 @@ export default function SettingsPage() {
 
         <TabsContent value="account" className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <h3 className="text-sm font-semibold">Account</h3>
-            <p className="text-xs text-muted-foreground">
+            <h3 className="text-small font-semibold">Account</h3>
+            <p className="text-micro text-muted-foreground">
               Sign in to sync your data across devices. Authentication will be available once the backend is connected.
             </p>
-            <button className="text-sm font-medium text-primary hover:underline">
+            <button className="text-small font-medium text-primary hover:underline">
               Connect Account →
             </button>
           </div>

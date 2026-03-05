@@ -32,12 +32,12 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
     >
       <SpaceIcon iconKey={space.icon} className="h-6 w-6 text-muted-foreground" />
       <div>
-        <h3 className="text-sm font-semibold">{space.name}</h3>
+        <h3 className="text-small font-semibold">{space.name}</h3>
         {space.description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{space.description}</p>
+          <p className="text-micro text-muted-foreground mt-0.5">{space.description}</p>
         )}
       </div>
-      <div className="flex gap-3 text-[11px] text-muted-foreground">
+      <div className="flex gap-3 text-micro text-muted-foreground">
         <span>{taskCount} tasks</span>
         <span>{noteCount} notes</span>
       </div>
