@@ -33,8 +33,7 @@ const priorityStyles: Record<TaskPriority, string> = {
   low: "bg-muted text-muted-foreground/60 border-border",
 };
 
-function formatDueDate(dateStr: string, isOverdue: boolean) {
-  if (isOverdue) return "Overdue";
+function formatDueDate(dateStr: string) {
   const date = new Date(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -43,9 +42,9 @@ function formatDueDate(dateStr: string, isOverdue: boolean) {
   const target = new Date(dateStr);
   target.setHours(0, 0, 0, 0);
 
-  if (target.getTime() === today.getTime()) return "Today";
-  if (target.getTime() === tomorrow.getTime()) return "Tomorrow";
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (target.getTime() === today.getTime()) return "Hoje";
+  if (target.getTime() === tomorrow.getTime()) return "Amanhã";
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onToggle, onDelete, hideSpace }, ref) => {
@@ -75,9 +74,9 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({ task, onTog
             <span className="text-micro text-muted-foreground">{task.spaces.name}</span>
           )}
           {task.due_date && (
-            <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+            <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
               <CalendarDays className="h-3 w-3" />
-              {formatDueDate(task.due_date, isOverdue)}
+              {formatDueDate(task.due_date)}
             </span>
           )}
         </div>
