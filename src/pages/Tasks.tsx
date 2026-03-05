@@ -4,7 +4,8 @@ import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
-import { CheckSquare, Search, SlidersHorizontal } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -167,6 +168,18 @@ export default function Tasks() {
     }
   };
 
+  const handleClearHistory = async () => {
+    const completedTasks = tasks.filter(t => t.status === "completed");
+    if (completedTasks.length === 0) return;
+    try {
+      await Promise.all(completedTasks.map(t => deleteTask(t.id)));
+      toast.success(`${completedTasks.length} tarefa(s) concluída(s) removida(s)`);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
       await deleteTask(id);
@@ -247,6 +260,14 @@ export default function Tasks() {
           </SelectContent>
         </Select>
       </div>
+
+      {filter === "done" && filtered.length > 0 && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={handleClearHistory}>
+            <Trash2 className="h-4 w-4 mr-1" /> Limpar histórico
+          </Button>
+        </div>
+      )}
 
       {grouped ? (
         <div className="space-y-6">
