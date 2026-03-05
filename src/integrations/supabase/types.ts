@@ -472,6 +472,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          note_id: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           space_id: string | null
           status: Database["public"]["Enums"]["task_status"]
@@ -484,6 +485,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          note_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
@@ -496,6 +498,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          note_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
@@ -503,6 +506,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_space_id_fkey"
             columns: ["space_id"]
