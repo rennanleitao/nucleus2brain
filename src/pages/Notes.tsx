@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask } from "@/lib/api";
-import { RichTextEditor } from "@/components/RichTextEditor";
+import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks } from "@/lib/api";
+import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export default function Notes() {
   const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [tasksExpanded, setTasksExpanded] = useState(true);
+  const editorRef = useRef<RichTextEditorHandle>(null);
 
   const load = async () => {
     try {
@@ -102,6 +103,20 @@ export default function Notes() {
     if (!selectedNote || !editTitle.trim()) return;
     setSaving(true);
     try {
+      // Process () task patterns before saving
+      const taskTitles = editorRef.current?.processTaskPatterns() || [];
+      const currentContent = editorRef.current ? undefined : editContent;
+
+      // Create tasks for each detected pattern
+      for (const title of taskTitles) {
+        try {
+          await createTask({ title, space_id: editSpaceId || null });
+          toast.success(`Task criada: ${title}`);
+        } catch (err: any) {
+          toast.error(`Erro ao criar task "${title}": ${err.message}`);
+        }
+      }
+
       await updateNote(selectedNote.id, {
         title: editTitle.trim(),
         content: editContent,
@@ -109,6 +124,7 @@ export default function Notes() {
         space_id: editSpaceId || null,
       });
       setDirty(false);
+      if (editSpaceId) loadLinkedTasks(editSpaceId);
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -309,30 +325,17 @@ export default function Notes() {
               <div className="flex-1 overflow-auto flex flex-col">
                 <div className="flex-1">
                   <RichTextEditor
+                    ref={editorRef}
                     content={editContent}
                     onChange={(html) => { setEditContent(html); setDirty(true); }}
                     onTagsDetected={handleTagsDetected}
-                    onTaskDetected={async (taskTitle) => {
-                      if (editSpaceId) {
-                        try {
-                          const task = await createTask({ title: taskTitle, space_id: editSpaceId });
-                          toast.success(`Task criada: ${taskTitle}`);
-                          loadLinkedTasks(editSpaceId);
-                        } catch (err: any) {
-                          toast.error(err.message);
-                        }
-                      } else {
-                        try {
-                          await createTask({ title: taskTitle });
-                          toast.success(`Task criada: ${taskTitle}`);
-                        } catch (err: any) {
-                          toast.error(err.message);
-                        }
-                      }
+                    onTaskItemClick={(taskTitle) => {
+                      const task = linkedTasks.find(t => t.title === taskTitle);
+                      if (task) setEditingTask(task);
                     }}
                     noteId={selectedNote?.id}
                     existingTags={allTags}
-                    placeholder="Comece a escrever... Use #tag para criar tags, () task para criar tasks"
+                    placeholder="Comece a escrever... Use #tag para tags, ()Task para criar tasks ao salvar"
                     className="border-0 rounded-none min-h-full"
                   />
                 </div>

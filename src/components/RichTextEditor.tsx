@@ -4,7 +4,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { useEffect } from "react";
+import { useEffect, useImperativeHandle, forwardRef } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
@@ -20,14 +20,19 @@ interface RichTextEditorProps {
   editable?: boolean;
   className?: string;
   onTagsDetected?: (tags: string[]) => void;
-  onTaskDetected?: (taskTitle: string) => void;
   noteId?: string | null;
   existingTags?: string[];
+  onTaskItemClick?: (taskTitle: string) => void;
 }
 
-export function RichTextEditor({
-  content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, onTaskDetected, noteId = null, existingTags = [],
-}: RichTextEditorProps) {
+export interface RichTextEditorHandle {
+  /** Scans for ()taskName patterns, replaces them with checklist items, and returns detected task titles */
+  processTaskPatterns: () => string[];
+}
+
+export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
+  content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick,
+}, ref) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -54,61 +59,82 @@ export function RichTextEditor({
         const tags = tagMatches ? [...new Set(tagMatches.map(t => t.slice(1)))] : [];
         onTagsDetected(tags);
       }
-
-      // Detect () task title pattern for inline task creation
-      // Matches "()" followed by optional space and task name, only on completed lines
-      if (onTaskDetected) {
-        const taskMatches = text.match(/\(\)\s*(.{2,})/g);
-        if (taskMatches) {
-          // Only process if user just pressed Enter (text ends with newline or cursor moved to new line)
-          const htmlContent = editor.getHTML();
-          for (const match of taskMatches) {
-            const taskTitle = match.replace(/^\(\)\s*/, "").trim();
-            if (!taskTitle || taskTitle.startsWith("#")) continue;
-
-            // Check this pattern exists in a completed paragraph (not being actively typed)
-            // We detect completion by checking if there's content after this line or it ends
-            const matchInHtml = htmlContent.includes(`()${taskTitle}`) || htmlContent.includes(`() ${taskTitle}`);
-            if (!matchInHtml) continue;
-
-            // Remove the raw text pattern from HTML
-            let newHtml = htmlContent
-              .replace(`() ${taskTitle}`, "")
-              .replace(`()${taskTitle}`, "");
-
-            // Clean up empty paragraphs left behind
-            newHtml = newHtml.replace(/<p>\s*<\/p>/g, "");
-
-            editor.commands.setContent(newHtml || "<p></p>");
-
-            // Insert a task list checklist item
-            editor
-              .chain()
-              .focus()
-              .insertContent({
-                type: "taskList",
-                content: [
-                  {
-                    type: "taskItem",
-                    attrs: { checked: false },
-                    content: [{ type: "paragraph", content: [{ type: "text", text: taskTitle }] }],
-                  },
-                ],
-              })
-              .run();
-
-            onChange(editor.getHTML());
-            onTaskDetected(taskTitle);
-          }
-        }
-      }
     },
     editorProps: {
       attributes: {
         class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
       },
+      handleClick: (_view, _pos, event) => {
+        // Check if user clicked on a task item text
+        if (onTaskItemClick) {
+          const target = event.target as HTMLElement;
+          const taskItem = target.closest('[data-type="taskItem"]') || target.closest('li[data-checked]');
+          if (taskItem) {
+            // Don't intercept checkbox clicks
+            const checkbox = taskItem.querySelector('label') || taskItem.querySelector('input');
+            if (checkbox && checkbox.contains(target)) return false;
+            const textContent = taskItem.textContent?.trim();
+            if (textContent) {
+              onTaskItemClick(textContent);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
     },
   });
+
+  // Expose processTaskPatterns to parent via ref
+  useImperativeHandle(ref, () => ({
+    processTaskPatterns: () => {
+      if (!editor) return [];
+      const text = editor.getText();
+      const taskMatches = text.match(/\(\)\s*([^\n]{2,})/g);
+      if (!taskMatches) return [];
+
+      const titles: string[] = [];
+      let htmlContent = editor.getHTML();
+
+      for (const match of taskMatches) {
+        const taskTitle = match.replace(/^\(\)\s*/, "").trim();
+        if (!taskTitle || taskTitle.startsWith("#")) continue;
+        titles.push(taskTitle);
+
+        // Remove the raw pattern from HTML
+        htmlContent = htmlContent
+          .replace(`() ${taskTitle}`, "")
+          .replace(`()${taskTitle}`, "");
+      }
+
+      // Clean up empty paragraphs
+      htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, "");
+      if (!htmlContent.trim()) htmlContent = "<p></p>";
+
+      editor.commands.setContent(htmlContent);
+
+      // Insert checklist items for each task
+      for (const title of titles) {
+        editor
+          .chain()
+          .focus()
+          .insertContent({
+            type: "taskList",
+            content: [
+              {
+                type: "taskItem",
+                attrs: { checked: false },
+                content: [{ type: "paragraph", content: [{ type: "text", text: title }] }],
+              },
+            ],
+          })
+          .run();
+      }
+
+      onChange(editor.getHTML());
+      return titles;
+    },
+  }), [editor, onChange]);
 
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
@@ -211,4 +237,4 @@ export function RichTextEditor({
       <EditorContent editor={editor} />
     </div>
   );
-}
+});
