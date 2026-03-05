@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { fetchTasks, fetchSpaces, updateTask, deleteTask } from "@/lib/api";
+import { fetchTasks, fetchSpaces, updateTask, deleteTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
@@ -21,6 +21,7 @@ const statusFilters = [
 export default function Tasks() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
+  const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
   const [filter, setFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -32,8 +33,15 @@ export default function Tasks() {
 
   const load = async () => {
     try {
-      const [t, s] = await Promise.all([fetchTasks(), fetchSpaces()]);
-      setTasks(t); setSpaces(s);
+      const [t, s, subs] = await Promise.all([fetchTasks(), fetchSpaces(), fetchAllSubtasks()]);
+      setTasks(t);
+      setSpaces(s);
+      const map: Record<string, any[]> = {};
+      for (const sub of subs) {
+        if (!map[sub.task_id]) map[sub.task_id] = [];
+        map[sub.task_id].push(sub);
+      }
+      setSubtasksMap(map);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -45,38 +53,24 @@ export default function Tasks() {
 
   const filtered = useMemo(() => {
     let result = tasks;
-
-    // Status filter
     if (filter === "all") {
       result = result.filter(t => t.status !== "completed" && t.status !== "cancelled");
     } else {
       result = result.filter(t => t.status === filter);
     }
-
-    // Priority filter
     if (priorityFilter !== "all") {
       result = result.filter(t => t.priority === priorityFilter);
     }
-
-    // Date filter
     const today = new Date().toISOString().split("T")[0];
     const in7 = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
-    if (dateFilter === "overdue") {
-      result = result.filter(t => t.due_date && t.due_date < today);
-    } else if (dateFilter === "today") {
-      result = result.filter(t => t.due_date === today);
-    } else if (dateFilter === "week") {
-      result = result.filter(t => t.due_date && t.due_date >= today && t.due_date <= in7);
-    } else if (dateFilter === "no_date") {
-      result = result.filter(t => !t.due_date);
-    }
-
-    // Search
+    if (dateFilter === "overdue") result = result.filter(t => t.due_date && t.due_date < today);
+    else if (dateFilter === "today") result = result.filter(t => t.due_date === today);
+    else if (dateFilter === "week") result = result.filter(t => t.due_date && t.due_date >= today && t.due_date <= in7);
+    else if (dateFilter === "no_date") result = result.filter(t => !t.due_date);
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(t => t.title.toLowerCase().includes(q));
     }
-
     return result;
   }, [tasks, filter, priorityFilter, dateFilter, search]);
 
@@ -92,8 +86,7 @@ export default function Tasks() {
         ungrouped.push(t);
       }
     }
-    // Sort tasks by due_date within each group
-    const sortByDate = (tasks: any[]) => tasks.sort((a, b) => {
+    const sortByDate = (tasks: any[]) => tasks.sort((a: any, b: any) => {
       if (!a.due_date && !b.due_date) return 0;
       if (!a.due_date) return 1;
       if (!b.due_date) return -1;
@@ -107,10 +100,58 @@ export default function Tasks() {
   const toggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
+    const subs = subtasksMap[id] || [];
+    if (task.status !== "completed" && subs.length > 0) {
+      const incomplete = subs.filter(s => s.status !== "completed");
+      if (incomplete.length > 0) {
+        toast.error(`Conclua todas as ${incomplete.length} subtask(s) antes de concluir a task`);
+        return;
+      }
+    }
     const newStatus = task.status === "completed" ? "todo" : "completed";
     try {
       await updateTask(id, { status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null });
       if (newStatus === "completed") setFollowUpTask(task);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const toggleSubtask = async (subId: string) => {
+    // Find the subtask
+    let sub: any = null;
+    for (const subs of Object.values(subtasksMap)) {
+      sub = subs.find((s: any) => s.id === subId);
+      if (sub) break;
+    }
+    if (!sub) return;
+    const newStatus = sub.status === "completed" ? "todo" : "completed";
+    try {
+      await updateSubtask(subId, {
+        status: newStatus,
+        completed_at: newStatus === "completed" ? new Date().toISOString() : null,
+      });
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleAddSubtask = async (taskId: string, title: string, dueDate?: string) => {
+    try {
+      await createSubtask({ task_id: taskId, title, due_date: dueDate || null });
+      toast.success("Subtask adicionada");
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteSubtask = async (id: string) => {
+    try {
+      await deleteSubtask(id);
+      toast.success("Subtask removida");
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -135,7 +176,16 @@ export default function Tasks() {
     <div className="space-y-2">
       {taskList.map(t => (
         <div key={t.id} onClick={() => setEditingTask(t)} className="cursor-pointer">
-          <TaskCard task={t} onToggle={() => toggleTask(t.id)} onDelete={() => handleDelete(t.id)} hideSpace={hideSpace} />
+          <TaskCard
+            task={t}
+            subtasks={subtasksMap[t.id] || []}
+            onToggle={() => toggleTask(t.id)}
+            onDelete={() => handleDelete(t.id)}
+            onToggleSubtask={toggleSubtask}
+            onAddSubtask={handleAddSubtask}
+            onDeleteSubtask={handleDeleteSubtask}
+            hideSpace={hideSpace}
+          />
         </div>
       ))}
     </div>
@@ -153,18 +203,11 @@ export default function Tasks() {
         <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search tasks..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 text-small"
-        />
+        <Input placeholder="Search tasks..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 text-small" />
       </div>
 
-      {/* Status tabs */}
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-wrap sm:flex-nowrap">
           {statusFilters.map(f => (
@@ -173,13 +216,10 @@ export default function Tasks() {
         </TabsList>
       </Tabs>
 
-      {/* Additional filters */}
       <div className="flex items-center gap-2 flex-wrap">
         <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-small">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
+          <SelectTrigger className="w-[120px] h-8 text-small"><SelectValue placeholder="Priority" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All priorities</SelectItem>
             <SelectItem value="high">High</SelectItem>
@@ -187,11 +227,8 @@ export default function Tasks() {
             <SelectItem value="low">Low</SelectItem>
           </SelectContent>
         </Select>
-
         <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-small">
-            <SelectValue placeholder="Date" />
-          </SelectTrigger>
+          <SelectTrigger className="w-[120px] h-8 text-small"><SelectValue placeholder="Date" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All dates</SelectItem>
             <SelectItem value="overdue">Overdue</SelectItem>
@@ -200,11 +237,8 @@ export default function Tasks() {
             <SelectItem value="no_date">No date</SelectItem>
           </SelectContent>
         </Select>
-
         <Select value={groupBy} onValueChange={setGroupBy}>
-          <SelectTrigger className="w-[140px] h-8 text-small">
-            <SelectValue placeholder="Group by" />
-          </SelectTrigger>
+          <SelectTrigger className="w-[140px] h-8 text-small"><SelectValue placeholder="Group by" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none">No grouping</SelectItem>
             <SelectItem value="space">By Space</SelectItem>
@@ -212,7 +246,6 @@ export default function Tasks() {
         </Select>
       </div>
 
-      {/* Task list */}
       {grouped ? (
         <div className="space-y-6">
           {grouped.groups.map(g => (

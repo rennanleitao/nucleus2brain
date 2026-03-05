@@ -122,6 +122,54 @@ export async function deleteTask(id: string) {
   if (error) throw error;
 }
 
+// ---- SUBTASKS ----
+export async function fetchSubtasks(taskId: string) {
+  const { data, error } = await supabase
+    .from("subtasks")
+    .select("*")
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchAllSubtasks() {
+  const { data, error } = await supabase
+    .from("subtasks")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function createSubtask(subtask: { task_id: string; title: string; due_date?: string | null }) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("subtasks")
+    .insert({ ...subtask, user_id: user.id })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSubtask(id: string, updates: { title?: string; status?: string; due_date?: string | null; completed_at?: string | null }) {
+  const { data, error } = await supabase
+    .from("subtasks")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSubtask(id: string) {
+  const { error } = await supabase.from("subtasks").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---- SPACES ----
 export async function fetchSpaces() {
   const { data, error } = await supabase
