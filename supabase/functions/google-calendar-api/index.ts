@@ -60,11 +60,9 @@ async function getUserId(req: Request): Promise<string> {
   const supabase = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: claims, error } = await supabase.auth.getClaims(
-    authHeader.replace("Bearer ", "")
-  );
-  if (error || !claims?.claims) throw new Error("Unauthorized");
-  return claims.claims.sub as string;
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new Error("Unauthorized");
+  return user.id;
 }
 
 Deno.serve(async (req) => {
