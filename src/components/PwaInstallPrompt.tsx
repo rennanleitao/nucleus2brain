@@ -40,9 +40,15 @@ export function PwaInstallButton({ collapsed }: { collapsed: boolean }) {
     } else if (isIos()) {
       toast("Toque no ícone de compartilhar e depois em \"Adicionar à Tela de Início\".");
     } else {
-      // Safari on Mac or other browsers without beforeinstallprompt
-      toast("No Chrome ou Edge, use o menu ⋮ → \"Instalar Nucleus\". No Safari, vá em Arquivo → \"Adicionar ao Dock\".", {
-        duration: 6000,
+      toast.info("Seu navegador não suporta instalação direta. Abra este link no Chrome ou Edge para instalar como app.", {
+        duration: 8000,
+        action: {
+          label: "Copiar link",
+          onClick: () => {
+            navigator.clipboard.writeText(window.location.origin);
+            toast.success("Link copiado!");
+          },
+        },
       });
     }
   };
