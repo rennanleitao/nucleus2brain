@@ -18,7 +18,6 @@ function isStandalone() {
 
 export function PwaInstallButton({ collapsed }: { collapsed: boolean }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIos, setShowIos] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return;
@@ -28,22 +27,23 @@ export function PwaInstallButton({ collapsed }: { collapsed: boolean }) {
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
-
-    if (isIos()) setShowIos(true);
-
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   if (isStandalone()) return null;
-  if (!deferredPrompt && !showIos) return null;
 
   const handleClick = async () => {
     if (deferredPrompt) {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") setDeferredPrompt(null);
-    } else if (showIos) {
+    } else if (isIos()) {
       toast("Toque no ícone de compartilhar e depois em \"Adicionar à Tela de Início\".");
+    } else {
+      // Safari on Mac or other browsers without beforeinstallprompt
+      toast("No Chrome ou Edge, use o menu ⋮ → \"Instalar Nucleus\". No Safari, vá em Arquivo → \"Adicionar ao Dock\".", {
+        duration: 6000,
+      });
     }
   };
 
@@ -52,7 +52,7 @@ export function PwaInstallButton({ collapsed }: { collapsed: boolean }) {
       onClick={handleClick}
       className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer"
     >
-      {showIos ? <Share className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+      <Download className="h-4 w-4" />
       {!collapsed && <span>Instalar App</span>}
     </SidebarMenuButton>
   );
