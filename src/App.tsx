@@ -17,6 +17,7 @@ import Auth from "./pages/Auth";
 import ImportPage from "./pages/ImportPage";
 import History from "./pages/History";
 import SpaceDetail from "./pages/SpaceDetail";
+import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ function AppRoutes() {
             <Route path="/import" element={<ImportPage />} />
             
             <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
