@@ -60,7 +60,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-sidebar-accent-foreground">Nucleus</span>
-              <span className="text-[10px] text-sidebar-foreground">Personal OS</span>
+              <span className="text-[10px] text-sidebar-foreground">Make productivity simple</span>
             </div>
           )}
         </div>
