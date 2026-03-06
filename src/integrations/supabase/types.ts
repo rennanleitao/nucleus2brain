@@ -549,6 +549,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          phone_number: string | null
+          updated_at: string
+          user_id: string
+          webhook_secret: string
+          zapier_webhook_url: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          phone_number?: string | null
+          updated_at?: string
+          user_id: string
+          webhook_secret?: string
+          zapier_webhook_url: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          phone_number?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_secret?: string
+          zapier_webhook_url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
