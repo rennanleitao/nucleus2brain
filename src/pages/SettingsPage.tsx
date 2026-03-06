@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check } from "lucide-react";
+import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -84,6 +84,13 @@ export default function SettingsPage() {
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifPermission, setNotifPermission] = useState(typeof globalThis.Notification !== "undefined" ? globalThis.Notification.permission : "default");
 
+  // WhatsApp state
+  const [waWebhookUrl, setWaWebhookUrl] = useState("");
+  const [waPhone, setWaPhone] = useState("");
+  const [waEnabled, setWaEnabled] = useState(false);
+  const [waSecret, setWaSecret] = useState("");
+  const [waSaving, setWaSaving] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -96,6 +103,20 @@ export default function SettingsPage() {
         setProvider(data.provider || "lovable");
         setModel(data.model || "google/gemini-3-flash-preview");
       }
+
+      // Load WhatsApp settings
+      const { data: waData } = await supabase
+        .from("whatsapp_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (waData) {
+        setWaWebhookUrl(waData.zapier_webhook_url || "");
+        setWaPhone(waData.phone_number || "");
+        setWaEnabled(waData.enabled);
+        setWaSecret(waData.webhook_secret);
+      }
+
       setLoaded(true);
     };
     load();
@@ -179,6 +200,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="ai" className="space-y-4">
         <TabsList className="bg-muted">
           <TabsTrigger value="ai" className="text-xs"><Bot className="h-3 w-3 mr-1" /> Assistant</TabsTrigger>
+          <TabsTrigger value="whatsapp" className="text-xs"><MessageSquare className="h-3 w-3 mr-1" /> WhatsApp</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs"><Bell className="h-3 w-3 mr-1" /> Lembretes</TabsTrigger>
           <TabsTrigger value="account" className="text-xs"><User className="h-3 w-3 mr-1" /> Conta</TabsTrigger>
         </TabsList>
@@ -274,6 +296,167 @@ export default function SettingsPage() {
           <Button onClick={handleSave} disabled={saving} className="w-full">
             <Save className="h-4 w-4 mr-1.5" />
             {saving ? "Salvando..." : "Salvar configurações"}
+          </Button>
+        </TabsContent>
+
+        {/* WHATSAPP TAB */}
+        <TabsContent value="whatsapp" className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Integração WhatsApp via Zapier</h3>
+              <Badge variant="secondary" className="text-[10px]">Beta</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Gerencie suas tasks pelo WhatsApp. Crie, liste, conclua e receba lembretes.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Zapier Webhook URL (para envio)</label>
+                <input
+                  type="url"
+                  value={waWebhookUrl}
+                  onChange={e => setWaWebhookUrl(e.target.value)}
+                  placeholder="https://hooks.zapier.com/hooks/catch/..."
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  URL do webhook do Zapier que enviará mensagens de volta pelo WhatsApp.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  <Phone className="h-3 w-3 inline mr-1" />
+                  Número do WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  value={waPhone}
+                  onChange={e => setWaPhone(e.target.value)}
+                  placeholder="+5511999999999"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Webhook URL for Zapier to call */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h3 className="text-sm font-semibold">Webhook para receber mensagens</h3>
+            <p className="text-xs text-muted-foreground">
+              Configure no Zapier/n8n para enviar mensagens do WhatsApp para esta URL:
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`}
+                className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-xs font-mono outline-none"
+              />
+              <Button variant="outline" size="sm" onClick={() => {
+                navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`);
+                toast.success("URL copiada!");
+              }}>
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+
+            {waSecret && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Webhook Secret (incluir no body do Zapier)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={waSecret}
+                    className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-xs font-mono outline-none"
+                  />
+                  <Button variant="outline" size="sm" onClick={() => {
+                    navigator.clipboard.writeText(waSecret);
+                    toast.success("Secret copiado!");
+                  }}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Inclua como "webhook_secret" no body JSON que o Zapier envia.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Setup instructions */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h3 className="text-sm font-semibold">Como configurar no Zapier</h3>
+            <ol className="space-y-2">
+              {[
+                "Crie um Zap com trigger 'New Message in WhatsApp' (Zapier WhatsApp integration)",
+                "Adicione uma ação 'Webhooks by Zapier' → 'POST' para a URL acima",
+                'No body JSON, envie: {"message": "{{message}}", "phone": "{{phone}}", "webhook_secret": "SEU_SECRET"}',
+                "Crie outro Zap: trigger 'Webhooks by Zapier' (Catch Hook) → ação 'Send WhatsApp Message'",
+                "Cole a URL do Catch Hook no campo 'Zapier Webhook URL' acima",
+              ].map((step, i) => (
+                <li key={i} className="flex gap-2 text-xs text-muted-foreground">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold">
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Commands reference */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h3 className="text-sm font-semibold">Comandos disponíveis</h3>
+            <div className="space-y-1.5 text-xs text-muted-foreground">
+              <p>📝 <strong>Criar:</strong> "criar task: Reunião com João amanhã"</p>
+              <p>📋 <strong>Listar:</strong> "listar tasks", "tasks de hoje", "tasks atrasadas"</p>
+              <p>✅ <strong>Concluir:</strong> "concluir Reunião com João"</p>
+              <p>🗑️ <strong>Excluir:</strong> "excluir Reunião com João"</p>
+              <p>❓ <strong>Ajuda:</strong> "ajuda"</p>
+            </div>
+          </div>
+
+          <Button onClick={async () => {
+            if (!user) return;
+            if (!waWebhookUrl.trim()) {
+              toast.error("Informe a URL do webhook do Zapier");
+              return;
+            }
+            setWaSaving(true);
+            try {
+              const { data: existing } = await supabase
+                .from("whatsapp_settings")
+                .select("id, webhook_secret")
+                .eq("user_id", user.id)
+                .maybeSingle();
+
+              if (existing) {
+                await supabase.from("whatsapp_settings").update({
+                  zapier_webhook_url: waWebhookUrl.trim(),
+                  phone_number: waPhone.trim() || null,
+                  enabled: true,
+                }).eq("id", existing.id);
+                setWaSecret(existing.webhook_secret);
+              } else {
+                const { data: newSettings } = await supabase.from("whatsapp_settings").insert({
+                  user_id: user.id,
+                  zapier_webhook_url: waWebhookUrl.trim(),
+                  phone_number: waPhone.trim() || null,
+                }).select("webhook_secret").single();
+                if (newSettings) setWaSecret(newSettings.webhook_secret);
+              }
+              toast.success("WhatsApp configurado!");
+            } catch (err: any) {
+              toast.error(err.message || "Erro ao salvar");
+            } finally {
+              setWaSaving(false);
+            }
+          }} disabled={waSaving} className="w-full">
+            <Save className="h-4 w-4 mr-1.5" />
+            {waSaving ? "Salvando..." : "Salvar configuração WhatsApp"}
           </Button>
         </TabsContent>
 

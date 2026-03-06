@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.store-api-key]
 verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.whatsapp-send]
+verify_jwt = false
