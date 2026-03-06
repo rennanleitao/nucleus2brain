@@ -322,24 +322,30 @@ export default function SpaceDetail() {
                 </Button>
               </div>
               {notes.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {notes.map(note => (
-                    <div key={note.id} onClick={() => openNoteEditor(note)}
-                      className="group p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all cursor-pointer">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-sm font-semibold">{note.title}</h3>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }}
-                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                <div className="space-y-1">
+                  {[...notes].sort((a, b) => a.title.localeCompare(b.title)).map(note => (
+                    <button
+                      key={note.id}
+                      onClick={() => openNoteEditor(note)}
+                      className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors text-left animate-fade-in touch-manipulation active:scale-[0.99] group"
+                    >
+                      <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-small font-medium truncate">{note.title}</h3>
+                        <p className="text-micro text-muted-foreground truncate mt-0.5">{stripHtml(note.content || "Sem conteúdo")}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-3 mb-2">{stripHtml(note.content || "")}</p>
-                      <div className="flex gap-1 flex-wrap">
-                        {(note.tags || []).map((tag: string) => (
-                          <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">#{tag}</Badge>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {(note.tags || []).slice(0, 2).map((tag: string) => (
+                          <Badge key={tag} variant="secondary" className="text-[9px] px-1.5 py-0">#{tag}</Badge>
                         ))}
                       </div>
-                    </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }}
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all flex-shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </button>
                   ))}
                 </div>
               ) : (
