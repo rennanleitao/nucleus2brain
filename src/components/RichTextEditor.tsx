@@ -182,6 +182,10 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   }), [editor, onChange]);
 
   useEffect(() => {
+    if (editor) editorRef.current = editor;
+  }, [editor]);
+
+  useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content);
     }
@@ -269,6 +273,18 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         </ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divisória">
           <Minus className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "image/*";
+          input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) handleImageUpload(file);
+          };
+          input.click();
+        }} title="Inserir imagem">
+          <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
 
