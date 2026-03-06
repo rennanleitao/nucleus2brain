@@ -4,7 +4,7 @@ import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2 } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -273,7 +273,19 @@ export default function Tasks() {
         <div className="space-y-6">
           {grouped.groups.map(g => (
             <section key={g.name}>
-              <h2 className="text-h2 mb-2">{g.name}</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-h2">{g.name}</h2>
+                <CreateTaskDialog
+                  spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+                  onCreated={load}
+                  defaultSpaceId={spaces.find(s => s.name === g.name)?.id}
+                  trigger={
+                    <button className="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted">
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  }
+                />
+              </div>
               <div className="rounded-xl border border-border bg-card p-3">
                 {renderTaskList(g.tasks, true)}
               </div>
