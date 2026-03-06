@@ -9,15 +9,25 @@ import { toast } from "sonner";
 interface CreateTaskDialogProps {
   spaces: { id: string; name: string }[];
   onCreated: () => void;
+  defaultSpaceId?: string;
+  trigger?: React.ReactNode;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
-export function CreateTaskDialog({ spaces, onCreated }: CreateTaskDialogProps) {
-  const [open, setOpen] = useState(false);
+export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange }: CreateTaskDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = externalOpen !== undefined;
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (isControlled) onExternalOpenChange?.(v);
+    else setInternalOpen(v);
+  };
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
-  const [spaceId, setSpaceId] = useState<string>(spaces.length === 1 ? spaces[0].id : "");
+  const [spaceId, setSpaceId] = useState<string>(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : ""));
   const [dueDate, setDueDate] = useState("");
 
   // Inline space creation
@@ -60,7 +70,7 @@ export function CreateTaskDialog({ spaces, onCreated }: CreateTaskDialogProps) {
         due_date: dueDate || null,
       });
       toast.success("Task criada!");
-      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(spaces.length === 1 ? spaces[0].id : ""); setDueDate("");
+      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate("");
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -72,11 +82,15 @@ export function CreateTaskDialog({ spaces, onCreated }: CreateTaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gradient-primary text-primary-foreground border-0">
-          <Plus className="h-4 w-4 mr-1" /> New Task
-        </Button>
-      </DialogTrigger>
+      {trigger !== undefined ? (
+        trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>
+      ) : (
+        <DialogTrigger asChild>
+          <Button size="sm" className="gradient-primary text-primary-foreground border-0">
+            <Plus className="h-4 w-4 mr-1" /> New Task
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>Criar Task</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
