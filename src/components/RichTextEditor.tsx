@@ -4,11 +4,14 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { useEffect, useImperativeHandle, forwardRef } from "react";
+import Image from "@tiptap/extension-image";
+import { useEffect, useImperativeHandle, forwardRef, useCallback } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
-  List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo,
+  List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -44,6 +47,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       Highlight.configure({ multicolor: false }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      Image.configure({ inline: false, allowBase64: true }),
     ],
     content,
     editable,
@@ -63,6 +67,31 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     editorProps: {
       attributes: {
         class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
+      },
+      handlePaste: (_view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of Array.from(items)) {
+          if (item.type.startsWith("image/")) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (file) handleImageUpload(file);
+            return true;
+          }
+        }
+        return false;
+      },
+      handleDrop: (_view, event) => {
+        const files = event.dataTransfer?.files;
+        if (!files?.length) return false;
+        for (const file of Array.from(files)) {
+          if (file.type.startsWith("image/")) {
+            event.preventDefault();
+            handleImageUpload(file);
+            return true;
+          }
+        }
+        return false;
       },
       handleClick: (_view, _pos, event) => {
         // Check if user clicked on a task item text
