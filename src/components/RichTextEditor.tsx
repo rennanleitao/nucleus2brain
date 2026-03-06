@@ -4,11 +4,14 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { useEffect, useImperativeHandle, forwardRef } from "react";
+import Image from "@tiptap/extension-image";
+import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
-  List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo,
+  List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +36,22 @@ export interface RichTextEditorHandle {
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick,
 }, ref) {
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+
+  const handleImageUpload = useCallback(async (file: File) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Faça login para enviar imagens"); return; }
+      const path = `${user.id}/notes/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+      editorRef.current?.chain().focus().setImage({ src: data.publicUrl, alt: file.name }).run();
+    } catch (err: any) {
+      toast.error("Erro ao enviar imagem: " + err.message);
+    }
+  }, []);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -44,6 +63,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       Highlight.configure({ multicolor: false }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      Image.configure({ inline: false, allowBase64: true }),
     ],
     content,
     editable,
@@ -63,6 +83,31 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     editorProps: {
       attributes: {
         class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
+      },
+      handlePaste: (_view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of Array.from(items)) {
+          if (item.type.startsWith("image/")) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (file) handleImageUpload(file);
+            return true;
+          }
+        }
+        return false;
+      },
+      handleDrop: (_view, event) => {
+        const files = event.dataTransfer?.files;
+        if (!files?.length) return false;
+        for (const file of Array.from(files)) {
+          if (file.type.startsWith("image/")) {
+            event.preventDefault();
+            handleImageUpload(file);
+            return true;
+          }
+        }
+        return false;
       },
       handleClick: (_view, _pos, event) => {
         // Check if user clicked on a task item text
@@ -135,6 +180,10 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       return titles;
     },
   }), [editor, onChange]);
+
+  useEffect(() => {
+    if (editor) editorRef.current = editor;
+  }, [editor]);
 
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
@@ -224,6 +273,18 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         </ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divisória">
           <Minus className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "image/*";
+          input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) handleImageUpload(file);
+          };
+          input.click();
+        }} title="Inserir imagem">
+          <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
 
