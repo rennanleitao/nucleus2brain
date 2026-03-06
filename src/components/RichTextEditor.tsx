@@ -36,6 +36,8 @@ export interface RichTextEditorHandle {
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick,
 }, ref) {
+  const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+
   const handleImageUpload = useCallback(async (file: File) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -44,7 +46,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file);
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from("attachments").getPublicUrl(path);
-      editor?.chain().focus().setImage({ src: data.publicUrl, alt: file.name }).run();
+      editorRef.current?.chain().focus().setImage({ src: data.publicUrl, alt: file.name }).run();
     } catch (err: any) {
       toast.error("Erro ao enviar imagem: " + err.message);
     }
