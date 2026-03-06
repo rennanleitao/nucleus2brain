@@ -322,12 +322,12 @@ export default function SpaceDetail() {
                 </Button>
               </div>
               {notes.length > 0 ? (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {[...notes].sort((a, b) => a.title.localeCompare(b.title)).map(note => (
                     <button
                       key={note.id}
                       onClick={() => openNoteEditor(note)}
-                      className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors text-left animate-fade-in touch-manipulation active:scale-[0.99] group"
+                      className="flex items-center gap-3 w-full px-4 py-3 rounded-lg border border-border bg-card hover:shadow-sm transition-all text-left animate-fade-in touch-manipulation active:scale-[0.99] group"
                     >
                       <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0">
