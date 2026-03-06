@@ -11,10 +11,10 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { message, phone, webhook_secret } = body;
+    const { message, phone, webhook_secret, audio_url, audio_base64 } = body;
 
-    if (!message || !webhook_secret) {
-      return new Response(JSON.stringify({ error: "Missing message or webhook_secret" }), {
+    if (!webhook_secret || (!message && !audio_url && !audio_base64)) {
+      return new Response(JSON.stringify({ error: "Missing webhook_secret and message/audio" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -43,18 +43,67 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are a task management assistant that interprets WhatsApp messages in Portuguese or English.
+    // If audio, first transcribe it using Gemini multimodal
+    let textMessage = message || "";
+    if (!textMessage && (audio_url || audio_base64)) {
+      let audioData = audio_base64;
+      
+      // Download audio if URL provided
+      if (audio_url && !audioData) {
+        try {
+          const audioResp = await fetch(audio_url);
+          if (!audioResp.ok) throw new Error(`Failed to download audio: ${audioResp.status}`);
+          const audioBuffer = await audioResp.arrayBuffer();
+          audioData = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+        } catch (e) {
+          console.error("Audio download error:", e);
+          throw new Error("Failed to download audio file");
+        }
+      }
+
+      if (audioData) {
+        // Use Gemini to transcribe audio
+        const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: "Transcreva este áudio exatamente como falado. Retorne APENAS a transcrição, sem explicações." },
+                {
+                  type: "input_audio",
+                  input_audio: {
+                    data: audioData,
+                    format: "mp3",
+                  },
+                },
+              ],
+            }],
+          }),
+        });
+
+        if (!transcribeResponse.ok) {
+          const errText = await transcribeResponse.text();
+          console.error("Transcription error:", transcribeResponse.status, errText);
+          throw new Error("Audio transcription failed");
+        }
+
+        const transcribeData = await transcribeResponse.json();
+        textMessage = transcribeData.choices?.[0]?.message?.content || "";
+        console.log("Transcribed audio:", textMessage);
+
+        if (!textMessage.trim()) {
+          throw new Error("Could not transcribe audio");
+        }
+      }
+    }
+
+    const systemPrompt = `You are a task management assistant that interprets WhatsApp messages in Portuguese or English.
 Parse the user's message and determine the action. Return a JSON tool call.
 
 Available actions:
@@ -64,9 +113,19 @@ Available actions:
 - "delete": Delete a task. Extract the task title or partial match.
 - "help": Show available commands.
 
-For dates, today is ${new Date().toISOString().split('T')[0]}. Interpret relative dates like "amanhã", "próxima segunda", etc.`
-          },
-          { role: "user", content: message }
+For dates, today is ${new Date().toISOString().split('T')[0]}. Interpret relative dates like "amanhã", "próxima segunda", etc.`;
+
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: textMessage }
         ],
         tools: [{
           type: "function",

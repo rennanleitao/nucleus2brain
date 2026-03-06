@@ -307,7 +307,7 @@ export default function SettingsPage() {
               <Badge variant="secondary" className="text-[10px]">Beta</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Gerencie suas tasks pelo WhatsApp. Crie, liste, conclua e receba lembretes.
+              Gerencie suas tasks pelo WhatsApp — por texto ou áudio. Crie, liste, conclua e receba lembretes. 🎤
             </p>
 
             <div className="space-y-3">
@@ -393,7 +393,8 @@ export default function SettingsPage() {
               {[
                 "Crie um Zap com trigger 'New Message in WhatsApp' (Zapier WhatsApp integration)",
                 "Adicione uma ação 'Webhooks by Zapier' → 'POST' para a URL acima",
-                'No body JSON, envie: {"message": "{{message}}", "phone": "{{phone}}", "webhook_secret": "SEU_SECRET"}',
+                'No body JSON, envie: {"message": "{{message}}", "audio_url": "{{audio_url}}", "phone": "{{phone}}", "webhook_secret": "SEU_SECRET"}',
+                "Para áudios: passe a URL do áudio no campo 'audio_url' (ou base64 em 'audio_base64'). A IA transcreve automaticamente.",
                 "Crie outro Zap: trigger 'Webhooks by Zapier' (Catch Hook) → ação 'Send WhatsApp Message'",
                 "Cole a URL do Catch Hook no campo 'Zapier Webhook URL' acima",
               ].map((step, i) => (
@@ -415,6 +416,7 @@ export default function SettingsPage() {
               <p>📋 <strong>Listar:</strong> "listar tasks", "tasks de hoje", "tasks atrasadas"</p>
               <p>✅ <strong>Concluir:</strong> "concluir Reunião com João"</p>
               <p>🗑️ <strong>Excluir:</strong> "excluir Reunião com João"</p>
+              <p>🎤 <strong>Áudio:</strong> Envie um áudio falando o comando — será transcrito automaticamente</p>
               <p>❓ <strong>Ajuda:</strong> "ajuda"</p>
             </div>
           </div>
