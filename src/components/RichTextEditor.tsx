@@ -5,7 +5,7 @@ import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Image from "@tiptap/extension-image";
-import { useEffect, useImperativeHandle, forwardRef, useCallback } from "react";
+import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
