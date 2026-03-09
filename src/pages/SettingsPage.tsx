@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone } from "lucide-react";
+import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -91,6 +91,9 @@ export default function SettingsPage() {
   const [waSecret, setWaSecret] = useState("");
   const [waSaving, setWaSaving] = useState(false);
 
+  // Import state
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; errors: number } | null>(null);
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -184,6 +187,64 @@ export default function SettingsPage() {
     }
   };
 
+  const handleEvernoteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.name.endsWith(".enex")) { toast.error("Upload um arquivo .enex do Evernote"); return; }
+    setImporting(true); setImportResult(null);
+    try {
+      const content = await file.text();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-notes`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ type: "evernote", data: { content } }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error);
+      setImportResult({ imported: data.imported, errors: data.errors });
+      toast.success(`${data.imported} notas importadas do Evernote!`);
+    } catch (err: any) { toast.error(err.message); } finally { setImporting(false); }
+  };
+
+  const handleNotionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setImporting(true); setImportResult(null);
+    try {
+      const notes: Array<{ title: string; content: string; tags: string[] }> = [];
+      for (const file of Array.from(files)) {
+        if (file.name.endsWith(".md")) {
+          const content = await file.text();
+          notes.push({ title: file.name.replace(/\.md$/, "").replace(/ [a-f0-9]{32}$/, ""), content, tags: ["notion-import"] });
+        } else if (file.name.endsWith(".csv")) {
+          const content = await file.text();
+          const lines = content.split("\n");
+          if (lines.length > 1) {
+            const headers = lines[0].split(",");
+            const titleIdx = headers.findIndex(h => h.toLowerCase().includes("name") || h.toLowerCase().includes("title"));
+            for (let i = 1; i < lines.length; i++) {
+              const cols = lines[i].split(",");
+              if (cols[titleIdx || 0]?.trim()) {
+                notes.push({ title: cols[titleIdx || 0].replace(/^"|"$/g, "").trim(), content: cols.slice(1).join(", ").replace(/^"|"$/g, "").trim(), tags: ["notion-import"] });
+              }
+            }
+          }
+        }
+      }
+      if (notes.length === 0) { toast.error("Nenhum arquivo .md ou .csv válido"); setImporting(false); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-notes`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ type: "notion_markdown", data: { notes } }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error);
+      setImportResult({ imported: data.imported, errors: data.errors });
+      toast.success(`${data.imported} notas importadas do Notion!`);
+    } catch (err: any) { toast.error(err.message); } finally { setImporting(false); }
+  };
+
   if (!loaded) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
@@ -202,6 +263,7 @@ export default function SettingsPage() {
           <TabsTrigger value="ai" className="text-xs"><Bot className="h-3 w-3 mr-1" /> Assistant</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs"><MessageSquare className="h-3 w-3 mr-1" /> WhatsApp</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs"><Bell className="h-3 w-3 mr-1" /> Lembretes</TabsTrigger>
+          <TabsTrigger value="import" className="text-xs"><Upload className="h-3 w-3 mr-1" /> Import</TabsTrigger>
           <TabsTrigger value="account" className="text-xs"><User className="h-3 w-3 mr-1" /> Conta</TabsTrigger>
         </TabsList>
 
@@ -492,6 +554,59 @@ export default function SettingsPage() {
             <p className="text-xs text-muted-foreground">
               O sistema verifica lembretes pendentes periodicamente enquanto o app estiver aberto.
             </p>
+          </div>
+        </TabsContent>
+
+        {/* IMPORT TAB */}
+        <TabsContent value="import" className="space-y-4">
+          {importResult && (
+            <div className={`rounded-xl border p-4 flex items-center gap-3 ${
+              importResult.errors > 0 ? "border-yellow-500/30 bg-yellow-500/5" : "border-primary/30 bg-primary/5"
+            }`}>
+              {importResult.errors > 0 ? <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" /> : <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+              <div>
+                <p className="text-small font-medium">{importResult.imported} notas importadas</p>
+                {importResult.errors > 0 && <p className="text-xs text-muted-foreground">{importResult.errors} falharam</p>}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className={`flex flex-col items-center gap-4 p-6 rounded-xl border-2 border-dashed bg-card transition-all cursor-pointer ${
+              importing ? "opacity-50 pointer-events-none" : "border-border hover:border-primary/40"
+            }`}>
+              <div className="w-12 h-12 rounded-xl bg-[#14CC45]/10 flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-[#14CC45]" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-small font-semibold">Evernote</h3>
+                <p className="text-xs text-muted-foreground mt-1">Upload <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.enex</code></p>
+              </div>
+              <input type="file" accept=".enex" onChange={handleEvernoteUpload} className="hidden" />
+              <span className="text-xs text-primary font-medium">{importing ? "Importando..." : "Escolher arquivo"}</span>
+            </label>
+
+            <label className={`flex flex-col items-center gap-4 p-6 rounded-xl border-2 border-dashed bg-card transition-all cursor-pointer ${
+              importing ? "opacity-50 pointer-events-none" : "border-border hover:border-primary/40"
+            }`}>
+              <div className="w-12 h-12 rounded-xl bg-foreground/5 flex items-center justify-center">
+                <FileText className="h-6 w-6 text-foreground/70" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-small font-semibold">Notion</h3>
+                <p className="text-xs text-muted-foreground mt-1">Upload <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.md</code> ou <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.csv</code></p>
+              </div>
+              <input type="file" accept=".md,.csv" multiple onChange={handleNotionUpload} className="hidden" />
+              <span className="text-xs text-primary font-medium">{importing ? "Importando..." : "Escolher arquivos"}</span>
+            </label>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-micro font-semibold mb-2">Como exportar</h3>
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <p><strong>Evernote:</strong> App desktop → Clique direito no notebook → Export → ENEX</p>
+              <p><strong>Notion:</strong> Settings → Export all → Markdown & CSV → Download e descompacte</p>
+            </div>
           </div>
         </TabsContent>
 

@@ -7,7 +7,6 @@ import {
   FileText, 
   Calendar, 
   Bot, 
-  Upload,
   Settings,
   Tag,
   Zap,
@@ -44,7 +43,7 @@ const navItems = [
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Pomodoro", url: "/pomodoro", icon: Timer },
   { title: "Assistant", url: "/assistant", icon: Bot },
-  { title: "Import", url: "/import", icon: Upload },
+  
 ];
 
 function formatTime(seconds: number) {
