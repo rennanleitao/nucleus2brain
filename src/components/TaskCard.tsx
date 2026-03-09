@@ -160,9 +160,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
         </div>
 
-        <Badge variant="outline" className={`text-[10px] border ${priorityStyles[task.priority]} flex-shrink-0`}>
-          {task.priority}
-        </Badge>
+        <PriorityDots priority={task.priority} />
 
         {onDelete && (
           <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
