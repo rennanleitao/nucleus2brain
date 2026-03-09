@@ -1,12 +1,17 @@
 import { useEffect, useState, useRef } from "react";
-import { fetchTasks, updateTask, fetchSpaces, createTask } from "@/lib/api";
+import { fetchTasks, updateTask, fetchSpaces, createTask, deleteTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
-import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle } from "lucide-react";
+import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
+import { EditTaskDialog } from "@/components/EditTaskDialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ChatMessage {
   id: string;
@@ -163,6 +168,21 @@ export default function Dashboard() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ overdue: true, today: true, upcoming: true });
   const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+
+  const handleDeleteTask = async () => {
+    if (!taskToDelete) return;
+    try {
+      await deleteTask(taskToDelete);
+      toast.success("Task excluída");
+      setTaskToDelete(null);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
@@ -271,9 +291,14 @@ export default function Dashboard() {
                     </p>
                     <div className="space-y-1">
                       {completedToday.map(t => (
-                        <div key={t.id} className="flex items-center gap-2 text-small">
+                        <div key={t.id} className="group/item flex items-center gap-2 text-small rounded-md px-1.5 py-1 hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => setSelectedTask(t)}>
                           <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                          <span className="line-through text-muted-foreground truncate">{t.title}</span>
+                          <span className="line-through text-muted-foreground truncate flex-1">{t.title}</span>
+                          <button onClick={(e) => { e.stopPropagation(); setTaskToDelete(t.id); }}
+                            className="opacity-0 group-hover/item:opacity-100 text-muted-foreground hover:text-destructive transition-all flex-shrink-0">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -287,9 +312,14 @@ export default function Dashboard() {
                     </p>
                     <div className="space-y-1">
                       {dueTodayPending.map(t => (
-                        <div key={t.id} className="flex items-center gap-2 text-small">
+                        <div key={t.id} className="group/item flex items-center gap-2 text-small rounded-md px-1.5 py-1 hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => setSelectedTask(t)}>
                           <Circle className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{t.title}</span>
+                          <span className="truncate flex-1">{t.title}</span>
+                          <button onClick={(e) => { e.stopPropagation(); setTaskToDelete(t.id); }}
+                            className="opacity-0 group-hover/item:opacity-100 text-muted-foreground hover:text-destructive transition-all flex-shrink-0">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -364,6 +394,31 @@ export default function Dashboard() {
           </button>
         </form>
       </div>
+
+      {/* Edit Task Dialog */}
+      {selectedTask && (
+        <EditTaskDialog
+          task={selectedTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!selectedTask}
+          onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+          onUpdated={() => { setSelectedTask(null); load(); }}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => { if (!open) setTaskToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir task?</AlertDialogTitle>
+            <AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
