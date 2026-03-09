@@ -92,7 +92,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           onClick={(e) => { e.stopPropagation(); onToggle?.(task.id); }}
           className={`flex-shrink-0 transition-colors w-5 h-5 sm:w-4 sm:h-4 mt-[2px] touch-manipulation ${isCompleted ? "text-muted-foreground" : "text-muted-foreground hover:text-primary"}`}
         >
-          <StatusIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+          <ToggleIcon className="h-5 w-5 sm:h-4 sm:w-4" />
         </button>
 
         <div className="flex-1 min-w-0">
