@@ -334,7 +334,10 @@ export default function Dashboard() {
               </>
             );
           })()}
-        </div>
+      </div>
+
+      {/* Accomplishment History */}
+      <AccomplishmentHistory tasks={tasks} onSelectTask={setSelectedTask} onDeleteTask={setTaskToDelete} />
       </div>
 
       {/* Assistant Chat */}
