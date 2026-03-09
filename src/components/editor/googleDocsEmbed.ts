@@ -13,7 +13,7 @@ export function getGoogleEmbedUrl(url: string): { embedUrl: string; type: string
     // Google Sheets
     const sheetsMatch = u.pathname.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
     if (sheetsMatch) {
-      return { embedUrl: `https://docs.google.com/spreadsheets/d/${sheetsMatch[1]}/preview`, type: "Google Sheets" };
+      return { embedUrl: `https://docs.google.com/spreadsheets/d/${sheetsMatch[1]}/edit?embedded=true`, type: "Google Sheets" };
     }
 
     // Google Slides
