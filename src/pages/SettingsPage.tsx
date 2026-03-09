@@ -91,6 +91,9 @@ export default function SettingsPage() {
   const [waSecret, setWaSecret] = useState("");
   const [waSaving, setWaSaving] = useState(false);
 
+  // Import state
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; errors: number } | null>(null);
   useEffect(() => {
     if (!user) return;
     const load = async () => {
