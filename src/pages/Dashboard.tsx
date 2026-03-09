@@ -7,6 +7,11 @@ import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDow
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
+import { EditTaskDialog } from "@/components/EditTaskDialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ChatMessage {
   id: string;
