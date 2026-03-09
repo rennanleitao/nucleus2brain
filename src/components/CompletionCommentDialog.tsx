@@ -138,6 +138,19 @@ export function CompletionCommentDialog({ task, open, onOpenChange, onDone }: Co
               </div>
             </RadioGroup>
 
+            {destination === "new_note" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Título da nota</Label>
+                <input
+                  type="text"
+                  value={noteTitle}
+                  onChange={e => setNoteTitle(e.target.value)}
+                  placeholder="Título da nota..."
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+              </div>
+            )}
+
             {destination === "existing_note" && (
               <Select value={selectedNoteId} onValueChange={setSelectedNoteId}>
                 <SelectTrigger className="text-sm">
