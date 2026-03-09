@@ -61,9 +61,10 @@ export function CompletionCommentDialog({ task, open, onOpenChange, onDone }: Co
         await updateTask(task.id, { completion_note: comment.trim() } as any);
         toast.success("Comentário salvo na atividade");
       } else if (destination === "new_note") {
-        const noteContent = `<p><strong>Conclusão de: ${task.title}</strong></p><p>${comment.trim().replace(/\n/g, "<br/>")}</p>`;
+        const completedDate = new Date().toLocaleDateString("pt-BR");
+        const noteContent = `<p><em>📌 Nota criada pela atividade "${task.title}" em ${completedDate}</em></p><hr/><p>${comment.trim().replace(/\n/g, "<br/>")}</p>`;
         await createNote({
-          title: `Conclusão: ${task.title}`,
+          title: (noteTitle.trim() || `Conclusão: ${task.title}`),
           content: noteContent,
           tags: ["conclusão"],
           space_id: task.space_id || null,
