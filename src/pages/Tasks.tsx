@@ -26,6 +26,7 @@ export default function Tasks() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
+  const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [filter, setFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   
