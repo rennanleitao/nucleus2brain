@@ -43,6 +43,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  const [embedPrompt, setEmbedPrompt] = useState<{ embedUrl: string; type: string; originalUrl: string } | null>(null);
 
   const handleImageUpload = useCallback(async (file: File) => {
     try {
