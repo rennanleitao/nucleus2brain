@@ -71,6 +71,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TaskList,
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: true }),
+      Iframe,
     ],
     content,
     editable,
