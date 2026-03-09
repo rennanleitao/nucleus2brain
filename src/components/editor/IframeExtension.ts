@@ -1,4 +1,6 @@
 import { Node, mergeAttributes } from "@tiptap/react";
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import { IframeNodeView } from "./IframeNodeView";
 
 export interface IframeOptions {
   allowFullscreen: boolean;
@@ -33,7 +35,7 @@ export const Iframe = Node.create<IframeOptions>({
       title: { default: null },
       frameborder: { default: "0" },
       allowfullscreen: { default: this.options.allowFullscreen },
-      style: { default: "width: 100%; height: 500px; border: 1px solid hsl(var(--border)); border-radius: 8px;" },
+      collapsed: { default: false },
     };
   },
 
@@ -43,5 +45,9 @@ export const Iframe = Node.create<IframeOptions>({
 
   renderHTML({ HTMLAttributes }) {
     return ["div", { class: "iframe-embed my-3" }, ["iframe", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(IframeNodeView);
   },
 });
