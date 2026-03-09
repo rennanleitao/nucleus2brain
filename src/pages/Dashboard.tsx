@@ -394,6 +394,31 @@ export default function Dashboard() {
           </button>
         </form>
       </div>
+
+      {/* Edit Task Dialog */}
+      {selectedTask && (
+        <EditTaskDialog
+          task={selectedTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!selectedTask}
+          onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+          onUpdated={() => { setSelectedTask(null); load(); }}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!taskToDelete} onOpenChange={(open) => { if (!open) setTaskToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir task?</AlertDialogTitle>
+            <AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTask} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
