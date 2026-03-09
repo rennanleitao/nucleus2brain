@@ -52,6 +52,8 @@ function createAlphaWavesNode(audioCtx: AudioContext): { start: () => void; stop
   };
 }
 
+type PomodoroPhase = "focus" | "break" | "idle";
+
 interface PomodoroState {
   phase: PomodoroPhase;
   secondsLeft: number;
