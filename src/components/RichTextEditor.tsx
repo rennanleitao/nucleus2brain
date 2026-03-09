@@ -315,6 +315,38 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
       {/* Editor */}
       <EditorContent editor={editor} />
+
+      {/* Google Docs Embed Prompt */}
+      <AlertDialog open={!!embedPrompt} onOpenChange={(open) => !open && setEmbedPrompt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Embedar {embedPrompt?.type}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja incorporar este documento diretamente na nota ou inserir como link?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              if (embedPrompt && editor) {
+                editor.chain().focus().insertContent(`<p><a href="${embedPrompt.originalUrl}" target="_blank">${embedPrompt.originalUrl}</a></p>`).run();
+                onChange(editor.getHTML());
+              }
+              setEmbedPrompt(null);
+            }}>
+              Inserir como link
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (embedPrompt && editor) {
+                editor.chain().focus().insertContent({ type: "iframe", attrs: { src: embedPrompt.embedUrl, title: embedPrompt.type } }).run();
+                onChange(editor.getHTML());
+              }
+              setEmbedPrompt(null);
+            }}>
+              Embedar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 });
