@@ -112,6 +112,16 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
               <label className="text-xs text-muted-foreground mb-1 block">Data limite</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+              <div className="flex gap-1 mt-1">
+                <button type="button" onClick={() => setDueDate(new Date().toISOString().split("T")[0])}
+                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === new Date().toISOString().split("T")[0] ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                  Hoje
+                </button>
+                <button type="button" onClick={() => setDueDate(new Date(Date.now() + 86400000).toISOString().split("T")[0])}
+                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === new Date(Date.now() + 86400000).toISOString().split("T")[0] ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                  Amanhã
+                </button>
+              </div>
               <p className="text-[10px] text-muted-foreground mt-1">
                 {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
               </p>
