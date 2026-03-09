@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useReminders } from "@/hooks/useReminders";
+import { PomodoroProvider } from "@/hooks/usePomodoroStore";
 import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Spaces from "./pages/Spaces";
@@ -19,6 +20,7 @@ import ImportPage from "./pages/ImportPage";
 import History from "./pages/History";
 import SpaceDetail from "./pages/SpaceDetail";
 import AcceptInvite from "./pages/AcceptInvite";
+import Pomodoro from "./pages/Pomodoro";
 import NotFound from "./pages/NotFound";
 
 
@@ -50,6 +52,7 @@ function AppRoutes() {
         <Route path="/notes" element={<Notes />} />
         <Route path="/tags" element={<Tags />} />
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/pomodoro" element={<Pomodoro />} />
         <Route path="/assistant" element={<Assistant />} />
             <Route path="/import" element={<ImportPage />} />
             
@@ -68,7 +71,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <PomodoroProvider>
+            <AppRoutes />
+          </PomodoroProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
