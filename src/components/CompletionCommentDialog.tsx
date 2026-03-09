@@ -23,6 +23,7 @@ interface CompletionCommentDialogProps {
 export function CompletionCommentDialog({ task, open, onOpenChange, onDone }: CompletionCommentDialogProps) {
   const [comment, setComment] = useState("");
   const [destination, setDestination] = useState<"task" | "new_note" | "existing_note">("task");
+  const [noteTitle, setNoteTitle] = useState("");
   const [notes, setNotes] = useState<any[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ export function CompletionCommentDialog({ task, open, onOpenChange, onDone }: Co
     if (open) {
       setComment("");
       setDestination("task");
+      setNoteTitle(`Conclusão: ${task.title}`);
       setSelectedNoteId("");
       // Load notes for the space (or all notes if no space)
       const loadNotes = async () => {
@@ -59,9 +61,10 @@ export function CompletionCommentDialog({ task, open, onOpenChange, onDone }: Co
         await updateTask(task.id, { completion_note: comment.trim() } as any);
         toast.success("Comentário salvo na atividade");
       } else if (destination === "new_note") {
-        const noteContent = `<p><strong>Conclusão de: ${task.title}</strong></p><p>${comment.trim().replace(/\n/g, "<br/>")}</p>`;
+        const completedDate = new Date().toLocaleDateString("pt-BR");
+        const noteContent = `<p><em>📌 Nota criada pela atividade "${task.title}" em ${completedDate}</em></p><hr/><p>${comment.trim().replace(/\n/g, "<br/>")}</p>`;
         await createNote({
-          title: `Conclusão: ${task.title}`,
+          title: (noteTitle.trim() || `Conclusão: ${task.title}`),
           content: noteContent,
           tags: ["conclusão"],
           space_id: task.space_id || null,
@@ -134,6 +137,19 @@ export function CompletionCommentDialog({ task, open, onOpenChange, onDone }: Co
                 </Label>
               </div>
             </RadioGroup>
+
+            {destination === "new_note" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Título da nota</Label>
+                <input
+                  type="text"
+                  value={noteTitle}
+                  onChange={e => setNoteTitle(e.target.value)}
+                  placeholder="Título da nota..."
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+              </div>
+            )}
 
             {destination === "existing_note" && (
               <Select value={selectedNoteId} onValueChange={setSelectedNoteId}>
