@@ -32,6 +32,7 @@ export function CompletionCommentDialog({ task, open, onOpenChange, onDone }: Co
     if (open) {
       setComment("");
       setDestination("task");
+      setNoteTitle(`Conclusão: ${task.title}`);
       setSelectedNoteId("");
       // Load notes for the space (or all notes if no space)
       const loadNotes = async () => {
