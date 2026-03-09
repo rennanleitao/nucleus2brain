@@ -7,7 +7,6 @@ import {
   FileText, 
   Calendar, 
   Bot, 
-  Upload,
   Settings,
   Tag,
   Zap,
