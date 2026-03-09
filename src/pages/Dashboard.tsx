@@ -3,7 +3,7 @@ import { fetchTasks, updateTask, fetchSpaces, createTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
-import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User } from "lucide-react";
+import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,13 +18,14 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const today = new Date().toISOString().split("T")[0];
 
-function SectionHeader({ icon: Icon, title, count }: { icon: React.ElementType; title: string; count: number }) {
+function SectionHeader({ icon: Icon, title, count, isOpen, onToggle }: { icon: React.ElementType; title: string; count: number; isOpen: boolean; onToggle: () => void }) {
   return (
-    <div className="flex items-center gap-2 mb-3">
+    <button onClick={onToggle} className="flex items-center gap-2 mb-3 w-full text-left group">
+      {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
       <Icon className="h-4 w-4 text-muted-foreground" />
       <h2 className="text-h2">{title}</h2>
       <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{count}</span>
-    </div>
+    </button>
   );
 }
 
@@ -159,6 +160,9 @@ export default function Dashboard() {
 
   const activeCount = tasks.filter(t => t.status !== "completed" && t.status !== "cancelled").length;
 
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ overdue: true, today: true, upcoming: true });
+  const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
@@ -195,30 +199,36 @@ export default function Dashboard() {
       <div className="space-y-6">
         {overdueTasks.length > 0 && (
           <section>
-            <SectionHeader icon={AlertTriangle} title="Overdue" count={overdueTasks.length} />
-            <div className="space-y-2">
-              {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)}
-            </div>
+            <SectionHeader icon={AlertTriangle} title="Overdue" count={overdueTasks.length} isOpen={openSections.overdue} onToggle={() => toggleSection("overdue")} />
+            {openSections.overdue && (
+              <div className="space-y-2">
+                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)}
+              </div>
+            )}
           </section>
         )}
 
         <section>
-          <SectionHeader icon={Clock} title="Today" count={todayTasks.length} />
-          <div className="space-y-2">
-            {todayTasks.length > 0 ? (
-              todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)
-            ) : (
-              <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
-            )}
-          </div>
+          <SectionHeader icon={Clock} title="Today" count={todayTasks.length} isOpen={openSections.today} onToggle={() => toggleSection("today")} />
+          {openSections.today && (
+            <div className="space-y-2">
+              {todayTasks.length > 0 ? (
+                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)
+              ) : (
+                <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
+              )}
+            </div>
+          )}
         </section>
 
         {upcomingTasks.length > 0 && (
           <section>
-            <SectionHeader icon={TrendingUp} title="Upcoming" count={upcomingTasks.length} />
-            <div className="space-y-2">
-              {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)}
-            </div>
+            <SectionHeader icon={TrendingUp} title="Upcoming" count={upcomingTasks.length} isOpen={openSections.upcoming} onToggle={() => toggleSection("upcoming")} />
+            {openSections.upcoming && (
+              <div className="space-y-2">
+                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)}
+              </div>
+            )}
           </section>
         )}
       </div>

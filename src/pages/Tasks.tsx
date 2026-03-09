@@ -5,7 +5,7 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +35,8 @@ export default function Tasks() {
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [followUpTask, setFollowUpTask] = useState<any | null>(null);
   const [completionTask, setCompletionTask] = useState<any | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (key: string) => setCollapsedGroups(prev => ({ ...prev, [key]: !prev[key] }));
 
   const load = async () => {
     try {
@@ -275,30 +277,44 @@ export default function Tasks() {
 
       {grouped ? (
         <div className="space-y-6">
-          {grouped.groups.map(g => (
-            <section key={g.name}>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-h2">{g.name}</h2>
-                <CreateTaskDialog
-                  spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
-                  onCreated={load}
-                  defaultSpaceId={spaces.find(s => s.name === g.name)?.id}
-                  trigger={
-                    <button className="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted">
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  }
-                />
-              </div>
-              <div className="rounded-xl border border-border bg-card p-3">
-                {renderTaskList(g.tasks, true)}
-              </div>
-            </section>
-          ))}
+          {grouped.groups.map(g => {
+            const key = g.name;
+            const isOpen = collapsedGroups[key] !== true;
+            return (
+              <section key={g.name}>
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={() => toggleGroup(key)} className="flex items-center gap-2 text-left">
+                    {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                    <h2 className="text-h2">{g.name}</h2>
+                    <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
+                  </button>
+                  <CreateTaskDialog
+                    spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+                    onCreated={load}
+                    defaultSpaceId={spaces.find(s => s.name === g.name)?.id}
+                    trigger={
+                      <button className="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted">
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    }
+                  />
+                </div>
+                {isOpen && (
+                  <div className="rounded-xl border border-border bg-card p-3">
+                    {renderTaskList(g.tasks, true)}
+                  </div>
+                )}
+              </section>
+            );
+          })}
           {grouped.ungrouped.length > 0 && (
             <section>
-              <h2 className="text-h2 mb-2 text-muted-foreground">No Space</h2>
-              {renderTaskList(grouped.ungrouped)}
+              <button onClick={() => toggleGroup("__ungrouped")} className="flex items-center gap-2 mb-2 text-left">
+                {collapsedGroups["__ungrouped"] !== true ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                <h2 className="text-h2 text-muted-foreground">No Space</h2>
+                <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{grouped.ungrouped.length}</span>
+              </button>
+              {collapsedGroups["__ungrouped"] !== true && renderTaskList(grouped.ungrouped)}
             </section>
           )}
           {grouped.groups.length === 0 && grouped.ungrouped.length === 0 && (
