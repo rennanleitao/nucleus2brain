@@ -45,11 +45,25 @@ const statusIcons: Record<TaskStatus, React.ElementType> = {
   cancelled: XCircle,
 };
 
-const priorityStyles: Record<TaskPriority, string> = {
-  high: "bg-foreground/10 text-foreground border-foreground/20",
-  medium: "bg-muted text-muted-foreground border-border",
-  low: "bg-muted text-muted-foreground/60 border-border",
+const priorityDots: Record<TaskPriority, number> = {
+  high: 3,
+  medium: 2,
+  low: 1,
 };
+
+function PriorityDots({ priority }: { priority: TaskPriority }) {
+  const count = priorityDots[priority];
+  return (
+    <div className="flex items-center gap-[3px]" title={priority}>
+      {[1, 2, 3].map(i => (
+        <span
+          key={i}
+          className={`block h-[5px] w-[5px] rounded-full ${i <= count ? "bg-foreground/50" : "bg-border"}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr + "T00:00:00");
