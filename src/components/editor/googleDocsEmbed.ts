@@ -7,7 +7,7 @@ export function getGoogleEmbedUrl(url: string): { embedUrl: string; type: string
     // Google Docs
     const docsMatch = u.pathname.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
     if (docsMatch) {
-      return { embedUrl: `https://docs.google.com/document/d/${docsMatch[1]}/preview`, type: "Google Docs" };
+      return { embedUrl: `https://docs.google.com/document/d/${docsMatch[1]}/edit?embedded=true`, type: "Google Docs" };
     }
 
     // Google Sheets
