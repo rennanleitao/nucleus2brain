@@ -1,6 +1,56 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 
-type PomodoroPhase = "focus" | "break" | "idle";
+// Generate alpha wave binaural beats using Web Audio API
+function createAlphaWavesNode(audioCtx: AudioContext): { start: () => void; stop: () => void } {
+  const baseFreq = 200;
+  const alphaFreq = 10; // 10Hz alpha wave
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.15;
+  gainNode.connect(audioCtx.destination);
+
+  const oscLeft = audioCtx.createOscillator();
+  const oscRight = audioCtx.createOscillator();
+  oscLeft.type = "sine";
+  oscRight.type = "sine";
+  oscLeft.frequency.value = baseFreq;
+  oscRight.frequency.value = baseFreq + alphaFreq;
+
+  const panLeft = audioCtx.createStereoPanner();
+  const panRight = audioCtx.createStereoPanner();
+  panLeft.pan.value = -1;
+  panRight.pan.value = 1;
+
+  oscLeft.connect(panLeft).connect(gainNode);
+  oscRight.connect(panRight).connect(gainNode);
+
+  // Add pink noise for ambience
+  const bufferSize = audioCtx.sampleRate * 2;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + white * 0.0555179;
+    b1 = 0.99332 * b1 + white * 0.0750759;
+    b2 = 0.96900 * b2 + white * 0.1538520;
+    b3 = 0.86650 * b3 + white * 0.3104856;
+    b4 = 0.55000 * b4 + white * 0.5329522;
+    b5 = -0.7616 * b5 - white * 0.0168980;
+    output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+    b6 = white * 0.115926;
+  }
+  const noiseNode = audioCtx.createBufferSource();
+  noiseNode.buffer = noiseBuffer;
+  noiseNode.loop = true;
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.value = 0.08;
+  noiseNode.connect(noiseGain).connect(audioCtx.destination);
+
+  return {
+    start: () => { oscLeft.start(); oscRight.start(); noiseNode.start(); },
+    stop: () => { oscLeft.stop(); oscRight.stop(); noiseNode.stop(); },
+  };
+}
 
 interface PomodoroState {
   phase: PomodoroPhase;
