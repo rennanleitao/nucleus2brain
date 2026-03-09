@@ -34,6 +34,7 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [followUpTask, setFollowUpTask] = useState<any | null>(null);
+  const [completionTask, setCompletionTask] = useState<any | null>(null);
 
   const load = async () => {
     try {
