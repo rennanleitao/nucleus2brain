@@ -89,7 +89,8 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [alphaWaves, setAlphaWaves] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const alphaNodeRef = useRef<{ start: () => void; stop: () => void } | null>(null);
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
