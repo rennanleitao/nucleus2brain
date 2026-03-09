@@ -454,6 +454,14 @@ export default function SpaceDetail() {
         <EditTaskDialog task={editingTask} spaces={[{ id: space.id, name: space.name }]}
           open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)} onUpdated={load} />
       )}
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { setCompletionTask(null); setFollowUpTask(completionTask); load(); }}
+        />
+      )}
       {followUpTask && (
         <FollowUpDialog completedTask={followUpTask} spaces={[{ id: space.id, name: space.name }]}
           open={!!followUpTask} onOpenChange={(open) => !open && setFollowUpTask(null)} onCreated={load} />
