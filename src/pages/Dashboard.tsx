@@ -312,9 +312,14 @@ export default function Dashboard() {
                     </p>
                     <div className="space-y-1">
                       {dueTodayPending.map(t => (
-                        <div key={t.id} className="flex items-center gap-2 text-small">
+                        <div key={t.id} className="group/item flex items-center gap-2 text-small rounded-md px-1.5 py-1 hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => setSelectedTask(t)}>
                           <Circle className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{t.title}</span>
+                          <span className="truncate flex-1">{t.title}</span>
+                          <button onClick={(e) => { e.stopPropagation(); setTaskToDelete(t.id); }}
+                            className="opacity-0 group-hover/item:opacity-100 text-muted-foreground hover:text-destructive transition-all flex-shrink-0">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
                       ))}
                     </div>
