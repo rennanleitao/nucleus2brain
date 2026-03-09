@@ -93,6 +93,17 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
       },
       handlePaste: (_view, event) => {
+        // Check for Google Docs URL in plain text
+        const text = event.clipboardData?.getData("text/plain")?.trim();
+        if (text) {
+          const embed = getGoogleEmbedUrl(text);
+          if (embed) {
+            event.preventDefault();
+            setEmbedPrompt({ ...embed, originalUrl: text });
+            return true;
+          }
+        }
+        // Check for image paste
         const items = event.clipboardData?.items;
         if (!items) return false;
         for (const item of Array.from(items)) {
