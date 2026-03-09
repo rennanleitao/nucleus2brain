@@ -63,7 +63,11 @@ export default function Notes() {
     else setLinkedTasks([]);
   }, [editSpaceId, loadLinkedTasks]);
 
-  const allTags = [...new Set(notes.flatMap(n => n.tags || []))].sort();
+  const [allTags, setAllTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchAllTags().then(setAllTags).catch(() => {});
+  }, [notes]);
 
   const filteredNotes = notes.filter(n => {
     const matchSearch = !search || n.title.toLowerCase().includes(search.toLowerCase()) ||
