@@ -171,7 +171,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
               onClick={() => handleAiImprove(mode.key)}
               className="text-xs gap-2 cursor-pointer"
             >
-              <span>{mode.icon}</span>
+              <mode.Icon className="h-3 w-3" />
               {mode.label}
             </DropdownMenuItem>
           ))}
