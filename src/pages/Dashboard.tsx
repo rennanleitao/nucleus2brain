@@ -6,7 +6,7 @@ import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle, Trash2, History, Calendar, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
+import { AccomplishmentHistory } from "@/components/AccomplishmentHistory";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
