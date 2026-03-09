@@ -57,8 +57,9 @@ function formatDate(dateStr: string) {
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   task, subtasks = [], onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, hideSpace
 }, ref) => {
-  const StatusIcon = statusIcons[task.status];
   const isCompleted = task.status === "completed";
+  const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
+  const StatusIcon = statusIcons[task.status];
   const isOverdue = !!(task.due_date && new Date(task.due_date) < new Date() && !isCompleted);
   const hasSubtasks = subtasks.length > 0;
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
@@ -91,7 +92,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           onClick={(e) => { e.stopPropagation(); onToggle?.(task.id); }}
           className={`flex-shrink-0 transition-colors w-5 h-5 sm:w-4 sm:h-4 mt-[2px] touch-manipulation ${isCompleted ? "text-muted-foreground" : "text-muted-foreground hover:text-primary"}`}
         >
-          <StatusIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+          <ToggleIcon className="h-5 w-5 sm:h-4 sm:w-4" />
         </button>
 
         <div className="flex-1 min-w-0">
