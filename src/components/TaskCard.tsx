@@ -57,7 +57,7 @@ function formatDate(dateStr: string) {
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, hideSpace
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, hideSpace
 }, ref) => {
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
@@ -65,6 +65,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const isOverdue = !!(task.due_date && new Date(task.due_date) < new Date() && !isCompleted);
   const hasSubtasks = subtasks.length > 0;
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
+  const reminderTriggered = !!(reminder && new Date(reminder.reminder_time) <= new Date() && !reminder.sent);
 
   const [isOpen, setIsOpen] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
