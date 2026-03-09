@@ -25,6 +25,7 @@ interface TaskCardProps {
     spaces?: { name: string } | null;
     notes?: { title: string } | null;
     note_id?: string | null;
+    tag?: string | null;
   };
   subtasks?: Subtask[];
   onToggle?: (id: string) => void;
