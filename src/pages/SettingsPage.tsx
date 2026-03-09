@@ -187,6 +187,64 @@ export default function SettingsPage() {
     }
   };
 
+  const handleEvernoteUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.name.endsWith(".enex")) { toast.error("Upload um arquivo .enex do Evernote"); return; }
+    setImporting(true); setImportResult(null);
+    try {
+      const content = await file.text();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-notes`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ type: "evernote", data: { content } }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error);
+      setImportResult({ imported: data.imported, errors: data.errors });
+      toast.success(`${data.imported} notas importadas do Evernote!`);
+    } catch (err: any) { toast.error(err.message); } finally { setImporting(false); }
+  };
+
+  const handleNotionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setImporting(true); setImportResult(null);
+    try {
+      const notes: Array<{ title: string; content: string; tags: string[] }> = [];
+      for (const file of Array.from(files)) {
+        if (file.name.endsWith(".md")) {
+          const content = await file.text();
+          notes.push({ title: file.name.replace(/\.md$/, "").replace(/ [a-f0-9]{32}$/, ""), content, tags: ["notion-import"] });
+        } else if (file.name.endsWith(".csv")) {
+          const content = await file.text();
+          const lines = content.split("\n");
+          if (lines.length > 1) {
+            const headers = lines[0].split(",");
+            const titleIdx = headers.findIndex(h => h.toLowerCase().includes("name") || h.toLowerCase().includes("title"));
+            for (let i = 1; i < lines.length; i++) {
+              const cols = lines[i].split(",");
+              if (cols[titleIdx || 0]?.trim()) {
+                notes.push({ title: cols[titleIdx || 0].replace(/^"|"$/g, "").trim(), content: cols.slice(1).join(", ").replace(/^"|"$/g, "").trim(), tags: ["notion-import"] });
+              }
+            }
+          }
+        }
+      }
+      if (notes.length === 0) { toast.error("Nenhum arquivo .md ou .csv válido"); setImporting(false); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-notes`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ type: "notion_markdown", data: { notes } }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error);
+      setImportResult({ imported: data.imported, errors: data.errors });
+      toast.success(`${data.imported} notas importadas do Notion!`);
+    } catch (err: any) { toast.error(err.message); } finally { setImporting(false); }
+  };
+
   if (!loaded) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
