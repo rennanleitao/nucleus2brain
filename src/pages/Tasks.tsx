@@ -213,6 +213,7 @@ export default function Tasks() {
           <TaskCard
             task={t}
             subtasks={subtasksMap[t.id] || []}
+            reminder={remindersMap[t.id] || null}
             onToggle={() => toggleTask(t.id)}
             onDelete={() => handleDelete(t.id)}
             onToggleSubtask={toggleSubtask}
