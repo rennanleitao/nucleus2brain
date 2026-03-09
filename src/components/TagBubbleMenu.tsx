@@ -18,11 +18,13 @@ interface TagBubbleMenuProps {
   existingTags: string[];
 }
 
+import { Wand2, FileText, BookOpen, BriefcaseBusiness } from "lucide-react";
+
 const AI_MODES = [
-  { key: "improve", label: "Melhorar texto", icon: "✨" },
-  { key: "simplify", label: "Simplificar", icon: "📝" },
-  { key: "expand", label: "Expandir", icon: "📖" },
-  { key: "formal", label: "Tom formal", icon: "👔" },
+  { key: "improve", label: "Melhorar texto", Icon: Wand2 },
+  { key: "simplify", label: "Simplificar", Icon: FileText },
+  { key: "expand", label: "Expandir", Icon: BookOpen },
+  { key: "formal", label: "Tom formal", Icon: BriefcaseBusiness },
 ] as const;
 
 export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuProps) {
@@ -169,7 +171,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
               onClick={() => handleAiImprove(mode.key)}
               className="text-xs gap-2 cursor-pointer"
             >
-              <span>{mode.icon}</span>
+              <mode.Icon className="h-3 w-3" />
               {mode.label}
             </DropdownMenuItem>
           ))}
