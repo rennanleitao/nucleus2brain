@@ -168,6 +168,21 @@ export default function Dashboard() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ overdue: true, today: true, upcoming: true });
   const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+
+  const handleDeleteTask = async () => {
+    if (!taskToDelete) return;
+    try {
+      await deleteTask(taskToDelete);
+      toast.success("Task excluída");
+      setTaskToDelete(null);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
