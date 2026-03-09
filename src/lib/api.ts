@@ -282,6 +282,17 @@ export async function fetchAllTags(): Promise<string[]> {
   return [...tagSet].sort();
 }
 
+// ---- REMINDERS ----
+export async function fetchReminders() {
+  const { data, error } = await supabase
+    .from("reminders")
+    .select("*")
+    .eq("sent", false)
+    .order("reminder_time", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
 // ---- TAG MANAGEMENT ----
 export async function renameTag(oldTag: string, newTag: string) {
   const { data: { user } } = await supabase.auth.getUser();
