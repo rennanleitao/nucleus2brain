@@ -3,7 +3,7 @@ import { fetchTasks, updateTask, fetchSpaces, createTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
-import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight } from "lucide-react";
+import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
@@ -231,6 +231,78 @@ export default function Dashboard() {
             )}
           </section>
         )}
+      </div>
+
+      {/* Daily Accomplishment */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="p-3 border-b border-border flex items-center gap-2">
+          <Trophy className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Accomplishment do Dia</span>
+        </div>
+        <div className="p-4 space-y-3">
+          {(() => {
+            const completedToday = tasks.filter(t => t.status === "completed" && t.completed_at && t.completed_at.startsWith(today));
+            const dueToday = tasks.filter(t => t.due_date === today);
+            const dueTodayDone = dueToday.filter(t => t.status === "completed");
+            const dueTodayPending = dueToday.filter(t => t.status !== "completed" && t.status !== "cancelled");
+            const completionRate = dueToday.length > 0 ? Math.round((dueTodayDone.length / dueToday.length) * 100) : 0;
+
+            return (
+              <>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <div className="flex justify-between text-micro text-muted-foreground mb-1">
+                      <span>Previstas hoje: {dueToday.length}</span>
+                      <span>{completionRate}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${completionRate}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {completedToday.length > 0 && (
+                  <div>
+                    <p className="text-micro text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3 text-primary" /> Concluídas ({completedToday.length})
+                    </p>
+                    <div className="space-y-1">
+                      {completedToday.map(t => (
+                        <div key={t.id} className="flex items-center gap-2 text-small">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                          <span className="line-through text-muted-foreground truncate">{t.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {dueTodayPending.length > 0 && (
+                  <div>
+                    <p className="text-micro text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <Circle className="h-3 w-3" /> Pendentes ({dueTodayPending.length})
+                    </p>
+                    <div className="space-y-1">
+                      {dueTodayPending.map(t => (
+                        <div key={t.id} className="flex items-center gap-2 text-small">
+                          <Circle className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate">{t.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {dueToday.length === 0 && completedToday.length === 0 && (
+                  <p className="text-small text-muted-foreground text-center py-2">Nenhuma tarefa prevista ou concluída hoje</p>
+                )}
+              </>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Assistant Chat */}

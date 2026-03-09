@@ -8,16 +8,19 @@ import {
   Calendar, 
   Bot, 
   Upload,
-  
   Settings,
   Tag,
   Zap,
   LogOut,
   Sun,
   Moon,
+  Timer,
+  Play,
+  Pause,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
+import { usePomodoro } from "@/hooks/usePomodoroStore";
 import {
   Sidebar,
   SidebarContent,
@@ -39,10 +42,73 @@ const navItems = [
   { title: "Notes", url: "/notes", icon: FileText },
   { title: "Tags", url: "/tags", icon: Tag },
   { title: "Calendar", url: "/calendar", icon: Calendar },
-  
+  { title: "Pomodoro", url: "/pomodoro", icon: Timer },
   { title: "Assistant", url: "/assistant", icon: Bot },
   { title: "Import", url: "/import", icon: Upload },
 ];
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+function MiniPomodoro({ collapsed }: { collapsed: boolean }) {
+  const pomo = usePomodoro();
+  if (pomo.phase === "idle") return null;
+
+  const progress = pomo.totalSeconds > 0 ? ((pomo.totalSeconds - pomo.secondsLeft) / pomo.totalSeconds) * 100 : 0;
+
+  if (collapsed) {
+    return (
+      <div className="px-2 py-1.5">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-mono font-bold ${
+          pomo.phase === "focus" ? "bg-primary/10 text-primary" : "bg-green-500/10 text-green-500"
+        }`}>
+          {Math.floor(pomo.secondsLeft / 60)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`mx-2 rounded-lg p-2.5 border transition-colors ${
+      pomo.phase === "focus" ? "border-primary/30 bg-primary/5" : "border-green-500/30 bg-green-500/5"
+    }`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className={`text-[10px] font-semibold uppercase tracking-wider ${
+          pomo.phase === "focus" ? "text-primary" : "text-green-500"
+        }`}>
+          {pomo.phase === "focus" ? "🎯 Foco" : "☕ Pausa"}
+        </span>
+        <button
+          onClick={pomo.isRunning ? pomo.pause : pomo.resume}
+          className={`p-0.5 rounded transition-colors ${
+            pomo.phase === "focus" ? "text-primary hover:bg-primary/10" : "text-green-500 hover:bg-green-500/10"
+          }`}
+        >
+          {pomo.isRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+        </button>
+      </div>
+      <p className={`text-lg font-mono font-bold ${
+        pomo.phase === "focus" ? "text-primary" : "text-green-500"
+      }`}>
+        {formatTime(pomo.secondsLeft)}
+      </p>
+      {pomo.taskTitle && (
+        <p className="text-[10px] text-muted-foreground truncate mt-0.5">{pomo.taskTitle}</p>
+      )}
+      <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-1000 ${
+            pomo.phase === "focus" ? "bg-primary" : "bg-green-500"
+          }`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -91,6 +157,11 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Mini Pomodoro Widget */}
+        <div className="mt-auto">
+          <MiniPomodoro collapsed={collapsed} />
+        </div>
       </SidebarContent>
 
       <SidebarFooter className="space-y-1">
