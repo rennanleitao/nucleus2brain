@@ -281,3 +281,69 @@ export async function fetchAllTags(): Promise<string[]> {
   (tasks.data || []).forEach((t: any) => t.tag && tagSet.add(t.tag));
   return [...tagSet].sort();
 }
+
+// ---- TAG MANAGEMENT ----
+export async function renameTag(oldTag: string, newTag: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // 1. Update notes: replace oldTag with newTag in tags array
+  const { data: notesWithTag } = await supabase
+    .from("notes")
+    .select("id, tags")
+    .contains("tags", [oldTag]);
+
+  if (notesWithTag?.length) {
+    for (const note of notesWithTag) {
+      const updatedTags = (note.tags || []).map((t: string) => t === oldTag ? newTag : t);
+      const uniqueTags = [...new Set(updatedTags)];
+      await supabase.from("notes").update({ tags: uniqueTags }).eq("id", note.id);
+    }
+  }
+
+  // 2. Update tagged_snippets
+  await supabase
+    .from("tagged_snippets")
+    .update({ tag: newTag })
+    .eq("tag", oldTag)
+    .eq("user_id", user.id);
+
+  // 3. Update tasks
+  await supabase
+    .from("tasks")
+    .update({ tag: newTag })
+    .eq("tag", oldTag)
+    .eq("user_id", user.id);
+}
+
+export async function deleteTag(tag: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // 1. Remove tag from notes arrays
+  const { data: notesWithTag } = await supabase
+    .from("notes")
+    .select("id, tags")
+    .contains("tags", [tag]);
+
+  if (notesWithTag?.length) {
+    for (const note of notesWithTag) {
+      const updatedTags = (note.tags || []).filter((t: string) => t !== tag);
+      await supabase.from("notes").update({ tags: updatedTags }).eq("id", note.id);
+    }
+  }
+
+  // 2. Delete tagged_snippets with this tag
+  await supabase
+    .from("tagged_snippets")
+    .delete()
+    .eq("tag", tag)
+    .eq("user_id", user.id);
+
+  // 3. Clear tag from tasks
+  await supabase
+    .from("tasks")
+    .update({ tag: null })
+    .eq("tag", tag)
+    .eq("user_id", user.id);
+}

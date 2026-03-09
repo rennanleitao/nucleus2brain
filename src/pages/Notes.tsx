@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks } from "@/lib/api";
+import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,11 @@ export default function Notes() {
     else setLinkedTasks([]);
   }, [editSpaceId, loadLinkedTasks]);
 
-  const allTags = [...new Set(notes.flatMap(n => n.tags || []))].sort();
+  const [allTags, setAllTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchAllTags().then(setAllTags).catch(() => {});
+  }, [notes]);
 
   const filteredNotes = notes.filter(n => {
     const matchSearch = !search || n.title.toLowerCase().includes(search.toLowerCase()) ||
