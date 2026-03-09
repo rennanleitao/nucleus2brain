@@ -302,6 +302,10 @@ export default function Dashboard() {
               </>
             );
           })()}
+        </div>
+      </div>
+
+      {/* Assistant Chat */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="p-3 border-b border-border flex items-center gap-2">
           <Bot className="h-4 w-4 text-primary" />
