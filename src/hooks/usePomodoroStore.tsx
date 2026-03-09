@@ -189,7 +189,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     setIsRunning(false);
     setTaskId(null);
     setTaskTitle(null);
-    if (audioRef.current) audioRef.current.pause();
+    if (alphaNodeRef.current) { try { alphaNodeRef.current.stop(); } catch {} alphaNodeRef.current = null; }
   }, [clearTimer]);
 
   const toggleAlphaWaves = useCallback(() => setAlphaWaves(a => !a), []);
