@@ -40,6 +40,7 @@ export default function SpaceDetail() {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [followUpTask, setFollowUpTask] = useState<any>(null);
+  const [completionTask, setCompletionTask] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [editSpaceOpen, setEditSpaceOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -81,7 +82,9 @@ export default function SpaceDetail() {
     const newStatus = task.status === "completed" ? "todo" : "completed";
     try {
       await updateTask(taskId, { status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null });
-      if (newStatus === "completed") setFollowUpTask(task);
+      if (newStatus === "completed") {
+        setCompletionTask(task);
+      }
       load();
     } catch (err: any) { toast.error(err.message); }
   };
