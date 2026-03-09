@@ -123,7 +123,9 @@ export default function Tasks() {
     const newStatus = task.status === "completed" ? "todo" : "completed";
     try {
       await updateTask(id, { status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null });
-      if (newStatus === "completed") setFollowUpTask(task);
+      if (newStatus === "completed") {
+        setCompletionTask(task);
+      }
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -322,6 +324,15 @@ export default function Tasks() {
           open={!!editingTask}
           onOpenChange={(open) => !open && setEditingTask(null)}
           onUpdated={load}
+        />
+      )}
+
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { setCompletionTask(null); setFollowUpTask(completionTask); load(); }}
         />
       )}
 
