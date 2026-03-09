@@ -227,7 +227,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   return (
     <div className={`border border-border rounded-lg bg-card overflow-hidden ${className}`}>
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/30 flex-wrap">
+      <div className="flex items-center gap-px px-3 py-1.5 border-b border-border/50 bg-background flex-wrap">
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Desfazer">
           <Undo className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -235,7 +235,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           <Redo className="h-3.5 w-3.5" />
         </ToolbarButton>
 
-        <Separator orientation="vertical" className="h-5 mx-1" />
+        <Separator orientation="vertical" className="h-4 mx-1.5 bg-border/40" />
 
         <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           active={editor.isActive("heading", { level: 1 })} title="Título 1">
@@ -250,7 +250,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           <Heading3 className="h-3.5 w-3.5" />
         </ToolbarButton>
 
-        <Separator orientation="vertical" className="h-5 mx-1" />
+        <Separator orientation="vertical" className="h-4 mx-1.5 bg-border/40" />
 
         <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive("bold")} title="Negrito">
@@ -269,7 +269,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           <Highlighter className="h-3.5 w-3.5" />
         </ToolbarButton>
 
-        <Separator orientation="vertical" className="h-5 mx-1" />
+        <Separator orientation="vertical" className="h-4 mx-1.5 bg-border/40" />
 
         <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive("bulletList")} title="Lista">
@@ -284,7 +284,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           <CheckSquare className="h-3.5 w-3.5" />
         </ToolbarButton>
 
-        <Separator orientation="vertical" className="h-5 mx-1" />
+        <Separator orientation="vertical" className="h-4 mx-1.5 bg-border/40" />
 
         <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()}
           active={editor.isActive("blockquote")} title="Citação">
