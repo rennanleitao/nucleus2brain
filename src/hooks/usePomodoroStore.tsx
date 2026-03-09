@@ -128,23 +128,31 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     return clearTimer;
   }, [isRunning, tick, clearTimer]);
 
-  // Alpha waves audio
+  // Alpha waves binaural beats
   useEffect(() => {
     if (alphaWaves && isRunning && phase === "focus") {
-      if (!audioRef.current) {
-        audioRef.current = new Audio("https://cdn.pixabay.com/audio/2024/11/26/audio_d60e55d74c.mp3");
-        audioRef.current.loop = true;
-        audioRef.current.volume = 0.3;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext();
       }
-      audioRef.current.play().catch(() => {});
+      if (!alphaNodeRef.current) {
+        try {
+          const node = createAlphaWavesNode(audioCtxRef.current);
+          node.start();
+          alphaNodeRef.current = node;
+        } catch {}
+      }
     } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
+      if (alphaNodeRef.current) {
+        try { alphaNodeRef.current.stop(); } catch {}
+        alphaNodeRef.current = null;
       }
     }
     return () => {
-      if (audioRef.current && (!isRunning || phase !== "focus" || !alphaWaves)) {
-        audioRef.current.pause();
+      if (!alphaWaves || !isRunning || phase !== "focus") {
+        if (alphaNodeRef.current) {
+          try { alphaNodeRef.current.stop(); } catch {}
+          alphaNodeRef.current = null;
+        }
       }
     };
   }, [alphaWaves, isRunning, phase]);
