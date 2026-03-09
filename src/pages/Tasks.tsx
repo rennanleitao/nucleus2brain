@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { fetchTasks, fetchSpaces, updateTask, deleteTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask } from "@/lib/api";
+import { fetchTasks, fetchSpaces, updateTask, deleteTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
@@ -26,6 +26,7 @@ export default function Tasks() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
+  const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [filter, setFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   
@@ -40,7 +41,7 @@ export default function Tasks() {
 
   const load = async () => {
     try {
-      const [t, s, subs] = await Promise.all([fetchTasks(), fetchSpaces(), fetchAllSubtasks()]);
+      const [t, s, subs, rems] = await Promise.all([fetchTasks(), fetchSpaces(), fetchAllSubtasks(), fetchReminders()]);
       setTasks(t);
       setSpaces(s);
       const map: Record<string, any[]> = {};
@@ -49,6 +50,11 @@ export default function Tasks() {
         map[sub.task_id].push(sub);
       }
       setSubtasksMap(map);
+      const rMap: Record<string, any> = {};
+      for (const r of rems) {
+        if (r.task_id) rMap[r.task_id] = r;
+      }
+      setRemindersMap(rMap);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -207,6 +213,7 @@ export default function Tasks() {
           <TaskCard
             task={t}
             subtasks={subtasksMap[t.id] || []}
+            reminder={remindersMap[t.id] || null}
             onToggle={() => toggleTask(t.id)}
             onDelete={() => handleDelete(t.id)}
             onToggleSubtask={toggleSubtask}

@@ -1,5 +1,5 @@
 import { forwardRef, useState } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, Plus, X, FileText, Tag } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, Plus, X, FileText, Tag, Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ interface TaskCardProps {
     tag?: string | null;
   };
   subtasks?: Subtask[];
+  reminder?: { reminder_time: string; sent: boolean } | null;
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
   onToggleSubtask?: (id: string) => void;
@@ -56,7 +57,7 @@ function formatDate(dateStr: string) {
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, hideSpace
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, hideSpace
 }, ref) => {
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
@@ -64,6 +65,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const isOverdue = !!(task.due_date && new Date(task.due_date) < new Date() && !isCompleted);
   const hasSubtasks = subtasks.length > 0;
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
+  const reminderTriggered = !!(reminder && new Date(reminder.reminder_time) <= new Date() && !reminder.sent);
 
   const [isOpen, setIsOpen] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
@@ -122,6 +124,18 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
               <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
                 <CalendarDays className="h-3 w-3" />
                 {formatDate(task.due_date)}
+              </span>
+            )}
+            {reminder && !isCompleted && (
+              <span className="text-micro flex items-center gap-1 text-muted-foreground">
+                {reminderTriggered && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
+                  </span>
+                )}
+                <Bell className="h-3 w-3" />
+                {new Date(reminder.reminder_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
             {hasSubtasks && (
