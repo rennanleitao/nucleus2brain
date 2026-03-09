@@ -202,6 +202,7 @@ export default function SettingsPage() {
           <TabsTrigger value="ai" className="text-xs"><Bot className="h-3 w-3 mr-1" /> Assistant</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs"><MessageSquare className="h-3 w-3 mr-1" /> WhatsApp</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs"><Bell className="h-3 w-3 mr-1" /> Lembretes</TabsTrigger>
+          <TabsTrigger value="import" className="text-xs"><Upload className="h-3 w-3 mr-1" /> Import</TabsTrigger>
           <TabsTrigger value="account" className="text-xs"><User className="h-3 w-3 mr-1" /> Conta</TabsTrigger>
         </TabsList>
 
