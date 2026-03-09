@@ -1,11 +1,13 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { fetchTasks, updateTask, fetchSpaces, createTask, deleteTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
-import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle, Trash2, History, Calendar, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { AccomplishmentHistory } from "@/components/AccomplishmentHistory";
+
 import { useAuth } from "@/hooks/useAuth";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import {
@@ -332,7 +334,10 @@ export default function Dashboard() {
               </>
             );
           })()}
-        </div>
+      </div>
+
+      {/* Accomplishment History */}
+      <AccomplishmentHistory tasks={tasks} onSelectTask={setSelectedTask} onDeleteTask={setTaskToDelete} />
       </div>
 
       {/* Assistant Chat */}
