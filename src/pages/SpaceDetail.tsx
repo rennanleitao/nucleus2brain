@@ -11,6 +11,7 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
+import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ShareSpaceDialog } from "@/components/ShareSpaceDialog";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
@@ -39,6 +40,7 @@ export default function SpaceDetail() {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [followUpTask, setFollowUpTask] = useState<any>(null);
+  const [completionTask, setCompletionTask] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [editSpaceOpen, setEditSpaceOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -80,7 +82,9 @@ export default function SpaceDetail() {
     const newStatus = task.status === "completed" ? "todo" : "completed";
     try {
       await updateTask(taskId, { status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null });
-      if (newStatus === "completed") setFollowUpTask(task);
+      if (newStatus === "completed") {
+        setCompletionTask(task);
+      }
       load();
     } catch (err: any) { toast.error(err.message); }
   };
@@ -449,6 +453,14 @@ export default function SpaceDetail() {
       {editingTask && (
         <EditTaskDialog task={editingTask} spaces={[{ id: space.id, name: space.name }]}
           open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)} onUpdated={load} />
+      )}
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { setCompletionTask(null); setFollowUpTask(completionTask); load(); }}
+        />
       )}
       {followUpTask && (
         <FollowUpDialog completedTask={followUpTask} spaces={[{ id: space.id, name: space.name }]}

@@ -4,6 +4,7 @@ import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
+import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
 import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
@@ -33,6 +34,7 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [followUpTask, setFollowUpTask] = useState<any | null>(null);
+  const [completionTask, setCompletionTask] = useState<any | null>(null);
 
   const load = async () => {
     try {
@@ -121,7 +123,9 @@ export default function Tasks() {
     const newStatus = task.status === "completed" ? "todo" : "completed";
     try {
       await updateTask(id, { status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null });
-      if (newStatus === "completed") setFollowUpTask(task);
+      if (newStatus === "completed") {
+        setCompletionTask(task);
+      }
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -320,6 +324,15 @@ export default function Tasks() {
           open={!!editingTask}
           onOpenChange={(open) => !open && setEditingTask(null)}
           onUpdated={load}
+        />
+      )}
+
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { setCompletionTask(null); setFollowUpTask(completionTask); load(); }}
         />
       )}
 
