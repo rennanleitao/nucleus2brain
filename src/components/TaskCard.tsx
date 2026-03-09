@@ -126,6 +126,18 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 {formatDate(task.due_date)}
               </span>
             )}
+            {reminder && !isCompleted && (
+              <span className="text-micro flex items-center gap-1 text-muted-foreground">
+                {reminderTriggered && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
+                  </span>
+                )}
+                <Bell className="h-3 w-3" />
+                {new Date(reminder.reminder_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
             {hasSubtasks && (
               <span className="text-micro text-muted-foreground">
                 {completedSubtasks}/{subtasks.length} subtasks
