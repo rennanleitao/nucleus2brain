@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import {
