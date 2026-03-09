@@ -41,7 +41,7 @@ export default function Tasks() {
 
   const load = async () => {
     try {
-      const [t, s, subs] = await Promise.all([fetchTasks(), fetchSpaces(), fetchAllSubtasks()]);
+      const [t, s, subs, rems] = await Promise.all([fetchTasks(), fetchSpaces(), fetchAllSubtasks(), fetchReminders()]);
       setTasks(t);
       setSpaces(s);
       const map: Record<string, any[]> = {};
@@ -50,6 +50,11 @@ export default function Tasks() {
         map[sub.task_id].push(sub);
       }
       setSubtasksMap(map);
+      const rMap: Record<string, any> = {};
+      for (const r of rems) {
+        if (r.task_id) rMap[r.task_id] = r;
+      }
+      setRemindersMap(rMap);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
