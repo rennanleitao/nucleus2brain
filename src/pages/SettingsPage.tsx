@@ -557,6 +557,59 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
 
+        {/* IMPORT TAB */}
+        <TabsContent value="import" className="space-y-4">
+          {importResult && (
+            <div className={`rounded-xl border p-4 flex items-center gap-3 ${
+              importResult.errors > 0 ? "border-yellow-500/30 bg-yellow-500/5" : "border-primary/30 bg-primary/5"
+            }`}>
+              {importResult.errors > 0 ? <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" /> : <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />}
+              <div>
+                <p className="text-small font-medium">{importResult.imported} notas importadas</p>
+                {importResult.errors > 0 && <p className="text-xs text-muted-foreground">{importResult.errors} falharam</p>}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className={`flex flex-col items-center gap-4 p-6 rounded-xl border-2 border-dashed bg-card transition-all cursor-pointer ${
+              importing ? "opacity-50 pointer-events-none" : "border-border hover:border-primary/40"
+            }`}>
+              <div className="w-12 h-12 rounded-xl bg-[#14CC45]/10 flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-[#14CC45]" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-small font-semibold">Evernote</h3>
+                <p className="text-xs text-muted-foreground mt-1">Upload <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.enex</code></p>
+              </div>
+              <input type="file" accept=".enex" onChange={handleEvernoteUpload} className="hidden" />
+              <span className="text-xs text-primary font-medium">{importing ? "Importando..." : "Escolher arquivo"}</span>
+            </label>
+
+            <label className={`flex flex-col items-center gap-4 p-6 rounded-xl border-2 border-dashed bg-card transition-all cursor-pointer ${
+              importing ? "opacity-50 pointer-events-none" : "border-border hover:border-primary/40"
+            }`}>
+              <div className="w-12 h-12 rounded-xl bg-foreground/5 flex items-center justify-center">
+                <FileText className="h-6 w-6 text-foreground/70" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-small font-semibold">Notion</h3>
+                <p className="text-xs text-muted-foreground mt-1">Upload <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.md</code> ou <code className="text-[11px] bg-muted px-1 py-0.5 rounded">.csv</code></p>
+              </div>
+              <input type="file" accept=".md,.csv" multiple onChange={handleNotionUpload} className="hidden" />
+              <span className="text-xs text-primary font-medium">{importing ? "Importando..." : "Escolher arquivos"}</span>
+            </label>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-micro font-semibold mb-2">Como exportar</h3>
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <p><strong>Evernote:</strong> App desktop → Clique direito no notebook → Export → ENEX</p>
+              <p><strong>Notion:</strong> Settings → Export all → Markdown & CSV → Download e descompacte</p>
+            </div>
+          </div>
+        </TabsContent>
+
         {/* ACCOUNT TAB */}
         <TabsContent value="account" className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
