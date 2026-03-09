@@ -5,14 +5,20 @@ import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Image from "@tiptap/extension-image";
-import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef } from "react";
+import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef, useState } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
-  List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon,
+  List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code,
 } from "lucide-react";
+import { Iframe } from "@/components/editor/IframeExtension";
+import { getGoogleEmbedUrl } from "@/components/editor/googleDocsEmbed";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
@@ -37,6 +43,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  const [embedPrompt, setEmbedPrompt] = useState<{ embedUrl: string; type: string; originalUrl: string } | null>(null);
 
   const handleImageUpload = useCallback(async (file: File) => {
     try {
@@ -64,6 +71,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TaskList,
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: true }),
+      Iframe,
     ],
     content,
     editable,
@@ -85,6 +93,17 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
       },
       handlePaste: (_view, event) => {
+        // Check for Google Docs URL in plain text
+        const text = event.clipboardData?.getData("text/plain")?.trim();
+        if (text) {
+          const embed = getGoogleEmbedUrl(text);
+          if (embed) {
+            event.preventDefault();
+            setEmbedPrompt({ ...embed, originalUrl: text });
+            return true;
+          }
+        }
+        // Check for image paste
         const items = event.clipboardData?.items;
         if (!items) return false;
         for (const item of Array.from(items)) {
@@ -296,6 +315,38 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
       {/* Editor */}
       <EditorContent editor={editor} />
+
+      {/* Google Docs Embed Prompt */}
+      <AlertDialog open={!!embedPrompt} onOpenChange={(open) => !open && setEmbedPrompt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Embedar {embedPrompt?.type}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja incorporar este documento diretamente na nota ou inserir como link?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              if (embedPrompt && editor) {
+                editor.chain().focus().insertContent(`<p><a href="${embedPrompt.originalUrl}" target="_blank">${embedPrompt.originalUrl}</a></p>`).run();
+                onChange(editor.getHTML());
+              }
+              setEmbedPrompt(null);
+            }}>
+              Inserir como link
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (embedPrompt && editor) {
+                editor.chain().focus().insertContent({ type: "iframe", attrs: { src: embedPrompt.embedUrl, title: embedPrompt.type } }).run();
+                onChange(editor.getHTML());
+              }
+              setEmbedPrompt(null);
+            }}>
+              Embedar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 });
