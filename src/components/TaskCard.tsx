@@ -57,8 +57,9 @@ function formatDate(dateStr: string) {
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   task, subtasks = [], onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, hideSpace
 }, ref) => {
-  const StatusIcon = statusIcons[task.status];
   const isCompleted = task.status === "completed";
+  const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
+  const StatusIcon = statusIcons[task.status];
   const isOverdue = !!(task.due_date && new Date(task.due_date) < new Date() && !isCompleted);
   const hasSubtasks = subtasks.length > 0;
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
