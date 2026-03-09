@@ -23,6 +23,7 @@ interface CompletionCommentDialogProps {
 export function CompletionCommentDialog({ task, open, onOpenChange, onDone }: CompletionCommentDialogProps) {
   const [comment, setComment] = useState("");
   const [destination, setDestination] = useState<"task" | "new_note" | "existing_note">("task");
+  const [noteTitle, setNoteTitle] = useState("");
   const [notes, setNotes] = useState<any[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState("");
   const [loading, setLoading] = useState(false);
