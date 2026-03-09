@@ -4,6 +4,7 @@ import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
+import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
 import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";

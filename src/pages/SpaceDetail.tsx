@@ -11,6 +11,7 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
+import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ShareSpaceDialog } from "@/components/ShareSpaceDialog";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
