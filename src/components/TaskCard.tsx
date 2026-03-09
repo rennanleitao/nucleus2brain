@@ -1,5 +1,5 @@
 import { forwardRef, useState } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, Plus, X, FileText } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, Plus, X, FileText, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ interface TaskCardProps {
     spaces?: { name: string } | null;
     notes?: { title: string } | null;
     note_id?: string | null;
+    tag?: string | null;
   };
   subtasks?: Subtask[];
   onToggle?: (id: string) => void;
@@ -105,6 +106,11 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {!hideSpace && task.spaces?.name && (
               <span className="text-micro text-muted-foreground">{task.spaces.name}</span>
+            )}
+            {task.tag && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
+                <Tag className="h-2.5 w-2.5 mr-0.5" />#{task.tag}
+              </Badge>
             )}
             {task.notes?.title && (
               <span className="text-micro text-muted-foreground flex items-center gap-0.5">

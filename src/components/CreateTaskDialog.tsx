@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { createTask, createSpace } from "@/lib/api";
+import { Plus, Tag, X } from "lucide-react";
+import { createTask, createSpace, fetchAllTags } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 interface CreateTaskDialogProps {
   spaces: { id: string; name: string }[];
@@ -29,6 +30,16 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [spaceId, setSpaceId] = useState<string>(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : ""));
   const [dueDate, setDueDate] = useState("");
+  const [tag, setTag] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [showTagPicker, setShowTagPicker] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      fetchAllTags().then(setAllTags).catch(() => {});
+    }
+  }, [open]);
 
   // Inline space creation
   const [showNewSpace, setShowNewSpace] = useState(false);
@@ -46,7 +57,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       setNewSpaceIcon("folder");
       setShowNewSpace(false);
       toast.success("Space criado!");
-      onCreated(); // refresh spaces list
+      onCreated();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -58,7 +69,6 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
-    // Auto-status: sem data = todo, com data = in_progress
     const autoStatus = dueDate ? "in_progress" : "todo";
     try {
       await createTask({
@@ -68,9 +78,10 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         status: autoStatus,
         space_id: spaceId || null,
         due_date: dueDate || null,
-      });
+        tag: tag || null,
+      } as any);
       toast.success("Task criada!");
-      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate("");
+      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput("");
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -79,6 +90,8 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       setLoading(false);
     }
   };
+
+  const filteredTags = allTags.filter(t => !tagInput || t.toLowerCase().includes(tagInput.toLowerCase()));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -126,6 +139,53 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                 {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
               </p>
             </div>
+          </div>
+
+          {/* Tag selector */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+              <Tag className="h-3 w-3" /> Tag (opcional)
+            </label>
+            {tag ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">#{tag}</Badge>
+                <button type="button" onClick={() => setTag("")} className="text-muted-foreground hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar ou criar tag..."
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onFocus={() => setShowTagPicker(true)}
+                  onBlur={() => setTimeout(() => setShowTagPicker(false), 150)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && tagInput.trim()) {
+                      e.preventDefault();
+                      setTag(tagInput.trim().replace(/^#/, ""));
+                      setTagInput("");
+                      setShowTagPicker(false);
+                    }
+                  }}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+                {showTagPicker && filteredTags.length > 0 && (
+                  <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                    {filteredTags.map(t => (
+                      <button key={t} type="button"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => { setTag(t); setTagInput(""); setShowTagPicker(false); }}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors">
+                        #{t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Space selector with inline creation */}

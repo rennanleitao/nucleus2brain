@@ -477,6 +477,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["task_priority"]
           space_id: string | null
           status: Database["public"]["Enums"]["task_status"]
+          tag: string | null
           title: string
           user_id: string
         }
@@ -491,6 +492,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"]
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          tag?: string | null
           title: string
           user_id: string
         }
@@ -505,6 +507,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"]
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
+          tag?: string | null
           title?: string
           user_id?: string
         }
