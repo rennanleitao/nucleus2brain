@@ -267,3 +267,17 @@ export async function deleteTaggedSnippet(id: string) {
   const { error } = await supabase.from("tagged_snippets").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ---- ALL TAGS (from notes + snippets + tasks) ----
+export async function fetchAllTags(): Promise<string[]> {
+  const [notes, snippets, tasks] = await Promise.all([
+    supabase.from("notes").select("tags"),
+    supabase.from("tagged_snippets").select("tag"),
+    supabase.from("tasks").select("tag"),
+  ]);
+  const tagSet = new Set<string>();
+  (notes.data || []).forEach((n: any) => (n.tags || []).forEach((t: string) => tagSet.add(t)));
+  (snippets.data || []).forEach((s: any) => s.tag && tagSet.add(s.tag));
+  (tasks.data || []).forEach((t: any) => t.tag && tagSet.add(t.tag));
+  return [...tagSet].sort();
+}

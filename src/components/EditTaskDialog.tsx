@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { updateTask } from "@/lib/api";
+import { updateTask, fetchAllTags } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell } from "lucide-react";
+import { Bell, Tag, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface EditTaskDialogProps {
   task: {
@@ -15,6 +16,7 @@ interface EditTaskDialogProps {
     status: "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
     due_date?: string | null;
     space_id?: string | null;
+    tag?: string | null;
   };
   spaces: { id: string; name: string }[];
   open: boolean;
@@ -30,12 +32,21 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [status, setStatus] = useState(task.status);
   const [dueDate, setDueDate] = useState(task.due_date || "");
   const [spaceId, setSpaceId] = useState(task.space_id || "");
+  const [tag, setTag] = useState(task.tag || "");
+  const [tagInput, setTagInput] = useState("");
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [showTagPicker, setShowTagPicker] = useState(false);
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
   const [existingReminder, setExistingReminder] = useState<any>(null);
 
   useEffect(() => {
-    // Load existing reminder for this task
+    if (open) {
+      fetchAllTags().then(setAllTags).catch(() => {});
+    }
+  }, [open]);
+
+  useEffect(() => {
     const loadReminder = async () => {
       const { data } = await supabase
         .from("reminders")
@@ -66,7 +77,8 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         due_date: dueDate || null,
         space_id: spaceId || null,
         completed_at: status === "completed" ? new Date().toISOString() : null,
-      });
+        tag: tag || null,
+      } as any);
 
       // Handle reminder
       if (reminderDate && reminderTime) {
@@ -84,7 +96,6 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           }
         }
       } else if (existingReminder && !reminderDate) {
-        // Remove reminder if cleared
         await supabase.from("reminders").delete().eq("id", existingReminder.id);
       }
 
@@ -97,6 +108,8 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
       setLoading(false);
     }
   };
+
+  const filteredTags = allTags.filter(t => !tagInput || t.toLowerCase().includes(tagInput.toLowerCase()));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,6 +162,53 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Tag selector */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+              <Tag className="h-3 w-3" /> Tag (opcional)
+            </label>
+            {tag ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">#{tag}</Badge>
+                <button type="button" onClick={() => setTag("")} className="text-muted-foreground hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar ou criar tag..."
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onFocus={() => setShowTagPicker(true)}
+                  onBlur={() => setTimeout(() => setShowTagPicker(false), 150)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && tagInput.trim()) {
+                      e.preventDefault();
+                      setTag(tagInput.trim().replace(/^#/, ""));
+                      setTagInput("");
+                      setShowTagPicker(false);
+                    }
+                  }}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+                {showTagPicker && filteredTags.length > 0 && (
+                  <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                    {filteredTags.map(t => (
+                      <button key={t} type="button"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => { setTag(t); setTagInput(""); setShowTagPicker(false); }}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors">
+                        #{t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Reminder */}
