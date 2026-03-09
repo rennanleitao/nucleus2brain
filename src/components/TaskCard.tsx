@@ -28,6 +28,7 @@ interface TaskCardProps {
     tag?: string | null;
   };
   subtasks?: Subtask[];
+  reminder?: { reminder_time: string; sent: boolean } | null;
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
   onToggleSubtask?: (id: string) => void;
