@@ -189,37 +189,19 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
           </div>
 
           {/* Space selector with inline creation */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Space</label>
-            <div className="flex gap-2">
-              <select value={spaceId} onChange={e => setSpaceId(e.target.value)}
-                className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
-                <option value="">Sem space</option>
-                {spaces.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <Button type="button" variant="outline" size="sm" className="shrink-0 h-auto"
-                onClick={() => setShowNewSpace(!showNewSpace)}>
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            {showNewSpace && (
-              <div className="mt-2 border border-border rounded-lg p-3 space-y-2 bg-muted/30">
-                <p className="text-xs font-medium text-foreground">Novo Space</p>
-                <SpaceIconPicker value={newSpaceIcon} onChange={setNewSpaceIcon} />
-                <input type="text" placeholder="Nome do space" value={newSpaceName} onChange={e => setNewSpaceName(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                <div className="flex gap-2">
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setShowNewSpace(false)} className="flex-1">
-                    Cancelar
-                  </Button>
-                  <Button type="button" size="sm" disabled={creatingSpace || !newSpaceName.trim()} onClick={handleCreateSpace}
-                    className="flex-1 gradient-primary text-primary-foreground border-0">
-                    {creatingSpace ? "Criando..." : "Criar"}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          <SpaceCombobox
+            spaces={spaces}
+            spaceId={spaceId}
+            onSelect={setSpaceId}
+            showNewSpace={showNewSpace}
+            setShowNewSpace={setShowNewSpace}
+            newSpaceName={newSpaceName}
+            setNewSpaceName={setNewSpaceName}
+            newSpaceIcon={newSpaceIcon}
+            setNewSpaceIcon={setNewSpaceIcon}
+            creatingSpace={creatingSpace}
+            onCreateSpace={handleCreateSpace}
+          />
 
           <Button type="submit" disabled={loading} className="w-full gradient-primary text-primary-foreground border-0">
             {loading ? "Criando..." : "Criar Task"}
