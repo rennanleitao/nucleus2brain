@@ -1,11 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { updateTask, fetchAllTags } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, Tag, X } from "lucide-react";
+import { Bell, Tag, X, Search, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
+function SpaceLetterAvatar({ name }: { name: string }) {
+  return (
+    <span className="flex items-center justify-center h-5 w-5 rounded bg-muted text-[10px] font-semibold text-foreground shrink-0 uppercase">
+      {name.charAt(0)}
+    </span>
+  );
+}
 
 interface EditTaskDialogProps {
   task: {
