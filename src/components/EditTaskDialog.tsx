@@ -149,11 +149,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Space</label>
-              <select value={spaceId} onChange={e => setSpaceId(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
-                <option value="">Sem space</option>
-                {spaces.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <SpaceComboboxEdit spaces={spaces} spaceId={spaceId} onSelect={setSpaceId} />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Data limite</label>
