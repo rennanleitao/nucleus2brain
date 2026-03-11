@@ -1,11 +1,62 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { updateTask, fetchAllTags } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, Tag, X } from "lucide-react";
+import { Bell, Tag, X, Search, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
+function SpaceLetterAvatar({ name }: { name: string }) {
+  return (
+    <span className="flex items-center justify-center h-5 w-5 rounded bg-muted text-[10px] font-semibold text-foreground shrink-0 uppercase">
+      {name.charAt(0)}
+    </span>
+  );
+}
+
+function SpaceComboboxEdit({ spaces, spaceId, onSelect }: { spaces: { id: string; name: string }[]; spaceId: string; onSelect: (id: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const sorted = useMemo(() => [...spaces].sort((a, b) => a.name.localeCompare(b.name)), [spaces]);
+  const filtered = sorted.filter(s => !query || s.name.toLowerCase().includes(query.toLowerCase()));
+  const selected = spaces.find(s => s.id === spaceId);
+
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-foreground/30 transition-colors text-left">
+        {selected ? (<><SpaceLetterAvatar name={selected.name} /><span className="truncate">{selected.name}</span></>) : (
+          <span className="text-muted-foreground">Sem space</span>
+        )}
+        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0" />
+      </button>
+      {isOpen && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <input type="text" placeholder="Buscar space..." value={query} onChange={e => setQuery(e.target.value)}
+              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" autoFocus />
+          </div>
+          <div className="max-h-40 overflow-y-auto">
+            <button type="button" onClick={() => { onSelect(""); setIsOpen(false); setQuery(""); }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors text-left ${!spaceId ? "bg-accent" : ""}`}>
+              <span className="text-muted-foreground">Sem space</span>
+            </button>
+            {filtered.map(s => (
+              <button key={s.id} type="button" onClick={() => { onSelect(s.id); setIsOpen(false); setQuery(""); }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors text-left ${spaceId === s.id ? "bg-accent" : ""}`}>
+                <SpaceLetterAvatar name={s.name} />
+                <span className="truncate">{s.name}</span>
+              </button>
+            ))}
+            {filtered.length === 0 && query && <p className="px-3 py-2 text-xs text-muted-foreground">Nenhum space encontrado</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface EditTaskDialogProps {
   task: {
@@ -141,11 +192,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Space</label>
-              <select value={spaceId} onChange={e => setSpaceId(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
-                <option value="">Sem space</option>
-                {spaces.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <SpaceComboboxEdit spaces={spaces} spaceId={spaceId} onSelect={setSpaceId} />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Data limite</label>
