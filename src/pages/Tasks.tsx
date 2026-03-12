@@ -294,7 +294,7 @@ export default function Tasks() {
                 <div className="flex items-center justify-between mb-2">
                   <button onClick={() => toggleGroup(key)} className="flex items-center gap-2 text-left">
                     {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                    <h2 className="text-h2">{g.name}</h2>
+                    <h2 className="text-h2 hover:underline cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/spaces/${g.id}`); }}>{g.name}</h2>
                     <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
                   </button>
                   <CreateTaskDialog
