@@ -97,7 +97,7 @@ export default function Tasks() {
 
   const grouped = useMemo(() => {
     if (groupBy !== "space") return null;
-    const groups: Record<string, { name: string; tasks: any[] }> = {};
+    const groups: Record<string, { id: string; name: string; tasks: any[] }> = {};
     const ungrouped: any[] = [];
     for (const t of filtered) {
       if (t.space_id && t.spaces?.name) {
