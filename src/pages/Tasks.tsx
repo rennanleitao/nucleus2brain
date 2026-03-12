@@ -24,6 +24,7 @@ const dateGroupFilters = [
 ];
 
 export default function Tasks() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
