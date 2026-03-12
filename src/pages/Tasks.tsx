@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { fetchTasks, fetchSpaces, updateTask, deleteTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
@@ -23,6 +24,7 @@ const dateGroupFilters = [
 ];
 
 export default function Tasks() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
@@ -96,11 +98,11 @@ export default function Tasks() {
 
   const grouped = useMemo(() => {
     if (groupBy !== "space") return null;
-    const groups: Record<string, { name: string; tasks: any[] }> = {};
+    const groups: Record<string, { id: string; name: string; tasks: any[] }> = {};
     const ungrouped: any[] = [];
     for (const t of filtered) {
       if (t.space_id && t.spaces?.name) {
-        if (!groups[t.space_id]) groups[t.space_id] = { name: t.spaces.name, tasks: [] };
+        if (!groups[t.space_id]) groups[t.space_id] = { id: t.space_id, name: t.spaces.name, tasks: [] };
         groups[t.space_id].tasks.push(t);
       } else {
         ungrouped.push(t);
@@ -292,7 +294,7 @@ export default function Tasks() {
                 <div className="flex items-center justify-between mb-2">
                   <button onClick={() => toggleGroup(key)} className="flex items-center gap-2 text-left">
                     {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                    <h2 className="text-h2">{g.name}</h2>
+                    <h2 className="text-h2 hover:underline cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/spaces/${g.id}`); }}>{g.name}</h2>
                     <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
                   </button>
                   <CreateTaskDialog
