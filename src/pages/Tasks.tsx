@@ -101,7 +101,7 @@ export default function Tasks() {
     const ungrouped: any[] = [];
     for (const t of filtered) {
       if (t.space_id && t.spaces?.name) {
-        if (!groups[t.space_id]) groups[t.space_id] = { name: t.spaces.name, tasks: [] };
+        if (!groups[t.space_id]) groups[t.space_id] = { id: t.space_id, name: t.spaces.name, tasks: [] };
         groups[t.space_id].tasks.push(t);
       } else {
         ungrouped.push(t);
