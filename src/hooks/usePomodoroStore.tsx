@@ -251,6 +251,8 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     setIsRunning(true);
     setTaskId(tId || null);
     setTaskTitle(tTitle || null);
+    taskIdRef.current = tId || null;
+    taskTitleRef.current = tTitle || null;
   }, [focusMinutes, clearTimer]);
 
   const startBreak = useCallback(() => {
@@ -274,17 +276,23 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     setIsRunning(false);
     setTaskId(null);
     setTaskTitle(null);
+    taskIdRef.current = null;
+    taskTitleRef.current = null;
     if (alphaNodeRef.current) { try { alphaNodeRef.current.stop(); } catch {} alphaNodeRef.current = null; }
   }, [clearTimer]);
 
   const toggleAlphaWaves = useCallback(() => setAlphaWaves(a => !a), []);
+  const toggleAutoRepeat = useCallback(() => setAutoRepeat(a => !a), []);
+  const toggleSound = useCallback(() => setSoundEnabled(s => !s), []);
 
   return (
     <PomodoroContext.Provider value={{
       phase, secondsLeft, totalSeconds, isRunning, taskId, taskTitle,
       focusMinutes, breakMinutes, sessionsCompleted, alphaWaves,
+      autoRepeat, soundEnabled,
       startFocus, startBreak, pause, resume, reset,
       setFocusMinutes, setBreakMinutes, toggleAlphaWaves,
+      toggleAutoRepeat, toggleSound,
     }}>
       {children}
     </PomodoroContext.Provider>
