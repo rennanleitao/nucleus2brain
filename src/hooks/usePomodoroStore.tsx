@@ -54,6 +54,30 @@ function createAlphaWavesNode(audioCtx: AudioContext): { start: () => void; stop
 
 type PomodoroPhase = "focus" | "break" | "idle";
 
+function playNotificationSound(audioCtx: AudioContext) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = 880;
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 1.2);
+  // Second beep
+  setTimeout(() => {
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.value = 1100;
+    gain2.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+    osc2.connect(gain2).connect(audioCtx.destination);
+    osc2.start(audioCtx.currentTime);
+    osc2.stop(audioCtx.currentTime + 0.8);
+  }, 400);
+}
+
 interface PomodoroState {
   phase: PomodoroPhase;
   secondsLeft: number;
@@ -65,6 +89,8 @@ interface PomodoroState {
   breakMinutes: number;
   sessionsCompleted: number;
   alphaWaves: boolean;
+  autoRepeat: boolean;
+  soundEnabled: boolean;
   startFocus: (taskId?: string, taskTitle?: string) => void;
   startBreak: () => void;
   pause: () => void;
@@ -73,6 +99,8 @@ interface PomodoroState {
   setFocusMinutes: (m: number) => void;
   setBreakMinutes: (m: number) => void;
   toggleAlphaWaves: () => void;
+  toggleAutoRepeat: () => void;
+  toggleSound: () => void;
 }
 
 const PomodoroContext = createContext<PomodoroState | null>(null);
@@ -88,9 +116,22 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [breakMinutes, setBreakMinutes] = useState(5);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [alphaWaves, setAlphaWaves] = useState(false);
+  const [autoRepeat, setAutoRepeat] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const alphaNodeRef = useRef<{ start: () => void; stop: () => void } | null>(null);
+  const autoRepeatRef = useRef(autoRepeat);
+  const soundEnabledRef = useRef(soundEnabled);
+  const focusMinutesRef = useRef(focusMinutes);
+  const breakMinutesRef = useRef(breakMinutes);
+  const taskIdRef = useRef<string | null>(null);
+  const taskTitleRef = useRef<string | null>(null);
+
+  useEffect(() => { autoRepeatRef.current = autoRepeat; }, [autoRepeat]);
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+  useEffect(() => { focusMinutesRef.current = focusMinutes; }, [focusMinutes]);
+  useEffect(() => { breakMinutesRef.current = breakMinutes; }, [breakMinutes]);
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -99,27 +140,71 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const getAudioCtx = useCallback(() => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+    }
+    return audioCtxRef.current;
+  }, []);
+
   const tick = useCallback(() => {
     setSecondsLeft(prev => {
       if (prev <= 1) {
         clearTimer();
         setIsRunning(false);
-        // Play notification sound
+
+        // Play sound
+        if (soundEnabledRef.current) {
+          try { playNotificationSound(getAudioCtx()); } catch {}
+        }
+
+        // Browser notification
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification(phase === "focus" ? "⏰ Foco finalizado!" : "☕ Pausa finalizada!", {
             body: phase === "focus" ? "Hora de descansar!" : "Volte ao foco!",
             icon: "/pwa-192x192.png",
           });
         }
+
         if (phase === "focus") {
           setSessionsCompleted(s => s + 1);
+          // Auto-repeat: start break
+          if (autoRepeatRef.current) {
+            setTimeout(() => {
+              const secs = breakMinutesRef.current * 60;
+              setPhase("break");
+              setSecondsLeft(secs);
+              setTotalSeconds(secs);
+              setIsRunning(true);
+              setTaskId(null);
+              setTaskTitle(null);
+            }, 500);
+          } else {
+            setPhase("idle");
+          }
+        } else if (phase === "break") {
+          // Auto-repeat: start focus
+          if (autoRepeatRef.current) {
+            setTimeout(() => {
+              const secs = focusMinutesRef.current * 60;
+              setPhase("focus");
+              setSecondsLeft(secs);
+              setTotalSeconds(secs);
+              setIsRunning(true);
+              setTaskId(taskIdRef.current);
+              setTaskTitle(taskTitleRef.current);
+            }, 500);
+          } else {
+            setPhase("idle");
+          }
+        } else {
+          setPhase("idle");
         }
-        setPhase("idle");
         return 0;
       }
       return prev - 1;
     });
-  }, [clearTimer, phase]);
+  }, [clearTimer, phase, getAudioCtx]);
 
   useEffect(() => {
     if (isRunning) {
@@ -166,6 +251,8 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     setIsRunning(true);
     setTaskId(tId || null);
     setTaskTitle(tTitle || null);
+    taskIdRef.current = tId || null;
+    taskTitleRef.current = tTitle || null;
   }, [focusMinutes, clearTimer]);
 
   const startBreak = useCallback(() => {
@@ -189,17 +276,23 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     setIsRunning(false);
     setTaskId(null);
     setTaskTitle(null);
+    taskIdRef.current = null;
+    taskTitleRef.current = null;
     if (alphaNodeRef.current) { try { alphaNodeRef.current.stop(); } catch {} alphaNodeRef.current = null; }
   }, [clearTimer]);
 
   const toggleAlphaWaves = useCallback(() => setAlphaWaves(a => !a), []);
+  const toggleAutoRepeat = useCallback(() => setAutoRepeat(a => !a), []);
+  const toggleSound = useCallback(() => setSoundEnabled(s => !s), []);
 
   return (
     <PomodoroContext.Provider value={{
       phase, secondsLeft, totalSeconds, isRunning, taskId, taskTitle,
       focusMinutes, breakMinutes, sessionsCompleted, alphaWaves,
+      autoRepeat, soundEnabled,
       startFocus, startBreak, pause, resume, reset,
       setFocusMinutes, setBreakMinutes, toggleAlphaWaves,
+      toggleAutoRepeat, toggleSound,
     }}>
       {children}
     </PomodoroContext.Provider>
