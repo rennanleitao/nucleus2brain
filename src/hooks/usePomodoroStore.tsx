@@ -116,9 +116,22 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [breakMinutes, setBreakMinutes] = useState(5);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [alphaWaves, setAlphaWaves] = useState(false);
+  const [autoRepeat, setAutoRepeat] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const alphaNodeRef = useRef<{ start: () => void; stop: () => void } | null>(null);
+  const autoRepeatRef = useRef(autoRepeat);
+  const soundEnabledRef = useRef(soundEnabled);
+  const focusMinutesRef = useRef(focusMinutes);
+  const breakMinutesRef = useRef(breakMinutes);
+  const taskIdRef = useRef<string | null>(null);
+  const taskTitleRef = useRef<string | null>(null);
+
+  useEffect(() => { autoRepeatRef.current = autoRepeat; }, [autoRepeat]);
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+  useEffect(() => { focusMinutesRef.current = focusMinutes; }, [focusMinutes]);
+  useEffect(() => { breakMinutesRef.current = breakMinutes; }, [breakMinutes]);
 
   const clearTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -127,27 +140,71 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const getAudioCtx = useCallback(() => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+    }
+    return audioCtxRef.current;
+  }, []);
+
   const tick = useCallback(() => {
     setSecondsLeft(prev => {
       if (prev <= 1) {
         clearTimer();
         setIsRunning(false);
-        // Play notification sound
+
+        // Play sound
+        if (soundEnabledRef.current) {
+          try { playNotificationSound(getAudioCtx()); } catch {}
+        }
+
+        // Browser notification
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification(phase === "focus" ? "⏰ Foco finalizado!" : "☕ Pausa finalizada!", {
             body: phase === "focus" ? "Hora de descansar!" : "Volte ao foco!",
             icon: "/pwa-192x192.png",
           });
         }
+
         if (phase === "focus") {
           setSessionsCompleted(s => s + 1);
+          // Auto-repeat: start break
+          if (autoRepeatRef.current) {
+            setTimeout(() => {
+              const secs = breakMinutesRef.current * 60;
+              setPhase("break");
+              setSecondsLeft(secs);
+              setTotalSeconds(secs);
+              setIsRunning(true);
+              setTaskId(null);
+              setTaskTitle(null);
+            }, 500);
+          } else {
+            setPhase("idle");
+          }
+        } else if (phase === "break") {
+          // Auto-repeat: start focus
+          if (autoRepeatRef.current) {
+            setTimeout(() => {
+              const secs = focusMinutesRef.current * 60;
+              setPhase("focus");
+              setSecondsLeft(secs);
+              setTotalSeconds(secs);
+              setIsRunning(true);
+              setTaskId(taskIdRef.current);
+              setTaskTitle(taskTitleRef.current);
+            }, 500);
+          } else {
+            setPhase("idle");
+          }
+        } else {
+          setPhase("idle");
         }
-        setPhase("idle");
         return 0;
       }
       return prev - 1;
     });
-  }, [clearTimer, phase]);
+  }, [clearTimer, phase, getAudioCtx]);
 
   useEffect(() => {
     if (isRunning) {
