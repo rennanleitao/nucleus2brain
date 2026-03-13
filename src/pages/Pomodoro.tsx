@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { usePomodoro } from "@/hooks/usePomodoroStore";
 import { fetchTasks } from "@/lib/api";
-import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Volume2, VolumeX } from "lucide-react";
+import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Volume2, VolumeX, Repeat, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 function formatTime(seconds: number) {
@@ -52,7 +52,6 @@ export default function Pomodoro() {
         <div className={`relative w-64 h-64 rounded-full border-4 ${
           pomo.phase === "focus" ? "border-primary/30" : pomo.phase === "break" ? "border-green-500/30" : "border-border"
         } flex items-center justify-center transition-colors`}>
-          {/* Progress ring */}
           <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 256 256">
             <circle cx="128" cy="128" r="122" fill="none" strokeWidth="6"
               className={pomo.phase === "focus" ? "stroke-primary" : pomo.phase === "break" ? "stroke-green-500" : "stroke-muted"}
@@ -105,16 +104,30 @@ export default function Pomodoro() {
           )}
         </div>
 
-        {/* Alpha Waves Toggle */}
-        <Button
-          variant={pomo.alphaWaves ? "default" : "outline"}
-          size="sm"
-          onClick={pomo.toggleAlphaWaves}
-          className="gap-2"
-        >
-          {pomo.alphaWaves ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
-          Alpha Waves {pomo.alphaWaves ? "ON" : "OFF"}
-        </Button>
+        {/* Toggles row */}
+        <div className="flex items-center gap-4 flex-wrap justify-center">
+          <Button
+            variant={pomo.alphaWaves ? "default" : "outline"}
+            size="sm"
+            onClick={pomo.toggleAlphaWaves}
+            className="gap-2"
+          >
+            {pomo.alphaWaves ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+            Alpha Waves
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <Repeat className={`h-3.5 w-3.5 ${pomo.autoRepeat ? "text-primary" : "text-muted-foreground"}`} />
+            <span className="text-small text-muted-foreground">Repetir</span>
+            <Switch checked={pomo.autoRepeat} onCheckedChange={pomo.toggleAutoRepeat} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {pomo.soundEnabled ? <Bell className="h-3.5 w-3.5 text-primary" /> : <BellOff className="h-3.5 w-3.5 text-muted-foreground" />}
+            <span className="text-small text-muted-foreground">Som</span>
+            <Switch checked={pomo.soundEnabled} onCheckedChange={pomo.toggleSound} />
+          </div>
+        </div>
       </div>
 
       {/* Settings */}
