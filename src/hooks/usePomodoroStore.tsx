@@ -54,6 +54,30 @@ function createAlphaWavesNode(audioCtx: AudioContext): { start: () => void; stop
 
 type PomodoroPhase = "focus" | "break" | "idle";
 
+function playNotificationSound(audioCtx: AudioContext) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = 880;
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 1.2);
+  // Second beep
+  setTimeout(() => {
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.value = 1100;
+    gain2.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+    osc2.connect(gain2).connect(audioCtx.destination);
+    osc2.start(audioCtx.currentTime);
+    osc2.stop(audioCtx.currentTime + 0.8);
+  }, 400);
+}
+
 interface PomodoroState {
   phase: PomodoroPhase;
   secondsLeft: number;
@@ -65,6 +89,8 @@ interface PomodoroState {
   breakMinutes: number;
   sessionsCompleted: number;
   alphaWaves: boolean;
+  autoRepeat: boolean;
+  soundEnabled: boolean;
   startFocus: (taskId?: string, taskTitle?: string) => void;
   startBreak: () => void;
   pause: () => void;
@@ -73,6 +99,8 @@ interface PomodoroState {
   setFocusMinutes: (m: number) => void;
   setBreakMinutes: (m: number) => void;
   toggleAlphaWaves: () => void;
+  toggleAutoRepeat: () => void;
+  toggleSound: () => void;
 }
 
 const PomodoroContext = createContext<PomodoroState | null>(null);
