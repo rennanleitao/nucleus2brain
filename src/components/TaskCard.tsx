@@ -87,7 +87,7 @@ function formatDate(dateStr: string) {
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, hideSpace
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, hideSpace
 }, ref) => {
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
