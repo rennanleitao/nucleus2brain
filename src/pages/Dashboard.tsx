@@ -414,6 +414,27 @@ export default function Dashboard() {
         />
       )}
 
+      {/* Completion Comment Dialog */}
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { setCompletionTask(null); setFollowUpTask(completionTask); load(); }}
+        />
+      )}
+
+      {/* Follow-up Dialog */}
+      {followUpTask && (
+        <FollowUpDialog
+          completedTask={followUpTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!followUpTask}
+          onOpenChange={(open) => !open && setFollowUpTask(null)}
+          onCreated={load}
+        />
+      )}
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!taskToDelete} onOpenChange={(open) => { if (!open) setTaskToDelete(null); }}>
         <AlertDialogContent>
