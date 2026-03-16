@@ -227,7 +227,7 @@ export default function Dashboard() {
             <SectionHeader icon={AlertTriangle} title="Overdue" count={overdueTasks.length} isOpen={openSections.overdue} onToggle={() => toggleSection("overdue")} />
             {openSections.overdue && (
               <div className="space-y-2">
-                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)}
+                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)}
               </div>
             )}
           </section>
