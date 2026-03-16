@@ -238,7 +238,7 @@ export default function Dashboard() {
           {openSections.today && (
             <div className="space-y-2">
               {todayTasks.length > 0 ? (
-                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)
+                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)
               ) : (
                 <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
               )}
