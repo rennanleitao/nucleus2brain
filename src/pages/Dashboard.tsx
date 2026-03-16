@@ -220,20 +220,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* AI Briefing */}
-      {(todayTasks.length > 0 || overdueTasks.length > 0) && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-micro font-semibold text-primary uppercase tracking-wider">Focus</span>
-          </div>
-          <p className="text-small text-foreground/80 leading-relaxed">
-            {overdueTasks.length > 0 && `You have ${overdueTasks.length} overdue task${overdueTasks.length > 1 ? "s" : ""} to address. `}
-            {todayTasks.length > 0 && `${todayTasks.length} task${todayTasks.length > 1 ? "s" : ""} due today.`}
-            {todayTasks.length === 0 && overdueTasks.length === 0 && "All clear! Great job staying on top of things."}
-          </p>
-        </div>
-      )}
 
       <div className="space-y-6">
         {overdueTasks.length > 0 && (
