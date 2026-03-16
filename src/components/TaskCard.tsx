@@ -176,7 +176,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
         </div>
 
-        <PriorityDots priority={task.priority} />
+        <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
 
         {onDelete && (
           <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
