@@ -3,7 +3,9 @@ import { fetchTasks, updateTask, fetchSpaces, createTask, deleteTask } from "@/l
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
-import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle, Trash2, History, Calendar, BarChart3 } from "lucide-react";
+import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
+import { FollowUpDialog } from "@/components/FollowUpDialog";
+import { Clock, AlertTriangle, TrendingUp, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle, Trash2, History, Calendar, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { AccomplishmentHistory } from "@/components/AccomplishmentHistory";
