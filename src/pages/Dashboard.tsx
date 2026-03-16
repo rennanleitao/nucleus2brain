@@ -251,7 +251,7 @@ export default function Dashboard() {
             <SectionHeader icon={TrendingUp} title="Upcoming" count={upcomingTasks.length} isOpen={openSections.upcoming} onToggle={() => toggleSection("upcoming")} />
             {openSections.upcoming && (
               <div className="space-y-2">
-                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)}
+                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)}
               </div>
             )}
           </section>
