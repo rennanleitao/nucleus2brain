@@ -34,6 +34,7 @@ interface TaskCardProps {
   onToggleSubtask?: (id: string) => void;
   onAddSubtask?: (taskId: string, title: string, dueDate?: string) => void;
   onDeleteSubtask?: (id: string) => void;
+  onPriorityChange?: (id: string, priority: TaskPriority) => void;
   hideSpace?: boolean;
 }
 
