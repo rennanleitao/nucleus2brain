@@ -152,6 +152,9 @@ export default function Dashboard() {
     return d > new Date(today) && d <= in7;
   });
 
+  const [completionTask, setCompletionTask] = useState<any | null>(null);
+  const [followUpTask, setFollowUpTask] = useState<any | null>(null);
+
   const toggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
@@ -161,6 +164,18 @@ export default function Dashboard() {
         status: newStatus,
         completed_at: newStatus === "completed" ? new Date().toISOString() : null,
       });
+      if (newStatus === "completed") {
+        setCompletionTask(task);
+      }
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handlePriorityChange = async (id: string, priority: "low" | "medium" | "high") => {
+    try {
+      await updateTask(id, { priority });
       load();
     } catch (err: any) {
       toast.error(err.message);
