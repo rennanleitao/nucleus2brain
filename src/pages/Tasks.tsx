@@ -208,6 +208,15 @@ export default function Tasks() {
     return <div className="p-6 flex items-center justify-center"><p className="text-small text-muted-foreground">Loading...</p></div>;
   }
 
+  const handlePriorityChange = async (id: string, priority: "low" | "medium" | "high") => {
+    try {
+      await updateTask(id, { priority });
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const renderTaskList = (taskList: any[], hideSpace = false) => (
     <div className="space-y-2">
       {taskList.map(t => (
@@ -221,6 +230,7 @@ export default function Tasks() {
             onToggleSubtask={toggleSubtask}
             onAddSubtask={handleAddSubtask}
             onDeleteSubtask={handleDeleteSubtask}
+            onPriorityChange={handlePriorityChange}
             hideSpace={hideSpace}
           />
         </div>

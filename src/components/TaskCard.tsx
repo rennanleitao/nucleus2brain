@@ -34,6 +34,7 @@ interface TaskCardProps {
   onToggleSubtask?: (id: string) => void;
   onAddSubtask?: (taskId: string, title: string, dueDate?: string) => void;
   onDeleteSubtask?: (id: string) => void;
+  onPriorityChange?: (id: string, priority: TaskPriority) => void;
   hideSpace?: boolean;
 }
 
@@ -51,17 +52,32 @@ const priorityDots: Record<TaskPriority, number> = {
   low: 1,
 };
 
-function PriorityDots({ priority }: { priority: TaskPriority }) {
+const priorityLabels: Record<TaskPriority, string> = { low: "Baixa", medium: "Média", high: "Alta" };
+const priorityCycle: TaskPriority[] = ["low", "medium", "high"];
+
+function PriorityDots({ priority, onClick }: { priority: TaskPriority; onClick?: (newPriority: TaskPriority) => void }) {
   const count = priorityDots[priority];
+  const handleClick = (e: React.MouseEvent) => {
+    if (!onClick) return;
+    e.stopPropagation();
+    const idx = priorityCycle.indexOf(priority);
+    const next = priorityCycle[(idx + 1) % priorityCycle.length];
+    onClick(next);
+  };
   return (
-    <div className="flex items-center gap-[3px]" title={priority}>
+    <button
+      type="button"
+      onClick={handleClick}
+      className={`flex items-center gap-[3px] ${onClick ? "cursor-pointer hover:opacity-70 transition-opacity" : ""}`}
+      title={`Prioridade: ${priorityLabels[priority]}${onClick ? " (clique para alterar)" : ""}`}
+    >
       {[1, 2, 3].map(i => (
         <span
           key={i}
           className={`block h-[5px] w-[5px] rounded-full ${i <= count ? "bg-foreground/50" : "bg-border"}`}
         />
       ))}
-    </div>
+    </button>
   );
 }
 
@@ -71,7 +87,7 @@ function formatDate(dateStr: string) {
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, hideSpace
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, hideSpace
 }, ref) => {
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
@@ -160,7 +176,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
         </div>
 
-        <PriorityDots priority={task.priority} />
+        <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
 
         {onDelete && (
           <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}

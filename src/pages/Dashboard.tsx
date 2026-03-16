@@ -3,7 +3,9 @@ import { fetchTasks, updateTask, fetchSpaces, createTask, deleteTask } from "@/l
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
-import { Clock, AlertTriangle, TrendingUp, Sparkles, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle, Trash2, History, Calendar, BarChart3 } from "lucide-react";
+import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
+import { FollowUpDialog } from "@/components/FollowUpDialog";
+import { Clock, AlertTriangle, TrendingUp, Bot, Send, User, ChevronDown, ChevronRight, Trophy, CheckCircle2, Circle, Trash2, History, Calendar, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { AccomplishmentHistory } from "@/components/AccomplishmentHistory";
@@ -150,6 +152,9 @@ export default function Dashboard() {
     return d > new Date(today) && d <= in7;
   });
 
+  const [completionTask, setCompletionTask] = useState<any | null>(null);
+  const [followUpTask, setFollowUpTask] = useState<any | null>(null);
+
   const toggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
@@ -159,6 +164,18 @@ export default function Dashboard() {
         status: newStatus,
         completed_at: newStatus === "completed" ? new Date().toISOString() : null,
       });
+      if (newStatus === "completed") {
+        setCompletionTask(task);
+      }
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handlePriorityChange = async (id: string, priority: "low" | "medium" | "high") => {
+    try {
+      await updateTask(id, { priority });
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -203,20 +220,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* AI Briefing */}
-      {(todayTasks.length > 0 || overdueTasks.length > 0) && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-micro font-semibold text-primary uppercase tracking-wider">Focus</span>
-          </div>
-          <p className="text-small text-foreground/80 leading-relaxed">
-            {overdueTasks.length > 0 && `You have ${overdueTasks.length} overdue task${overdueTasks.length > 1 ? "s" : ""} to address. `}
-            {todayTasks.length > 0 && `${todayTasks.length} task${todayTasks.length > 1 ? "s" : ""} due today.`}
-            {todayTasks.length === 0 && overdueTasks.length === 0 && "All clear! Great job staying on top of things."}
-          </p>
-        </div>
-      )}
 
       <div className="space-y-6">
         {overdueTasks.length > 0 && (
@@ -224,7 +227,7 @@ export default function Dashboard() {
             <SectionHeader icon={AlertTriangle} title="Overdue" count={overdueTasks.length} isOpen={openSections.overdue} onToggle={() => toggleSection("overdue")} />
             {openSections.overdue && (
               <div className="space-y-2">
-                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)}
+                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)}
               </div>
             )}
           </section>
@@ -235,7 +238,7 @@ export default function Dashboard() {
           {openSections.today && (
             <div className="space-y-2">
               {todayTasks.length > 0 ? (
-                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)
+                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)
               ) : (
                 <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
               )}
@@ -248,7 +251,7 @@ export default function Dashboard() {
             <SectionHeader icon={TrendingUp} title="Upcoming" count={upcomingTasks.length} isOpen={openSections.upcoming} onToggle={() => toggleSection("upcoming")} />
             {openSections.upcoming && (
               <div className="space-y-2">
-                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} />)}
+                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)}
               </div>
             )}
           </section>
@@ -408,6 +411,27 @@ export default function Dashboard() {
           open={!!selectedTask}
           onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
           onUpdated={() => { setSelectedTask(null); load(); }}
+        />
+      )}
+
+      {/* Completion Comment Dialog */}
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { setCompletionTask(null); setFollowUpTask(completionTask); load(); }}
+        />
+      )}
+
+      {/* Follow-up Dialog */}
+      {followUpTask && (
+        <FollowUpDialog
+          completedTask={followUpTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!followUpTask}
+          onOpenChange={(open) => !open && setFollowUpTask(null)}
+          onCreated={load}
         />
       )}
 
