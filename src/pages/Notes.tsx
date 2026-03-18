@@ -69,6 +69,38 @@ export default function Notes() {
     else setLinkedTasks([]);
   }, [editSpaceId, loadLinkedTasks]);
 
+  // Autosave: debounce 2s after dirty changes
+  const dirtyRef = useRef(dirty);
+  const selectedNoteRef = useRef(selectedNote);
+  const editTitleRef = useRef(editTitle);
+  const editContentRef = useRef(editContent);
+  const editTagsRef = useRef(editTags);
+  const editSpaceIdRef = useRef(editSpaceId);
+  dirtyRef.current = dirty;
+  selectedNoteRef.current = selectedNote;
+  editTitleRef.current = editTitle;
+  editContentRef.current = editContent;
+  editTagsRef.current = editTags;
+  editSpaceIdRef.current = editSpaceId;
+
+  useEffect(() => {
+    if (!autosaveEnabled || !dirty || !selectedNote) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      if (dirtyRef.current && selectedNoteRef.current && editTitleRef.current.trim()) {
+        handleSave();
+      }
+    }, 2000);
+    return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+  }, [dirty, editTitle, editContent, editTags, editSpaceId, autosaveEnabled, selectedNote]);
+
+  const toggleAutosave = (checked: boolean) => {
+    setAutosaveEnabled(checked);
+    localStorage.setItem("notes-autosave", String(checked));
+    if (checked) toast.success("Autosave ativado");
+    else toast.info("Autosave desativado");
+  };
+
   const [allTags, setAllTags] = useState<string[]>([]);
 
   useEffect(() => {
