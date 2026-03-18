@@ -20,3 +20,15 @@ verify_jwt = false
 
 [functions.whatsapp-send]
 verify_jwt = false
+
+[functions.shared-note]
+verify_jwt = false
+
+[functions.note-ai-chat]
+verify_jwt = false
+
+[functions.improve-text]
+verify_jwt = false
+
+[functions.parse-voice-task]
+verify_jwt = false

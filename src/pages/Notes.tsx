@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { NoteAIChat } from "@/components/NoteAIChat";
+import { ShareNoteDialog } from "@/components/ShareNoteDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save,
+  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,6 +36,7 @@ export default function Notes() {
   const [dirty, setDirty] = useState(false);
   const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
   const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [autosaveEnabled, setAutosaveEnabled] = useState(() => {
     const stored = localStorage.getItem("notes-autosave");
@@ -333,6 +335,10 @@ export default function Notes() {
                     {!dirty && autosaveEnabled && selectedNote && (
                       <span className="text-[10px] text-muted-foreground">Salvo ✓</span>
                     )}
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={() => setShareOpen(true)}>
+                      <Share2 className="h-4 w-4" />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => handleDelete(selectedNote.id)}>
                       <Trash2 className="h-4 w-4" />
@@ -452,6 +458,15 @@ export default function Notes() {
                   open={!!editingTask}
                   onOpenChange={(open) => !open && setEditingTask(null)}
                   onUpdated={() => { setEditingTask(null); if (editSpaceId) loadLinkedTasks(editSpaceId); }}
+                />
+              )}
+
+              {selectedNote && (
+                <ShareNoteDialog
+                  noteId={selectedNote.id}
+                  noteTitle={editTitle}
+                  open={shareOpen}
+                  onOpenChange={setShareOpen}
                 />
               )}
             </>

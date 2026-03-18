@@ -183,6 +183,161 @@ export type Database = {
           },
         ]
       }
+      note_comments: {
+        Row: {
+          author_name: string
+          content: string
+          created_at: string
+          guest_id: string | null
+          id: string
+          note_id: string
+          user_id: string | null
+        }
+        Insert: {
+          author_name: string
+          content: string
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          note_id: string
+          user_id?: string | null
+        }
+        Update: {
+          author_name?: string
+          content?: string
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          note_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_comments_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "note_guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_comments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_edit_history: {
+        Row: {
+          change_summary: string | null
+          content_snapshot: string | null
+          created_at: string
+          editor_name: string
+          guest_id: string | null
+          id: string
+          note_id: string
+          user_id: string | null
+        }
+        Insert: {
+          change_summary?: string | null
+          content_snapshot?: string | null
+          created_at?: string
+          editor_name: string
+          guest_id?: string | null
+          id?: string
+          note_id: string
+          user_id?: string | null
+        }
+        Update: {
+          change_summary?: string | null
+          content_snapshot?: string | null
+          created_at?: string
+          editor_name?: string
+          guest_id?: string | null
+          id?: string
+          note_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_edit_history_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "note_guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_edit_history_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_guests: {
+        Row: {
+          created_at: string
+          guest_name: string
+          guest_token: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_name: string
+          guest_token?: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          guest_name?: string
+          guest_token?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      note_shares: {
+        Row: {
+          allow_ai: boolean
+          allow_comments: boolean
+          allow_edit: boolean
+          created_at: string
+          created_by: string
+          id: string
+          note_id: string
+          share_token: string
+        }
+        Insert: {
+          allow_ai?: boolean
+          allow_comments?: boolean
+          allow_edit?: boolean
+          created_at?: string
+          created_by: string
+          id?: string
+          note_id: string
+          share_token?: string
+        }
+        Update: {
+          allow_ai?: boolean
+          allow_comments?: boolean
+          allow_edit?: boolean
+          created_at?: string
+          created_by?: string
+          id?: string
+          note_id?: string
+          share_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_shares_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: true
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           content: string | null
