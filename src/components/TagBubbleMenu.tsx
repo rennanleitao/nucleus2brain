@@ -24,6 +24,7 @@ const AI_MODES = [
   { key: "simplify", label: "Simplificar", Icon: FileText },
   { key: "expand", label: "Expandir", Icon: BookOpen },
   { key: "formal", label: "Tom formal", Icon: BriefcaseBusiness },
+  { key: "meeting", label: "Organizar Meeting Notes", Icon: ClipboardList },
 ] as const;
 
 export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuProps) {
