@@ -50,6 +50,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
   const [previewOriginal, setPreviewOriginal] = useState("");
   const [previewImproved, setPreviewImproved] = useState("");
   const [previewRange, setPreviewRange] = useState<{ from: number; to: number } | null>(null);
+  const [previewMode, setPreviewMode] = useState("");
 
   const handleTag = async (tag: string) => {
     if (!noteId) {
