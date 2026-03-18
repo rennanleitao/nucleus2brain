@@ -338,7 +338,33 @@ export default function Tasks() {
         </div>
       )}
 
-      {grouped ? (
+      {grouped && grouped.type === "date" ? (
+        <div className="space-y-6">
+          {grouped.dateGroups.map(g => {
+            const isOpen = collapsedGroups[g.key] !== true;
+            return (
+              <section key={g.key}>
+                <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-2 mb-2 text-left">
+                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                  <h2 className={`text-h2 ${g.key === "overdue" ? "text-destructive" : ""}`}>{g.label}</h2>
+                  <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
+                </button>
+                {isOpen && (
+                  <div className="rounded-xl border border-border bg-card p-3">
+                    {renderTaskList(g.tasks)}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+          {grouped.dateGroups.length === 0 && (
+            <div className="text-center py-12">
+              <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-small text-muted-foreground">No tasks match filters</p>
+            </div>
+          )}
+        </div>
+      ) : grouped && grouped.type === "space" ? (
         <div className="space-y-6">
           {grouped.groups.map(g => {
             const key = g.name;
