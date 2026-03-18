@@ -224,7 +224,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
               {previewMode === "meeting" ? (
                 <ClipboardList className="h-4 w-4" />
               ) : (
-                <Sparkles className="h-4 w-4" />
+                <Wand2 className="h-4 w-4" />
               )}
               {previewMode === "meeting" ? "Meeting Notes Organizadas" : "Confirmar alteração"}
             </DialogTitle>
