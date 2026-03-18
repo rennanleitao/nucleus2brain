@@ -99,6 +99,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
         setPreviewOriginal(selectedText.trim());
         setPreviewImproved(improved);
         setPreviewRange({ from, to });
+        setPreviewMode(mode);
         setPreviewOpen(true);
       } else {
         toast.info("Nenhuma alteração sugerida");
