@@ -460,6 +460,15 @@ export default function Notes() {
                   onUpdated={() => { setEditingTask(null); if (editSpaceId) loadLinkedTasks(editSpaceId); }}
                 />
               )}
+
+              {selectedNote && (
+                <ShareNoteDialog
+                  noteId={selectedNote.id}
+                  noteTitle={editTitle}
+                  open={shareOpen}
+                  onOpenChange={setShareOpen}
+                />
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
