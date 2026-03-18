@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
+import { NoteAIChat } from "@/components/NoteAIChat";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -439,6 +440,9 @@ export default function Notes() {
                     )}
                   </div>
                 )}
+
+                {/* AI Chat */}
+                <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
               </div>
 
               {editingTask && (
