@@ -52,7 +52,7 @@ export function ShareNoteDialog({ noteId, noteTitle, open, onOpenChange }: Share
       .select("*")
       .eq("note_id", noteId)
       .order("created_at", { ascending: false });
-    setHistory((data || []) as EditHistoryItem[]);
+    setHistory((data as unknown as EditHistoryItem[]) || []);
   };
 
   useEffect(() => {
