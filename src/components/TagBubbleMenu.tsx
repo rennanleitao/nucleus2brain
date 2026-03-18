@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
-import { Tag, Plus, Sparkles, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList } from "lucide-react";
+import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -51,6 +52,8 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
   const [previewImproved, setPreviewImproved] = useState("");
   const [previewRange, setPreviewRange] = useState<{ from: number; to: number } | null>(null);
   const [previewMode, setPreviewMode] = useState("");
+  const [refinementInput, setRefinementInput] = useState("");
+  const [refining, setRefining] = useState(false);
 
   const handleTag = async (tag: string) => {
     if (!noteId) {
@@ -121,7 +124,29 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
 
   const handleRejectPreview = () => {
     setPreviewOpen(false);
+    setRefinementInput("");
     toast.info("Alteração descartada");
+  };
+
+  const handleRefine = async () => {
+    if (!refinementInput.trim() || !previewOriginal) return;
+    setRefining(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("improve-text", {
+        body: { text: previewOriginal, mode: "meeting", extraInstructions: refinementInput.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data.improved) {
+        setPreviewImproved(data.improved);
+        setRefinementInput("");
+        toast.success("Notas reorganizadas com ajustes");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao refinar");
+    } finally {
+      setRefining(false);
+    }
   };
 
   return (
@@ -194,7 +219,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
               {aiLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <Sparkles className="h-3 w-3" />
+                <Wand2 className="h-3 w-3" />
               )}
               IA
               <ChevronDown className="h-2.5 w-2.5 opacity-50" />
@@ -223,7 +248,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
               {previewMode === "meeting" ? (
                 <ClipboardList className="h-4 w-4" />
               ) : (
-                <Sparkles className="h-4 w-4" />
+                <Wand2 className="h-4 w-4" />
               )}
               {previewMode === "meeting" ? "Meeting Notes Organizadas" : "Confirmar alteração"}
             </DialogTitle>
@@ -251,6 +276,30 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
                 )}
               </div>
             </div>
+            {previewMode === "meeting" && (
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground mb-1">Ajustes (opcional)</p>
+                <div className="flex gap-2">
+                  <Textarea
+                    value={refinementInput}
+                    onChange={e => setRefinementInput(e.target.value)}
+                    placeholder="Ex: Separar os itens de Compras e Contabilidade..."
+                    className="min-h-[60px] text-xs resize-none"
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleRefine(); } }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-auto px-3 gap-1.5 self-end"
+                    disabled={!refinementInput.trim() || refining}
+                    onClick={handleRefine}
+                  >
+                    {refining ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                    Reprocessar
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" size="sm" onClick={handleRejectPreview} className="gap-1.5">
