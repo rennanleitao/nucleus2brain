@@ -268,7 +268,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
               )}
               <div className={`rounded-md border p-3 text-sm leading-relaxed ${previewMode === "meeting" ? "border-border bg-card" : "border-primary/30 bg-primary/5 whitespace-pre-wrap"}`}>
                 {previewMode === "meeting" ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div className="prose prose-sm max-w-none dark:prose-invert [&>hr]:my-4 [&>h2]:mt-5 [&>h2]:mb-2 [&>ul]:my-2 [&>p]:my-2 [&>ul>li]:my-1">
                     <ReactMarkdown>{previewImproved}</ReactMarkdown>
                   </div>
                 ) : (
