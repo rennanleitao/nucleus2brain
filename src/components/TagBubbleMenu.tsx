@@ -138,10 +138,10 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
           <PopoverContent className="w-56 p-2.5" align="start">
             <p className="text-[11px] font-medium mb-2 text-muted-foreground">Selecione ou crie uma tag</p>
             
-            {existingTags.length > 0 && (
+            {allTags.length > 0 && (
               <ScrollArea className="max-h-28 mb-2">
                 <div className="flex flex-wrap gap-1">
-                  {existingTags.map(tag => (
+                  {allTags.filter(tag => !newTag.trim() || tag.toLowerCase().includes(newTag.trim().toLowerCase())).map(tag => (
                     <Badge
                       key={tag}
                       variant="outline"
