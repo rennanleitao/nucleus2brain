@@ -36,6 +36,7 @@ export default function Notes() {
   const [dirty, setDirty] = useState(false);
   const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
   const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [autosaveEnabled, setAutosaveEnabled] = useState(() => {
     const stored = localStorage.getItem("notes-autosave");
