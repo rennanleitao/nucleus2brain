@@ -25,7 +25,12 @@ interface ChatMessage {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-const today = new Date().toISOString().split("T")[0];
+function getBrtToday() {
+  const now = new Date();
+  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  return brt.toISOString().split("T")[0];
+}
+const today = getBrtToday();
 
 function SectionHeader({ icon: Icon, title, count, isOpen, onToggle }: { icon: React.ElementType; title: string; count: number; isOpen: boolean; onToggle: () => void }) {
   return (
