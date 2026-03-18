@@ -276,6 +276,30 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
                 )}
               </div>
             </div>
+            {previewMode === "meeting" && (
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground mb-1">Ajustes (opcional)</p>
+                <div className="flex gap-2">
+                  <Textarea
+                    value={refinementInput}
+                    onChange={e => setRefinementInput(e.target.value)}
+                    placeholder="Ex: Separar os itens de Compras e Contabilidade..."
+                    className="min-h-[60px] text-xs resize-none"
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleRefine(); } }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-auto px-3 gap-1.5 self-end"
+                    disabled={!refinementInput.trim() || refining}
+                    onClick={handleRefine}
+                  >
+                    {refining ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                    Reprocessar
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" size="sm" onClick={handleRejectPreview} className="gap-1.5">
