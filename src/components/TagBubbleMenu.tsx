@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
-import { Tag, Plus, Sparkles, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness } from "lucide-react";
+import { Tag, Plus, Sparkles, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const AI_MODES = [
   { key: "simplify", label: "Simplificar", Icon: FileText },
   { key: "expand", label: "Expandir", Icon: BookOpen },
   { key: "formal", label: "Tom formal", Icon: BriefcaseBusiness },
+  { key: "meeting", label: "Organizar Meeting Notes", Icon: ClipboardList },
 ] as const;
 
 export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuProps) {
@@ -48,6 +50,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
   const [previewOriginal, setPreviewOriginal] = useState("");
   const [previewImproved, setPreviewImproved] = useState("");
   const [previewRange, setPreviewRange] = useState<{ from: number; to: number } | null>(null);
+  const [previewMode, setPreviewMode] = useState("");
 
   const handleTag = async (tag: string) => {
     if (!noteId) {
@@ -96,6 +99,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
         setPreviewOriginal(selectedText.trim());
         setPreviewImproved(improved);
         setPreviewRange({ from, to });
+        setPreviewMode(mode);
         setPreviewOpen(true);
       } else {
         toast.info("Nenhuma alteração sugerida");
@@ -213,24 +217,38 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
 
       {/* AI Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className={previewMode === "meeting" ? "sm:max-w-2xl max-h-[80vh] overflow-y-auto" : "sm:max-w-lg"}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-sm">
-              <Sparkles className="h-4 w-4" />
-              Confirmar alteração
+              {previewMode === "meeting" ? (
+                <ClipboardList className="h-4 w-4" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {previewMode === "meeting" ? "Meeting Notes Organizadas" : "Confirmar alteração"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <p className="text-[11px] font-medium text-muted-foreground mb-1">Original</p>
-              <div className="rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {previewOriginal}
+            {previewMode !== "meeting" && (
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground mb-1">Original</p>
+                <div className="rounded-md border border-border bg-muted/50 p-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {previewOriginal}
+                </div>
               </div>
-            </div>
+            )}
             <div>
-              <p className="text-[11px] font-medium text-muted-foreground mb-1">Sugestão da IA</p>
-              <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm leading-relaxed whitespace-pre-wrap">
-                {previewImproved}
+              {previewMode !== "meeting" && (
+                <p className="text-[11px] font-medium text-muted-foreground mb-1">Sugestão da IA</p>
+              )}
+              <div className={`rounded-md border p-3 text-sm leading-relaxed ${previewMode === "meeting" ? "border-border bg-card" : "border-primary/30 bg-primary/5 whitespace-pre-wrap"}`}>
+                {previewMode === "meeting" ? (
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown>{previewImproved}</ReactMarkdown>
+                  </div>
+                ) : (
+                  previewImproved
+                )}
               </div>
             </div>
           </div>
@@ -241,7 +259,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
             </Button>
             <Button size="sm" onClick={handleAcceptPreview} className="gap-1.5">
               <Check className="h-3.5 w-3.5" />
-              Aplicar
+              {previewMode === "meeting" ? "Substituir texto" : "Aplicar"}
             </Button>
           </DialogFooter>
         </DialogContent>
