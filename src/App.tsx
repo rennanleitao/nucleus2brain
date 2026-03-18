@@ -21,6 +21,7 @@ import History from "./pages/History";
 import SpaceDetail from "./pages/SpaceDetail";
 import AcceptInvite from "./pages/AcceptInvite";
 import Pomodoro from "./pages/Pomodoro";
+import SharedNote from "./pages/SharedNote";
 import NotFound from "./pages/NotFound";
 
 
@@ -39,7 +40,12 @@ function AppRoutes() {
   }
 
   if (!user) {
-    return <Auth />;
+    return (
+      <Routes>
+        <Route path="/shared/:token" element={<SharedNote />} />
+        <Route path="*" element={<Auth />} />
+      </Routes>
+    );
   }
 
   return (
@@ -58,6 +64,7 @@ function AppRoutes() {
             
             <Route path="/settings" element={<SettingsPage />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
+        <Route path="/shared/:token" element={<SharedNote />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
