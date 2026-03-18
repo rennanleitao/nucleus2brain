@@ -335,6 +335,10 @@ export default function Notes() {
                     {!dirty && autosaveEnabled && selectedNote && (
                       <span className="text-[10px] text-muted-foreground">Salvo ✓</span>
                     )}
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={() => setShareOpen(true)}>
+                      <Share2 className="h-4 w-4" />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => handleDelete(selectedNote.id)}>
                       <Trash2 className="h-4 w-4" />
