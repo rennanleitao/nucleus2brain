@@ -391,6 +391,9 @@ export default function Notes() {
                   />
                 </div>
 
+                {/* AI Chat */}
+                <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
+
                 {/* Linked Tasks Panel */}
                 {linkedTasks.length > 0 && (
                   <div className="border-t border-border bg-muted/20">
@@ -440,9 +443,6 @@ export default function Notes() {
                     )}
                   </div>
                 )}
-
-                {/* AI Chat */}
-                <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
               </div>
 
               {editingTask && (
