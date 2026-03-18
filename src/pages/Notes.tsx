@@ -318,11 +318,19 @@ export default function Notes() {
                     placeholder="Título da nota"
                   />
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 mr-1">
+                      <Save className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">Auto</span>
+                      <Switch checked={autosaveEnabled} onCheckedChange={toggleAutosave} className="h-4 w-8 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-4" />
+                    </div>
                     {dirty && (
                       <Button size="sm" onClick={handleSave} disabled={saving}
                         className="gradient-primary text-primary-foreground border-0 text-xs">
                         {saving ? "..." : "Salvar"}
                       </Button>
+                    )}
+                    {!dirty && autosaveEnabled && selectedNote && (
+                      <span className="text-[10px] text-muted-foreground">Salvo ✓</span>
                     )}
                     <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => handleDelete(selectedNote.id)}>
