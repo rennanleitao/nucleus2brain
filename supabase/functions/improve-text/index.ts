@@ -23,19 +23,19 @@ serve(async (req) => {
 
 A estrutura DEVE conter estas seções:
 
-## 📋 Resumo
+## Resumo
 Um parágrafo curto resumindo o contexto e os principais pontos discutidos.
 
-## 🎯 Key Takeaways
+## Key Takeaways
 Lista dos pontos mais importantes e decisões tomadas na reunião, como bullet points.
 
-## ✅ Plano de Ação
+## Ações Possíveis para Validação
 Lista de ações de seguimento identificadas, com responsáveis (se mencionados) e prazos (se mencionados). Cada item como checkbox markdown (- [ ] ação).
 
-## 💡 Insights
+## Insights
 (Inclua esta seção APENAS se houver insights relevantes que não são óbvios, como padrões, riscos, oportunidades ou conexões entre temas mencionados. Se não houver insights relevantes, omita esta seção completamente.)
 
-Retorne APENAS o conteúdo reorganizado em Markdown, sem explicações adicionais antes ou depois:\n\n${text}`,
+${extraInstructions ? `INSTRUÇÕES ADICIONAIS DO USUÁRIO (aplique estas orientações na organização):\n${extraInstructions}\n\n` : ""}Retorne APENAS o conteúdo reorganizado em Markdown, sem explicações adicionais antes ou depois:\n\n${text}`,
     };
 
     const systemPrompt = prompts[mode] || prompts.improve;
