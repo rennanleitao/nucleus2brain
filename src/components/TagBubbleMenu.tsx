@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
 import { Tag, Plus, Sparkles, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness } from "lucide-react";
@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { createTaggedSnippet } from "@/lib/api";
+import { createTaggedSnippet, fetchAllTags } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -31,6 +31,17 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [allTags, setAllTags] = useState<string[]>([]);
+
+  // Fetch all user tags when tag popover opens
+  useEffect(() => {
+    if (tagOpen) {
+      fetchAllTags().then(tags => {
+        const merged = [...new Set([...existingTags, ...tags])].sort();
+        setAllTags(merged);
+      }).catch(() => setAllTags(existingTags));
+    }
+  }, [tagOpen, existingTags]);
 
   // AI preview state
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -127,10 +138,10 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
           <PopoverContent className="w-56 p-2.5" align="start">
             <p className="text-[11px] font-medium mb-2 text-muted-foreground">Selecione ou crie uma tag</p>
             
-            {existingTags.length > 0 && (
+            {allTags.length > 0 && (
               <ScrollArea className="max-h-28 mb-2">
                 <div className="flex flex-wrap gap-1">
-                  {existingTags.map(tag => (
+                  {allTags.filter(tag => !newTag.trim() || tag.toLowerCase().includes(newTag.trim().toLowerCase())).map(tag => (
                     <Badge
                       key={tag}
                       variant="outline"
