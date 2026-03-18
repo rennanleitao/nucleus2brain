@@ -440,6 +440,9 @@ export default function Notes() {
                     )}
                   </div>
                 )}
+
+                {/* AI Chat */}
+                <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
               </div>
 
               {editingTask && (
