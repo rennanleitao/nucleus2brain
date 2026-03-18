@@ -325,6 +325,7 @@ export default function Tasks() {
           <SelectContent>
             <SelectItem value="none">No grouping</SelectItem>
             <SelectItem value="space">By Space</SelectItem>
+            <SelectItem value="date">By Date</SelectItem>
           </SelectContent>
         </Select>
       </div>
