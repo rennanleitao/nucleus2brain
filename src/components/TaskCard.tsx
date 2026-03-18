@@ -167,8 +167,13 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 {task.notes.title}
               </span>
             )}
+            {task.due_date && task.due_date === getBrtToday() && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
+                Hoje
+              </Badge>
+            )}
             {task.due_date && (
-              <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
+              <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
                 <CalendarDays className="h-3 w-3" />
                 {formatDate(task.due_date)}
               </span>

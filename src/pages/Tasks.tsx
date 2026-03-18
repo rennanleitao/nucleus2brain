@@ -101,6 +101,51 @@ export default function Tasks() {
   }, [tasks, filter, priorityFilter, search]);
 
   const grouped = useMemo(() => {
+    const sortByDate = (tasks: any[]) => tasks.sort((a: any, b: any) => {
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return a.due_date.localeCompare(b.due_date);
+    });
+
+    if (groupBy === "date") {
+      const now = new Date();
+      const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      const today = brt.toISOString().split("T")[0];
+      const tomorrow = new Date(brt);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const endOfWeek = new Date(brt);
+      endOfWeek.setDate(endOfWeek.getDate() + 6);
+      const weekStr = endOfWeek.toISOString().split("T")[0];
+
+      const overdue: any[] = [];
+      const todayTasks: any[] = [];
+      const tomorrowTasks: any[] = [];
+      const thisWeek: any[] = [];
+      const later: any[] = [];
+      const noDate: any[] = [];
+
+      for (const t of filtered) {
+        if (!t.due_date) { noDate.push(t); }
+        else if (t.due_date < today && t.status !== "completed") { overdue.push(t); }
+        else if (t.due_date === today) { todayTasks.push(t); }
+        else if (t.due_date === tomorrowStr) { tomorrowTasks.push(t); }
+        else if (t.due_date <= weekStr) { thisWeek.push(t); }
+        else { later.push(t); }
+      }
+
+      const dateGroups: { key: string; label: string; tasks: any[] }[] = [];
+      if (overdue.length) dateGroups.push({ key: "overdue", label: "Atrasadas", tasks: sortByDate(overdue) });
+      if (todayTasks.length) dateGroups.push({ key: "today", label: "Hoje", tasks: sortByDate(todayTasks) });
+      if (tomorrowTasks.length) dateGroups.push({ key: "tomorrow", label: "Amanhã", tasks: sortByDate(tomorrowTasks) });
+      if (thisWeek.length) dateGroups.push({ key: "week", label: "Esta semana", tasks: sortByDate(thisWeek) });
+      if (later.length) dateGroups.push({ key: "later", label: "Mais tarde", tasks: sortByDate(later) });
+      if (noDate.length) dateGroups.push({ key: "nodate", label: "Sem data", tasks: noDate });
+
+      return { type: "date" as const, dateGroups };
+    }
+
     if (groupBy !== "space") return null;
     const groups: Record<string, { id: string; name: string; tasks: any[] }> = {};
     const ungrouped: any[] = [];
@@ -112,15 +157,9 @@ export default function Tasks() {
         ungrouped.push(t);
       }
     }
-    const sortByDate = (tasks: any[]) => tasks.sort((a: any, b: any) => {
-      if (!a.due_date && !b.due_date) return 0;
-      if (!a.due_date) return 1;
-      if (!b.due_date) return -1;
-      return a.due_date.localeCompare(b.due_date);
-    });
     Object.values(groups).forEach(g => sortByDate(g.tasks));
     sortByDate(ungrouped);
-    return { groups: Object.values(groups).sort((a, b) => a.name.localeCompare(b.name)), ungrouped };
+    return { type: "space" as const, groups: Object.values(groups).sort((a, b) => a.name.localeCompare(b.name)), ungrouped };
   }, [filtered, groupBy]);
 
   const toggleTask = async (id: string) => {
@@ -286,6 +325,7 @@ export default function Tasks() {
           <SelectContent>
             <SelectItem value="none">No grouping</SelectItem>
             <SelectItem value="space">By Space</SelectItem>
+            <SelectItem value="date">By Date</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -298,7 +338,33 @@ export default function Tasks() {
         </div>
       )}
 
-      {grouped ? (
+      {grouped && grouped.type === "date" ? (
+        <div className="space-y-6">
+          {grouped.dateGroups.map(g => {
+            const isOpen = collapsedGroups[g.key] !== true;
+            return (
+              <section key={g.key}>
+                <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-2 mb-2 text-left">
+                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                  <h2 className={`text-h2 ${g.key === "overdue" ? "text-destructive" : ""}`}>{g.label}</h2>
+                  <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
+                </button>
+                {isOpen && (
+                  <div className="rounded-xl border border-border bg-card p-3">
+                    {renderTaskList(g.tasks)}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+          {grouped.dateGroups.length === 0 && (
+            <div className="text-center py-12">
+              <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-small text-muted-foreground">No tasks match filters</p>
+            </div>
+          )}
+        </div>
+      ) : grouped && grouped.type === "space" ? (
         <div className="space-y-6">
           {grouped.groups.map(g => {
             const key = g.name;
