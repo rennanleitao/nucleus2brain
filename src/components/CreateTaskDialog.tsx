@@ -2,10 +2,23 @@ import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus, Tag, X, Search, ChevronDown } from "lucide-react";
-import { createTask, createSpace, fetchAllTags } from "@/lib/api";
+import { createTask, createSpace, createSubtask, fetchAllTags } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+
+function getBrtToday() {
+  const now = new Date();
+  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  return brt.toISOString().split("T")[0];
+}
+
+function getBrtTomorrow() {
+  const now = new Date();
+  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  brt.setDate(brt.getDate() + 1);
+  return brt.toISOString().split("T")[0];
+}
 
 function SpaceLetterAvatar({ name }: { name: string }) {
   return (
@@ -113,6 +126,11 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showTagPicker, setShowTagPicker] = useState(false);
 
+  // Subtasks state
+  const [pendingSubtasks, setPendingSubtasks] = useState<{ title: string; due_date?: string }[]>([]);
+  const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [subtaskDate, setSubtaskDate] = useState("");
+
   useEffect(() => {
     if (open) {
       fetchAllTags().then(setAllTags).catch(() => {});
@@ -143,13 +161,28 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     }
   };
 
+  const handleAddPendingSubtask = () => {
+    if (!subtaskTitle.trim()) return;
+    if (subtaskDate && dueDate && subtaskDate > dueDate) {
+      toast.error("Data da subtask não pode ser posterior à data da task");
+      return;
+    }
+    setPendingSubtasks(prev => [...prev, { title: subtaskTitle.trim(), due_date: subtaskDate || undefined }]);
+    setSubtaskTitle("");
+    setSubtaskDate("");
+  };
+
+  const handleRemovePendingSubtask = (idx: number) => {
+    setPendingSubtasks(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
     const autoStatus = dueDate ? "in_progress" : "todo";
     try {
-      await createTask({
+      const task = await createTask({
         title: title.trim(),
         description: description.trim() || null,
         priority,
@@ -158,8 +191,19 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         due_date: dueDate || null,
         tag: tag || null,
       } as any);
+
+      // Create pending subtasks
+      if (pendingSubtasks.length > 0 && task?.id) {
+        await Promise.all(
+          pendingSubtasks.map(sub =>
+            createSubtask({ task_id: task.id, title: sub.title, due_date: sub.due_date || null })
+          )
+        );
+      }
+
       toast.success("Task criada!");
       setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput("");
+      setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -169,6 +213,8 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     }
   };
 
+  const todayStr = getBrtToday();
+  const tomorrowStr = getBrtTomorrow();
   const filteredTags = allTags.filter(t => !tagInput || t.toLowerCase().includes(tagInput.toLowerCase()));
 
   return (
@@ -182,7 +228,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Criar Task</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="text" placeholder="Título da task" value={title} onChange={e => setTitle(e.target.value)}
@@ -204,12 +250,12 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
               <div className="flex gap-1 mt-1">
-                <button type="button" onClick={() => setDueDate(new Date().toISOString().split("T")[0])}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === new Date().toISOString().split("T")[0] ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                <button type="button" onClick={() => setDueDate(todayStr)}
+                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
                   Hoje
                 </button>
-                <button type="button" onClick={() => setDueDate(new Date(Date.now() + 86400000).toISOString().split("T")[0])}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === new Date(Date.now() + 86400000).toISOString().split("T")[0] ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                <button type="button" onClick={() => setDueDate(tomorrowStr)}
+                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
                   Amanhã
                 </button>
               </div>
@@ -264,6 +310,43 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                 )}
               </div>
             )}
+          </div>
+
+          {/* Subtasks section */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Subtasks (opcional)</label>
+            {pendingSubtasks.length > 0 && (
+              <div className="space-y-1 mb-2 ml-2 border-l border-border pl-2">
+                {pendingSubtasks.map((sub, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    <span className="flex-1 truncate">{sub.title}</span>
+                    {sub.due_date && <span className="text-muted-foreground text-[10px]">{sub.due_date}</span>}
+                    <button type="button" onClick={() => handleRemovePendingSubtask(idx)} className="text-muted-foreground hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Título da subtask"
+                value={subtaskTitle}
+                onChange={e => setSubtaskTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingSubtask(); } }}
+                className="flex-1 bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary"
+              />
+              <input
+                type="date"
+                value={subtaskDate}
+                onChange={e => setSubtaskDate(e.target.value)}
+                className="bg-background border border-border rounded px-1 py-1.5 text-[10px] outline-none focus:border-primary w-[110px]"
+              />
+              <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingSubtask} disabled={!subtaskTitle.trim()} className="h-7 px-2">
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
 
           {/* Space selector with inline creation */}

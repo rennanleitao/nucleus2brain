@@ -81,7 +81,24 @@ function PriorityDots({ priority, onClick }: { priority: TaskPriority; onClick?:
   );
 }
 
+function getBrtToday() {
+  const now = new Date();
+  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  return brt.toISOString().split("T")[0];
+}
+
+function getBrtTomorrow() {
+  const now = new Date();
+  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  brt.setDate(brt.getDate() + 1);
+  return brt.toISOString().split("T")[0];
+}
+
 function formatDate(dateStr: string) {
+  const todayStr = getBrtToday();
+  const tomorrowStr = getBrtTomorrow();
+  if (dateStr === todayStr) return "Hoje";
+  if (dateStr === tomorrowStr) return "Amanhã";
   const date = new Date(dateStr + "T00:00:00");
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
@@ -92,7 +109,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
   const StatusIcon = statusIcons[task.status];
-  const isOverdue = !!(task.due_date && new Date(task.due_date) < new Date() && !isCompleted);
+  const isOverdue = !!(task.due_date && task.due_date < getBrtToday() && !isCompleted);
   const hasSubtasks = subtasks.length > 0;
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
   const reminderTriggered = !!(reminder && new Date(reminder.reminder_time) <= new Date() && !reminder.sent);

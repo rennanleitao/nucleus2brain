@@ -68,9 +68,13 @@ export default function Tasks() {
 
   const filtered = useMemo(() => {
     let result = tasks;
-    const today = new Date().toISOString().split("T")[0];
-    const in7 = new Date(Date.now() + 6 * 86400000).toISOString().split("T")[0];
-    const in30 = new Date(Date.now() + 29 * 86400000).toISOString().split("T")[0];
+    const now = new Date();
+    const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const today = brt.toISOString().split("T")[0];
+    const brt7 = new Date(brt); brt7.setDate(brt7.getDate() + 6);
+    const in7 = brt7.toISOString().split("T")[0];
+    const brt30 = new Date(brt); brt30.setDate(brt30.getDate() + 29);
+    const in30 = brt30.toISOString().split("T")[0];
 
     if (filter === "all") {
       result = result.filter(t => t.status !== "completed" && t.status !== "cancelled");
