@@ -124,7 +124,29 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
 
   const handleRejectPreview = () => {
     setPreviewOpen(false);
+    setRefinementInput("");
     toast.info("Alteração descartada");
+  };
+
+  const handleRefine = async () => {
+    if (!refinementInput.trim() || !previewOriginal) return;
+    setRefining(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("improve-text", {
+        body: { text: previewOriginal, mode: "meeting", extraInstructions: refinementInput.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data.improved) {
+        setPreviewImproved(data.improved);
+        setRefinementInput("");
+        toast.success("Notas reorganizadas com ajustes");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao refinar");
+    } finally {
+      setRefining(false);
+    }
   };
 
   return (
