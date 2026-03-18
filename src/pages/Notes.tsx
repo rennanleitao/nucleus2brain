@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp,
+  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
@@ -34,7 +35,12 @@ export default function Notes() {
   const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [tasksExpanded, setTasksExpanded] = useState(true);
+  const [autosaveEnabled, setAutosaveEnabled] = useState(() => {
+    const stored = localStorage.getItem("notes-autosave");
+    return stored !== null ? stored === "true" : true;
+  });
   const editorRef = useRef<RichTextEditorHandle>(null);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = async () => {
     try {
@@ -62,6 +68,38 @@ export default function Notes() {
     if (editSpaceId) loadLinkedTasks(editSpaceId);
     else setLinkedTasks([]);
   }, [editSpaceId, loadLinkedTasks]);
+
+  // Autosave: debounce 2s after dirty changes
+  const dirtyRef = useRef(dirty);
+  const selectedNoteRef = useRef(selectedNote);
+  const editTitleRef = useRef(editTitle);
+  const editContentRef = useRef(editContent);
+  const editTagsRef = useRef(editTags);
+  const editSpaceIdRef = useRef(editSpaceId);
+  dirtyRef.current = dirty;
+  selectedNoteRef.current = selectedNote;
+  editTitleRef.current = editTitle;
+  editContentRef.current = editContent;
+  editTagsRef.current = editTags;
+  editSpaceIdRef.current = editSpaceId;
+
+  useEffect(() => {
+    if (!autosaveEnabled || !dirty || !selectedNote) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      if (dirtyRef.current && selectedNoteRef.current && editTitleRef.current.trim()) {
+        handleSave();
+      }
+    }, 2000);
+    return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+  }, [dirty, editTitle, editContent, editTags, editSpaceId, autosaveEnabled, selectedNote]);
+
+  const toggleAutosave = (checked: boolean) => {
+    setAutosaveEnabled(checked);
+    localStorage.setItem("notes-autosave", String(checked));
+    if (checked) toast.success("Autosave ativado");
+    else toast.info("Autosave desativado");
+  };
 
   const [allTags, setAllTags] = useState<string[]>([]);
 
@@ -280,11 +318,19 @@ export default function Notes() {
                     placeholder="Título da nota"
                   />
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 mr-1">
+                      <Save className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">Auto</span>
+                      <Switch checked={autosaveEnabled} onCheckedChange={toggleAutosave} className="h-4 w-8 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-4" />
+                    </div>
                     {dirty && (
                       <Button size="sm" onClick={handleSave} disabled={saving}
                         className="gradient-primary text-primary-foreground border-0 text-xs">
                         {saving ? "..." : "Salvar"}
                       </Button>
+                    )}
+                    {!dirty && autosaveEnabled && selectedNote && (
+                      <span className="text-[10px] text-muted-foreground">Salvo ✓</span>
                     )}
                     <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => handleDelete(selectedNote.id)}>
