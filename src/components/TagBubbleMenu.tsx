@@ -31,6 +31,17 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [allTags, setAllTags] = useState<string[]>([]);
+
+  // Fetch all user tags when tag popover opens
+  useEffect(() => {
+    if (tagOpen) {
+      fetchAllTags().then(tags => {
+        const merged = [...new Set([...existingTags, ...tags])].sort();
+        setAllTags(merged);
+      }).catch(() => setAllTags(existingTags));
+    }
+  }, [tagOpen, existingTags]);
 
   // AI preview state
   const [previewOpen, setPreviewOpen] = useState(false);
