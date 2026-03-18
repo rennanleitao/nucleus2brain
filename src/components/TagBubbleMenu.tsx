@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
 import { Tag, Plus, Sparkles, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness } from "lucide-react";
