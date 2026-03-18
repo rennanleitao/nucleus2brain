@@ -21,19 +21,27 @@ serve(async (req) => {
       formal: `Reescreva o texto a seguir em tom mais formal e profissional. Mantenha o mesmo idioma. Retorne APENAS o texto reescrito, sem explicações ou aspas:\n\n${text}`,
       meeting: `Você é um especialista em organizar notas de reunião. Analise o texto abaixo e reorganize-o em formato estruturado usando o mesmo idioma do texto original. Use formatação Markdown.
 
-A estrutura DEVE conter estas seções:
+A estrutura DEVE conter estas seções, SEPARADAS POR LINHAS HORIZONTAIS (---):
 
 ## Resumo
 Um parágrafo curto resumindo o contexto e os principais pontos discutidos.
 
+---
+
 ## Key Takeaways
 Lista dos pontos mais importantes e decisões tomadas na reunião, como bullet points.
+
+---
 
 ## Ações Possíveis para Validação
 Lista de ações de seguimento identificadas, com responsáveis (se mencionados) e prazos (se mencionados). Cada item como checkbox markdown (- [ ] ação).
 
+---
+
 ## Insights
 (Inclua esta seção APENAS se houver insights relevantes que não são óbvios, como padrões, riscos, oportunidades ou conexões entre temas mencionados. Se não houver insights relevantes, omita esta seção completamente.)
+
+IMPORTANTE: Adicione uma linha em branco após cada título de seção e entre cada bullet point para melhor legibilidade.
 
 ${extraInstructions ? `INSTRUÇÕES ADICIONAIS DO USUÁRIO (aplique estas orientações na organização):\n${extraInstructions}\n\n` : ""}Retorne APENAS o conteúdo reorganizado em Markdown, sem explicações adicionais antes ou depois:\n\n${text}`,
     };
