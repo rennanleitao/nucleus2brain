@@ -312,7 +312,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
       {/* Bubble Menu for tagging selections */}
       {editable && (
-        <TagBubbleMenu editor={editor} noteId={noteId} existingTags={existingTags} />
+        <TagBubbleMenu editor={editor} noteId={noteId} existingTags={existingTags} spaceId={spaceId} onTaskCreated={onTaskCreated} />
       )}
 
       {/* Editor */}
