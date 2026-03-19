@@ -161,7 +161,17 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 <Tag className="h-2.5 w-2.5 mr-0.5" />#{task.tag}
               </Badge>
             )}
-            {task.notes?.title && (
+            {task.notes?.title && task.note_id && (
+              <button
+                onClick={(e) => { e.stopPropagation(); window.location.href = `/notes?note=${task.note_id}`; }}
+                className="text-micro text-primary/70 hover:text-primary flex items-center gap-0.5 hover:underline transition-colors"
+                title="Ir para a nota de origem"
+              >
+                <FileText className="h-3 w-3" />
+                {task.notes.title}
+              </button>
+            )}
+            {task.notes?.title && !task.note_id && (
               <span className="text-micro text-muted-foreground flex items-center gap-0.5">
                 <FileText className="h-3 w-3" />
                 {task.notes.title}
