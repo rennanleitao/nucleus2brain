@@ -392,6 +392,8 @@ export default function Notes() {
                     }}
                     noteId={selectedNote?.id}
                     existingTags={allTags}
+                    spaceId={editSpaceId || null}
+                    onTaskCreated={() => { if (editSpaceId) loadLinkedTasks(editSpaceId); }}
                     placeholder="Comece a escrever... Use #tag para tags, ()Task para criar tasks ao salvar"
                     className="border-0 rounded-none min-h-full"
                   />
