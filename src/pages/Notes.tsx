@@ -68,6 +68,18 @@ export default function Notes() {
 
   useEffect(() => { load(); }, []);
 
+  // Auto-select note from query param
+  useEffect(() => {
+    const noteId = searchParams.get("note");
+    if (noteId && notes.length > 0 && !selectedNote) {
+      const note = notes.find(n => n.id === noteId);
+      if (note) {
+        selectNote(note);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [notes, searchParams]);
+
   useEffect(() => {
     if (editSpaceId) loadLinkedTasks(editSpaceId);
     else setLinkedTasks([]);
