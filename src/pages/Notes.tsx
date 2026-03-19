@@ -19,6 +19,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Notes() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [notes, setNotes] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
