@@ -32,6 +32,8 @@ interface RichTextEditorProps {
   noteId?: string | null;
   existingTags?: string[];
   onTaskItemClick?: (taskTitle: string) => void;
+  spaceId?: string | null;
+  onTaskCreated?: () => void;
 }
 
 export interface RichTextEditorHandle {
