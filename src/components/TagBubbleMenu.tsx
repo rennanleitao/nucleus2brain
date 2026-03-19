@@ -259,6 +259,20 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Divider */}
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        {/* Create Task button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs px-2 hover:bg-accent"
+          onClick={handleCreateTask}
+        >
+          <ListTodo className="h-3 w-3" />
+          Task
+        </Button>
       </BubbleMenu>
 
       {/* AI Preview Dialog */}
