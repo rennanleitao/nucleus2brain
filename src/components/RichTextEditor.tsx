@@ -32,6 +32,8 @@ interface RichTextEditorProps {
   noteId?: string | null;
   existingTags?: string[];
   onTaskItemClick?: (taskTitle: string) => void;
+  spaceId?: string | null;
+  onTaskCreated?: () => void;
 }
 
 export interface RichTextEditorHandle {
@@ -40,7 +42,7 @@ export interface RichTextEditorHandle {
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
-  content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick,
+  content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick, spaceId = null, onTaskCreated,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const [embedPrompt, setEmbedPrompt] = useState<{ embedUrl: string; type: string; originalUrl: string } | null>(null);
@@ -310,7 +312,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
       {/* Bubble Menu for tagging selections */}
       {editable && (
-        <TagBubbleMenu editor={editor} noteId={noteId} existingTags={existingTags} />
+        <TagBubbleMenu editor={editor} noteId={noteId} existingTags={existingTags} spaceId={spaceId} onTaskCreated={onTaskCreated} />
       )}
 
       {/* Editor */}

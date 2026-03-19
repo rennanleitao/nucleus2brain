@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
-import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw } from "lucide-react";
+import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw, ListTodo } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { createTaggedSnippet, fetchAllTags } from "@/lib/api";
+import { createTaggedSnippet, fetchAllTags, createTask } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,6 +19,8 @@ interface TagBubbleMenuProps {
   editor: Editor;
   noteId: string | null;
   existingTags: string[];
+  spaceId?: string | null;
+  onTaskCreated?: () => void;
 }
 
 const AI_MODES = [
@@ -29,7 +31,7 @@ const AI_MODES = [
   { key: "meeting", label: "Organizar Meeting Notes", Icon: ClipboardList },
 ] as const;
 
-export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuProps) {
+export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCreated }: TagBubbleMenuProps) {
   const [tagOpen, setTagOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
@@ -149,6 +151,25 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
     }
   };
 
+  const handleCreateTask = async () => {
+    const { from, to } = editor.state.selection;
+    const selectedText = editor.state.doc.textBetween(from, to, " ").trim();
+    if (!selectedText) return;
+
+    try {
+      await createTask({
+        title: selectedText.length > 80 ? selectedText.slice(0, 80) + "…" : selectedText,
+        description: `Trecho da nota: "${selectedText}"`,
+        space_id: spaceId || null,
+        note_id: noteId || null,
+      } as any);
+      toast.success("Task criada a partir da nota");
+      onTaskCreated?.();
+    } catch (err: any) {
+      toast.error("Erro ao criar task: " + err.message);
+    }
+  };
+
   return (
     <>
       <BubbleMenu
@@ -238,6 +259,20 @@ export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuPro
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Divider */}
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        {/* Create Task button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs px-2 hover:bg-accent"
+          onClick={handleCreateTask}
+        >
+          <ListTodo className="h-3 w-3" />
+          Task
+        </Button>
       </BubbleMenu>
 
       {/* AI Preview Dialog */}

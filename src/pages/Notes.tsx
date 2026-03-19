@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { NoteAIChat } from "@/components/NoteAIChat";
@@ -19,6 +19,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Notes() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [notes, setNotes] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
@@ -66,6 +67,18 @@ export default function Notes() {
   }, []);
 
   useEffect(() => { load(); }, []);
+
+  // Auto-select note from query param
+  useEffect(() => {
+    const noteId = searchParams.get("note");
+    if (noteId && notes.length > 0 && !selectedNote) {
+      const note = notes.find(n => n.id === noteId);
+      if (note) {
+        selectNote(note);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [notes, searchParams]);
 
   useEffect(() => {
     if (editSpaceId) loadLinkedTasks(editSpaceId);
@@ -392,6 +405,8 @@ export default function Notes() {
                     }}
                     noteId={selectedNote?.id}
                     existingTags={allTags}
+                    spaceId={editSpaceId || null}
+                    onTaskCreated={() => { if (editSpaceId) loadLinkedTasks(editSpaceId); }}
                     placeholder="Comece a escrever... Use #tag para tags, ()Task para criar tasks ao salvar"
                     className="border-0 rounded-none min-h-full"
                   />
