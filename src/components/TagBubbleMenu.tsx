@@ -151,6 +151,25 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
     }
   };
 
+  const handleCreateTask = async () => {
+    const { from, to } = editor.state.selection;
+    const selectedText = editor.state.doc.textBetween(from, to, " ").trim();
+    if (!selectedText) return;
+
+    try {
+      await createTask({
+        title: selectedText.length > 80 ? selectedText.slice(0, 80) + "…" : selectedText,
+        description: `Trecho da nota: "${selectedText}"`,
+        space_id: spaceId || null,
+        note_id: noteId || null,
+      } as any);
+      toast.success("Task criada a partir da nota");
+      onTaskCreated?.();
+    } catch (err: any) {
+      toast.error("Erro ao criar task: " + err.message);
+    }
+  };
+
   return (
     <>
       <BubbleMenu
