@@ -31,7 +31,7 @@ const AI_MODES = [
   { key: "meeting", label: "Organizar Meeting Notes", Icon: ClipboardList },
 ] as const;
 
-export function TagBubbleMenu({ editor, noteId, existingTags }: TagBubbleMenuProps) {
+export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCreated }: TagBubbleMenuProps) {
   const [tagOpen, setTagOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
