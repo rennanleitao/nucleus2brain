@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
-import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw } from "lucide-react";
+import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw, ListTodo } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { createTaggedSnippet, fetchAllTags } from "@/lib/api";
+import { createTaggedSnippet, fetchAllTags, createTask } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,6 +19,8 @@ interface TagBubbleMenuProps {
   editor: Editor;
   noteId: string | null;
   existingTags: string[];
+  spaceId?: string | null;
+  onTaskCreated?: () => void;
 }
 
 const AI_MODES = [
