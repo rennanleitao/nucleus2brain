@@ -105,9 +105,12 @@ interface CreateTaskDialogProps {
   trigger?: React.ReactNode;
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
+  defaultTitle?: string;
+  defaultDescription?: string;
+  defaultNoteId?: string | null;
 }
 
-export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange }: CreateTaskDialogProps) {
+export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange, defaultTitle = "", defaultDescription = "", defaultNoteId = null }: CreateTaskDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = externalOpen !== undefined;
   const open = isControlled ? externalOpen : internalOpen;
@@ -116,11 +119,19 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     else setInternalOpen(v);
   };
   const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(defaultTitle);
+  const [description, setDescription] = useState(defaultDescription);
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [spaceId, setSpaceId] = useState<string>(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : ""));
   const [dueDate, setDueDate] = useState("");
+
+  // Sync defaults when they change (e.g. dialog reopened with new selection)
+  useEffect(() => {
+    if (open) {
+      if (defaultTitle) setTitle(defaultTitle);
+      if (defaultDescription) setDescription(defaultDescription);
+    }
+  }, [open, defaultTitle, defaultDescription]);
   const [tag, setTag] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -190,6 +201,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         space_id: spaceId || null,
         due_date: dueDate || null,
         tag: tag || null,
+        note_id: defaultNoteId || null,
       } as any);
 
       // Create pending subtasks

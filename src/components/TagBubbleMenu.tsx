@@ -11,9 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { createTaggedSnippet, fetchAllTags, createTask } from "@/lib/api";
+import { createTaggedSnippet, fetchAllTags } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 
 interface TagBubbleMenuProps {
   editor: Editor;
@@ -151,23 +152,24 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
     }
   };
 
-  const handleCreateTask = async () => {
+  // Task creation dialog state
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskDefaultTitle, setTaskDefaultTitle] = useState("");
+  const [taskDefaultDesc, setTaskDefaultDesc] = useState("");
+  const [spaces, setSpaces] = useState<{ id: string; name: string }[]>([]);
+
+  const handleOpenTaskDialog = async () => {
     const { from, to } = editor.state.selection;
     const selectedText = editor.state.doc.textBetween(from, to, " ").trim();
     if (!selectedText) return;
 
-    try {
-      await createTask({
-        title: selectedText.length > 80 ? selectedText.slice(0, 80) + "…" : selectedText,
-        description: `Trecho da nota: "${selectedText}"`,
-        space_id: spaceId || null,
-        note_id: noteId || null,
-      } as any);
-      toast.success("Task criada a partir da nota");
-      onTaskCreated?.();
-    } catch (err: any) {
-      toast.error("Erro ao criar task: " + err.message);
-    }
+    setTaskDefaultTitle(selectedText.length > 80 ? selectedText.slice(0, 80) + "…" : selectedText);
+    setTaskDefaultDesc(`Trecho da nota: "${selectedText}"`);
+
+    // Fetch spaces for the dialog
+    const { data } = await supabase.from("spaces").select("id, name").order("name");
+    setSpaces(data || []);
+    setTaskDialogOpen(true);
   };
 
   return (
@@ -268,7 +270,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
           variant="ghost"
           size="sm"
           className="h-7 gap-1.5 text-xs px-2 hover:bg-accent"
-          onClick={handleCreateTask}
+          onClick={handleOpenTaskDialog}
         >
           <ListTodo className="h-3 w-3" />
           Task
@@ -348,6 +350,22 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Task Dialog */}
+      <CreateTaskDialog
+        spaces={spaces}
+        onCreated={() => {
+          setTaskDialogOpen(false);
+          onTaskCreated?.();
+        }}
+        defaultSpaceId={spaceId || undefined}
+        externalOpen={taskDialogOpen}
+        onExternalOpenChange={setTaskDialogOpen}
+        trigger={null}
+        defaultTitle={taskDefaultTitle}
+        defaultDescription={taskDefaultDesc}
+        defaultNoteId={noteId}
+      />
     </>
   );
 }
