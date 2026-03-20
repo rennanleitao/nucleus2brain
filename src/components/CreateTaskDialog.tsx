@@ -201,6 +201,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         space_id: spaceId || null,
         due_date: dueDate || null,
         tag: tag || null,
+        note_id: defaultNoteId || null,
       } as any);
 
       // Create pending subtasks
