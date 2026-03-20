@@ -350,6 +350,22 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Task Dialog */}
+      <CreateTaskDialog
+        spaces={spaces}
+        onCreated={() => {
+          setTaskDialogOpen(false);
+          onTaskCreated?.();
+        }}
+        defaultSpaceId={spaceId || undefined}
+        externalOpen={taskDialogOpen}
+        onExternalOpenChange={setTaskDialogOpen}
+        trigger={null}
+        defaultTitle={taskDefaultTitle}
+        defaultDescription={taskDefaultDesc}
+        defaultNoteId={noteId}
+      />
     </>
   );
 }
