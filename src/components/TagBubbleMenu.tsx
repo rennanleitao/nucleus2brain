@@ -152,23 +152,24 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
     }
   };
 
-  const handleCreateTask = async () => {
+  // Task creation dialog state
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskDefaultTitle, setTaskDefaultTitle] = useState("");
+  const [taskDefaultDesc, setTaskDefaultDesc] = useState("");
+  const [spaces, setSpaces] = useState<{ id: string; name: string }[]>([]);
+
+  const handleOpenTaskDialog = async () => {
     const { from, to } = editor.state.selection;
     const selectedText = editor.state.doc.textBetween(from, to, " ").trim();
     if (!selectedText) return;
 
-    try {
-      await createTask({
-        title: selectedText.length > 80 ? selectedText.slice(0, 80) + "…" : selectedText,
-        description: `Trecho da nota: "${selectedText}"`,
-        space_id: spaceId || null,
-        note_id: noteId || null,
-      } as any);
-      toast.success("Task criada a partir da nota");
-      onTaskCreated?.();
-    } catch (err: any) {
-      toast.error("Erro ao criar task: " + err.message);
-    }
+    setTaskDefaultTitle(selectedText.length > 80 ? selectedText.slice(0, 80) + "…" : selectedText);
+    setTaskDefaultDesc(`Trecho da nota: "${selectedText}"`);
+
+    // Fetch spaces for the dialog
+    const { data } = await supabase.from("spaces").select("id, name").order("name");
+    setSpaces(data || []);
+    setTaskDialogOpen(true);
   };
 
   return (
