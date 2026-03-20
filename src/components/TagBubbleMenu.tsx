@@ -270,7 +270,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
           variant="ghost"
           size="sm"
           className="h-7 gap-1.5 text-xs px-2 hover:bg-accent"
-          onClick={handleCreateTask}
+          onClick={handleOpenTaskDialog}
         >
           <ListTodo className="h-3 w-3" />
           Task
