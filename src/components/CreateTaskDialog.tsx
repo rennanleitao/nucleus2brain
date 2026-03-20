@@ -105,6 +105,9 @@ interface CreateTaskDialogProps {
   trigger?: React.ReactNode;
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
+  defaultTitle?: string;
+  defaultDescription?: string;
+  defaultNoteId?: string | null;
 }
 
 export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange }: CreateTaskDialogProps) {
