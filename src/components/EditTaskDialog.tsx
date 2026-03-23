@@ -191,6 +191,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         space_id: spaceId || null,
         completed_at: status === "completed" ? new Date().toISOString() : null,
         tag: tag || null,
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
       } as any);
 
       // Handle reminder
