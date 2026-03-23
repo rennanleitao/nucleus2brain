@@ -372,6 +372,13 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             </div>
           </div>
 
+          {/* Estimated time */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
+            <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+
           {/* Reminder */}
           <div className="border border-border rounded-lg p-3 space-y-2">
             <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
