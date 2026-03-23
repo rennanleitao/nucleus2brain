@@ -81,6 +81,7 @@ interface EditTaskDialogProps {
     due_date?: string | null;
     space_id?: string | null;
     tag?: string | null;
+    estimated_minutes?: number | null;
   };
   spaces: { id: string; name: string }[];
   open: boolean;
