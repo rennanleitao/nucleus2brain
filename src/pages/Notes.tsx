@@ -5,6 +5,8 @@ import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEdito
 import { NoteAIChat } from "@/components/NoteAIChat";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
+import { TextSelectionToolbar } from "@/components/TextSelectionToolbar";
+import { useTextSelection } from "@/hooks/useTextSelection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
