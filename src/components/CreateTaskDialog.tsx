@@ -216,7 +216,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       }
 
       toast.success("Task criada!");
-      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput("");
+      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
       setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
       setOpen(false);
       onCreated();

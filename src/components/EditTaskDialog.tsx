@@ -104,6 +104,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
   const [existingReminder, setExistingReminder] = useState<any>(null);
+  const [estimatedMinutes, setEstimatedMinutes] = useState(task.estimated_minutes?.toString() || "");
 
   // Subtasks state
   const [subtasks, setSubtasks] = useState<any[]>([]);
