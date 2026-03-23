@@ -207,6 +207,13 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 {completedSubtasks}/{subtasks.length} subtasks
               </span>
             )}
+            {task.estimated_minutes && (
+              <span className="text-micro text-muted-foreground flex items-center gap-0.5">
+                <Timer className="h-2.5 w-2.5" />
+                {task.estimated_minutes}m est.
+              </span>
+            )}
+            {!isCompleted && <TaskTimer taskId={task.id} />}
           </div>
         </div>
 
