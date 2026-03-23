@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useMemo, createRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { NoteAIChat } from "@/components/NoteAIChat";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
-import { TextSelectionToolbar } from "@/components/TextSelectionToolbar";
-import { useTextSelection } from "@/hooks/useTextSelection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
