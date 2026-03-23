@@ -60,6 +60,7 @@ function AppRoutes() {
         <Route path="/tags" element={<Tags />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/pomodoro" element={<Pomodoro />} />
+        <Route path="/time-tracking" element={<TimeTracking />} />
         <Route path="/assistant" element={<Assistant />} />
             <Route path="/import" element={<ImportPage />} />
             
