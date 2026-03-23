@@ -22,6 +22,7 @@ import SpaceDetail from "./pages/SpaceDetail";
 import AcceptInvite from "./pages/AcceptInvite";
 import Pomodoro from "./pages/Pomodoro";
 import SharedNote from "./pages/SharedNote";
+import TimeTracking from "./pages/TimeTracking";
 import NotFound from "./pages/NotFound";
 
 
