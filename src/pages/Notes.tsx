@@ -44,9 +44,7 @@ export default function Notes() {
     return stored !== null ? stored === "true" : true;
   });
   const editorRef = useRef<RichTextEditorHandle>(null);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const textSelection = useTextSelection(editorContainerRef);
 
   const load = async () => {
     try {
