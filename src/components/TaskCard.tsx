@@ -27,6 +27,7 @@ interface TaskCardProps {
     notes?: { title: string } | null;
     note_id?: string | null;
     tag?: string | null;
+    estimated_minutes?: number | null;
   };
   subtasks?: Subtask[];
   reminder?: { reminder_time: string; sent: boolean } | null;
