@@ -141,6 +141,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [pendingSubtasks, setPendingSubtasks] = useState<{ title: string; due_date?: string }[]>([]);
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskDate, setSubtaskDate] = useState("");
+  const [estimatedMinutes, setEstimatedMinutes] = useState("");
 
   useEffect(() => {
     if (open) {
