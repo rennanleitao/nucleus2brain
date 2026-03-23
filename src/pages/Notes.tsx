@@ -397,7 +397,7 @@ export default function Notes() {
               </div>
 
               <div className="flex-1 overflow-auto flex flex-col">
-                <div className="flex-1">
+                <div className="flex-1" ref={editorContainerRef}>
                   <RichTextEditor
                     ref={editorRef}
                     content={editContent}
@@ -413,6 +413,15 @@ export default function Notes() {
                     onTaskCreated={() => { if (editSpaceId) loadLinkedTasks(editSpaceId); }}
                     placeholder="Comece a escrever... Use #tag para tags, ()Task para criar tasks ao salvar"
                     className="border-0 rounded-none min-h-full"
+                  />
+                  <TextSelectionToolbar
+                    selectedText={textSelection.selectedText}
+                    selectionRect={textSelection.selectionRect}
+                    isVisible={textSelection.isVisible}
+                    onClose={textSelection.clearSelection}
+                    noteId={selectedNote?.id}
+                    spaceId={editSpaceId || null}
+                    onTaskCreated={() => { if (editSpaceId) loadLinkedTasks(editSpaceId); }}
                   />
                 </div>
 
