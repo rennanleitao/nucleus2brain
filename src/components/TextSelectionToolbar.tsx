@@ -2,9 +2,8 @@ import { useRef, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createTask } from "@/lib/api";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
-import { toast } from "sonner";
+import { fetchSpaces } from "@/lib/api";
 
 interface TextSelectionToolbarProps {
   selectedText: string;
@@ -26,12 +25,18 @@ export function TextSelectionToolbar({
   onTaskCreated,
 }: TextSelectionToolbarProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [spaces, setSpaces] = useState<{ id: string; name: string }[]>([]);
   const toolbarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showCreateDialog && spaces.length === 0) {
+      fetchSpaces().then(setSpaces).catch(() => {});
+    }
+  }, [showCreateDialog, spaces.length]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
-        // Don't close if the create dialog is open
         if (!showCreateDialog) onClose();
       }
     };
@@ -42,9 +47,6 @@ export function TextSelectionToolbar({
   }, [isVisible, onClose, showCreateDialog]);
 
   if (!isVisible || !selectionRect || !selectedText) return null;
-
-  const top = selectionRect.top - 40 + window.scrollY;
-  const left = selectionRect.left + selectionRect.width / 2;
 
   return (
     <>
@@ -75,19 +77,22 @@ export function TextSelectionToolbar({
         document.body
       )}
 
-      {showCreateDialog && (
-        <CreateTaskDialog
-          open={showCreateDialog}
-          onOpenChange={(open) => {
-            setShowCreateDialog(open);
-            if (!open) onClose();
-          }}
-          defaultTitle={selectedText.slice(0, 100)}
-          defaultDescription={`Origem: trecho da nota\n\n"${selectedText}"`}
-          defaultNoteId={noteId}
-          defaultSpaceId={spaceId || undefined}
-        />
-      )}
+      <CreateTaskDialog
+        spaces={spaces}
+        onCreated={() => {
+          onTaskCreated?.();
+          onClose();
+        }}
+        externalOpen={showCreateDialog}
+        onExternalOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) onClose();
+        }}
+        defaultTitle={selectedText.slice(0, 100)}
+        defaultDescription={`Origem: trecho da nota\n\n"${selectedText}"`}
+        defaultNoteId={noteId}
+        defaultSpaceId={spaceId || undefined}
+      />
     </>
   );
 }
