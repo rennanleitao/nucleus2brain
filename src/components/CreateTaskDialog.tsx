@@ -361,6 +361,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
           </div>
 
+          {/* Estimated time */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
+            <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+
           {/* Space selector with inline creation */}
           <SpaceCombobox
             spaces={spaces}
