@@ -141,6 +141,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [pendingSubtasks, setPendingSubtasks] = useState<{ title: string; due_date?: string }[]>([]);
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskDate, setSubtaskDate] = useState("");
+  const [estimatedMinutes, setEstimatedMinutes] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -202,6 +203,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         due_date: dueDate || null,
         tag: tag || null,
         note_id: defaultNoteId || null,
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
       } as any);
 
       // Create pending subtasks
@@ -214,7 +216,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       }
 
       toast.success("Task criada!");
-      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput("");
+      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
       setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
       setOpen(false);
       onCreated();
@@ -359,6 +361,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                 <Plus className="h-3 w-3" />
               </Button>
             </div>
+          </div>
+
+          {/* Estimated time */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
+            <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
 
           {/* Space selector with inline creation */}

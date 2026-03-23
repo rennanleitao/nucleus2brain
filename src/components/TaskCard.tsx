@@ -1,5 +1,6 @@
 import { forwardRef, useState } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, Plus, X, FileText, Tag, Bell } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, Plus, X, FileText, Tag, Bell, Timer } from "lucide-react";
+import { TaskTimer } from "@/components/TaskTimer";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ interface TaskCardProps {
     notes?: { title: string } | null;
     note_id?: string | null;
     tag?: string | null;
+    estimated_minutes?: number | null;
   };
   subtasks?: Subtask[];
   reminder?: { reminder_time: string; sent: boolean } | null;
@@ -205,6 +207,13 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 {completedSubtasks}/{subtasks.length} subtasks
               </span>
             )}
+            {task.estimated_minutes && (
+              <span className="text-micro text-muted-foreground flex items-center gap-0.5">
+                <Timer className="h-2.5 w-2.5" />
+                {task.estimated_minutes}m est.
+              </span>
+            )}
+            {!isCompleted && <TaskTimer taskId={task.id} />}
           </div>
         </div>
 

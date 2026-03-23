@@ -81,6 +81,7 @@ interface EditTaskDialogProps {
     due_date?: string | null;
     space_id?: string | null;
     tag?: string | null;
+    estimated_minutes?: number | null;
   };
   spaces: { id: string; name: string }[];
   open: boolean;
@@ -103,6 +104,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
   const [existingReminder, setExistingReminder] = useState<any>(null);
+  const [estimatedMinutes, setEstimatedMinutes] = useState(task.estimated_minutes?.toString() || "");
 
   // Subtasks state
   const [subtasks, setSubtasks] = useState<any[]>([]);
@@ -189,6 +191,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         space_id: spaceId || null,
         completed_at: status === "completed" ? new Date().toISOString() : null,
         tag: tag || null,
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
       } as any);
 
       // Handle reminder
@@ -367,6 +370,13 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
                 <Plus className="h-3 w-3" />
               </Button>
             </div>
+          </div>
+
+          {/* Estimated time */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
+            <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
 
           {/* Reminder */}

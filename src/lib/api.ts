@@ -358,3 +358,64 @@ export async function deleteTag(tag: string) {
     .eq("tag", tag)
     .eq("user_id", user.id);
 }
+
+// ---- TIME TRACKING ----
+export async function fetchTimeEntries(taskId?: string) {
+  let query = supabase.from("task_time_entries").select("*").order("started_at", { ascending: false });
+  if (taskId) query = query.eq("task_id", taskId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchAllTimeEntries() {
+  const { data, error } = await supabase
+    .from("task_time_entries")
+    .select("*, tasks(title, space_id, spaces(name))")
+    .order("started_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function startTimeEntry(taskId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  // Stop any running entry for this task first
+  const { data: running } = await supabase
+    .from("task_time_entries")
+    .select("*")
+    .eq("task_id", taskId)
+    .eq("user_id", user.id)
+    .is("ended_at", null);
+  if (running && running.length > 0) return running[0];
+  const { data, error } = await supabase
+    .from("task_time_entries")
+    .insert({ task_id: taskId, user_id: user.id, started_at: new Date().toISOString() })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function stopTimeEntry(entryId: string) {
+  const now = new Date();
+  const { data: entry } = await supabase.from("task_time_entries").select("started_at").eq("id", entryId).single();
+  const duration = entry ? Math.round((now.getTime() - new Date(entry.started_at).getTime()) / 1000) : 0;
+  const { data, error } = await supabase
+    .from("task_time_entries")
+    .update({ ended_at: now.toISOString(), duration_seconds: duration })
+    .eq("id", entryId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchRunningTimeEntries() {
+  const { data, error } = await supabase
+    .from("task_time_entries")
+    .select("*")
+    .is("ended_at", null);
+  if (error) throw error;
+  return data;
+}

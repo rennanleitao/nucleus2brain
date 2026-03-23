@@ -22,6 +22,7 @@ import SpaceDetail from "./pages/SpaceDetail";
 import AcceptInvite from "./pages/AcceptInvite";
 import Pomodoro from "./pages/Pomodoro";
 import SharedNote from "./pages/SharedNote";
+import TimeTracking from "./pages/TimeTracking";
 import NotFound from "./pages/NotFound";
 
 
@@ -59,6 +60,7 @@ function AppRoutes() {
         <Route path="/tags" element={<Tags />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/pomodoro" element={<Pomodoro />} />
+        <Route path="/time-tracking" element={<TimeTracking />} />
         <Route path="/assistant" element={<Assistant />} />
             <Route path="/import" element={<ImportPage />} />
             
