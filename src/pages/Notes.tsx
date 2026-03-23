@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useMemo, createRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { NoteAIChat } from "@/components/NoteAIChat";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
-import { TextSelectionToolbar } from "@/components/TextSelectionToolbar";
-import { useTextSelection } from "@/hooks/useTextSelection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -46,9 +44,7 @@ export default function Notes() {
     return stored !== null ? stored === "true" : true;
   });
   const editorRef = useRef<RichTextEditorHandle>(null);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const textSelection = useTextSelection(editorContainerRef);
 
   const load = async () => {
     try {
@@ -397,7 +393,7 @@ export default function Notes() {
               </div>
 
               <div className="flex-1 overflow-auto flex flex-col">
-                <div className="flex-1" ref={editorContainerRef}>
+                <div className="flex-1">
                   <RichTextEditor
                     ref={editorRef}
                     content={editContent}
@@ -413,15 +409,6 @@ export default function Notes() {
                     onTaskCreated={() => { if (editSpaceId) loadLinkedTasks(editSpaceId); }}
                     placeholder="Comece a escrever... Use #tag para tags, ()Task para criar tasks ao salvar"
                     className="border-0 rounded-none min-h-full"
-                  />
-                  <TextSelectionToolbar
-                    selectedText={textSelection.selectedText}
-                    selectionRect={textSelection.selectionRect}
-                    isVisible={textSelection.isVisible}
-                    onClose={textSelection.clearSelection}
-                    noteId={selectedNote?.id}
-                    spaceId={editSpaceId || null}
-                    onTaskCreated={() => { if (editSpaceId) loadLinkedTasks(editSpaceId); }}
                   />
                 </div>
 
