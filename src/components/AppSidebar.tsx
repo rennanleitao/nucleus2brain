@@ -14,6 +14,7 @@ import {
   Sun,
   Moon,
   Timer,
+  Clock,
   Play,
   Pause,
 } from "lucide-react";
