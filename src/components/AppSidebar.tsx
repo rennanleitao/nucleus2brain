@@ -43,6 +43,7 @@ const navItems = [
   { title: "Tags", url: "/tags", icon: Tag },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Pomodoro", url: "/pomodoro", icon: Timer },
+  { title: "Time Tracking", url: "/time-tracking", icon: Clock },
   { title: "Assistant", url: "/assistant", icon: Bot },
   
 ];
