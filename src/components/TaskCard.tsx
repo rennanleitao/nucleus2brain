@@ -213,10 +213,10 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 {task.estimated_minutes}m est.
               </span>
             )}
-            {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} />}
           </div>
         </div>
 
+        {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
         <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
 
         {onDelete && (
