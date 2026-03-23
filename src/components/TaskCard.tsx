@@ -152,7 +152,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
             {task.title}
           </p>
           {descriptionPreview && (
-            <p className="text-micro text-muted-foreground mt-0.5 line-clamp-1">{descriptionPreview}</p>
+            <p className="text-micro text-muted-foreground mt-0.5 line-clamp-2">{descriptionPreview}</p>
           )}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {!hideSpace && task.spaces?.name && (
