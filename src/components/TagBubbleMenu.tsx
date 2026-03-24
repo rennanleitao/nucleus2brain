@@ -176,7 +176,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
     <>
       <BubbleMenu
         editor={editor}
-        options={{ duration: 150, placement: "top" } as any}
+        tippyOptions={{ duration: 150, placement: "top" }}
         className="flex items-center gap-0.5 bg-popover border border-border rounded-lg shadow-elevated px-1 py-0.5"
       >
         {/* Tag button */}

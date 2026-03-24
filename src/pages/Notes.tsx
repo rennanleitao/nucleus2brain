@@ -39,10 +39,7 @@ export default function Notes() {
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
-  const [autosaveEnabled, setAutosaveEnabled] = useState(() => {
-    const stored = localStorage.getItem("notes-autosave");
-    return stored !== null ? stored === "true" : true;
-  });
+  const autosaveEnabled = true;
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
