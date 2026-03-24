@@ -107,12 +107,7 @@ export default function Notes() {
     return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
   }, [dirty, editTitle, editContent, editTags, editSpaceId, autosaveEnabled, selectedNote]);
 
-  const toggleAutosave = (checked: boolean) => {
-    setAutosaveEnabled(checked);
-    localStorage.setItem("notes-autosave", String(checked));
-    if (checked) toast.success("Autosave ativado");
-    else toast.info("Autosave desativado");
-  };
+  // Autosave is always enabled - no toggle needed
 
   const [allTags, setAllTags] = useState<string[]>([]);
 
