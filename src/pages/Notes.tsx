@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
@@ -39,10 +39,7 @@ export default function Notes() {
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
-  const [autosaveEnabled, setAutosaveEnabled] = useState(() => {
-    const stored = localStorage.getItem("notes-autosave");
-    return stored !== null ? stored === "true" : true;
-  });
+  const autosaveEnabled = true;
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -110,12 +107,7 @@ export default function Notes() {
     return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
   }, [dirty, editTitle, editContent, editTags, editSpaceId, autosaveEnabled, selectedNote]);
 
-  const toggleAutosave = (checked: boolean) => {
-    setAutosaveEnabled(checked);
-    localStorage.setItem("notes-autosave", String(checked));
-    if (checked) toast.success("Autosave ativado");
-    else toast.info("Autosave desativado");
-  };
+  // Autosave is always enabled - no toggle needed
 
   const [allTags, setAllTags] = useState<string[]>([]);
 
@@ -336,8 +328,7 @@ export default function Notes() {
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <div className="flex items-center gap-1.5 mr-1">
                       <Save className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">Auto</span>
-                      <Switch checked={autosaveEnabled} onCheckedChange={toggleAutosave} className="h-4 w-8 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-4" />
+                      <span className="text-[10px] text-muted-foreground">Autosave ✓</span>
                     </div>
                     {dirty && (
                       <Button size="sm" onClick={handleSave} disabled={saving}
