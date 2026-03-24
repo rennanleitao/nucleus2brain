@@ -328,8 +328,7 @@ export default function Notes() {
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <div className="flex items-center gap-1.5 mr-1">
                       <Save className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">Auto</span>
-                      <Switch checked={autosaveEnabled} onCheckedChange={toggleAutosave} className="h-4 w-8 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-4" />
+                      <span className="text-[10px] text-muted-foreground">Autosave ✓</span>
                     </div>
                     {dirty && (
                       <Button size="sm" onClick={handleSave} disabled={saving}
