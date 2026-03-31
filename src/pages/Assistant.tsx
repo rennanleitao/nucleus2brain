@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { fetchTasks, fetchSpaces, createTask } from "@/lib/api";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -48,6 +49,23 @@ export default function Assistant() {
         spaces: spaces.map((s: any) => ({ id: s.id, name: s.name })),
         today: new Date().toISOString().split("T")[0],
       };
+
+      // Add calendar context
+      try {
+        const now = new Date();
+        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const { data: calEvents } = await supabase.functions.invoke("google-calendar-api", {
+          body: { action: "list_events", time_min: now.toISOString(), time_max: nextWeek.toISOString() },
+        });
+        if (calEvents?.events) {
+          context.calendar_events = calEvents.events.slice(0, 15).map((e: any) => ({
+            summary: e.summary, start: e.start?.dateTime || e.start?.date, end: e.end?.dateTime || e.end?.date,
+          }));
+          context.calendar_connected = true;
+        }
+      } catch {
+        context.calendar_connected = false;
+      }
     } catch {}
 
     let assistantContent = "";
@@ -110,8 +128,8 @@ export default function Assistant() {
       }
 
       // Parse actions from response
-      const actionMatch = assistantContent.match(/```action\s*\n?([\s\S]*?)```/);
-      if (actionMatch) {
+      const actionMatches = assistantContent.matchAll(/```action\s*\n?([\s\S]*?)```/g);
+      for (const actionMatch of actionMatches) {
         try {
           const action = JSON.parse(actionMatch[1]);
           if (action.action === "create_task") {
@@ -121,7 +139,25 @@ export default function Assistant() {
               due_date: action.due_date || null,
               description: action.description || null,
             });
-            toast.success(`Task created: ${action.title}`);
+            toast.success(`Task criada: ${action.title}`);
+          } else if (action.action === "create_calendar_event") {
+            const startDateTime = `${action.date}T${action.start_time}:00`;
+            const endDateTime = `${action.date}T${action.end_time}:00`;
+            const { data, error } = await supabase.functions.invoke("google-calendar-api", {
+              body: {
+                action: "create_event",
+                summary: action.summary,
+                start_time: startDateTime,
+                end_time: endDateTime,
+                description: action.description || "",
+                location: action.location || "",
+              },
+            });
+            if (error) {
+              toast.error("Erro ao criar evento no calendário");
+            } else {
+              toast.success(`Evento agendado: ${action.summary}`);
+            }
           }
         } catch {}
       }
