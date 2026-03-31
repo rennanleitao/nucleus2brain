@@ -128,8 +128,8 @@ export default function Assistant() {
       }
 
       // Parse actions from response
-      const actionMatch = assistantContent.match(/```action\s*\n?([\s\S]*?)```/);
-      if (actionMatch) {
+      const actionMatches = assistantContent.matchAll(/```action\s*\n?([\s\S]*?)```/g);
+      for (const actionMatch of actionMatches) {
         try {
           const action = JSON.parse(actionMatch[1]);
           if (action.action === "create_task") {
@@ -139,7 +139,25 @@ export default function Assistant() {
               due_date: action.due_date || null,
               description: action.description || null,
             });
-            toast.success(`Task created: ${action.title}`);
+            toast.success(`Task criada: ${action.title}`);
+          } else if (action.action === "create_calendar_event") {
+            const startDateTime = `${action.date}T${action.start_time}:00`;
+            const endDateTime = `${action.date}T${action.end_time}:00`;
+            const { data, error } = await supabase.functions.invoke("google-calendar-api", {
+              body: {
+                action: "create_event",
+                summary: action.summary,
+                start_time: startDateTime,
+                end_time: endDateTime,
+                description: action.description || "",
+                location: action.location || "",
+              },
+            });
+            if (error) {
+              toast.error("Erro ao criar evento no calendário");
+            } else {
+              toast.success(`Evento agendado: ${action.summary}`);
+            }
           }
         } catch {}
       }
