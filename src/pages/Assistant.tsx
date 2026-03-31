@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { fetchTasks, fetchSpaces, createTask } from "@/lib/api";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
