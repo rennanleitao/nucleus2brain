@@ -49,6 +49,23 @@ export default function Assistant() {
         spaces: spaces.map((s: any) => ({ id: s.id, name: s.name })),
         today: new Date().toISOString().split("T")[0],
       };
+
+      // Add calendar context
+      try {
+        const now = new Date();
+        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const { data: calEvents } = await supabase.functions.invoke("google-calendar-api", {
+          body: { action: "list_events", time_min: now.toISOString(), time_max: nextWeek.toISOString() },
+        });
+        if (calEvents?.events) {
+          context.calendar_events = calEvents.events.slice(0, 15).map((e: any) => ({
+            summary: e.summary, start: e.start?.dateTime || e.start?.date, end: e.end?.dateTime || e.end?.date,
+          }));
+          context.calendar_connected = true;
+        }
+      } catch {
+        context.calendar_connected = false;
+      }
     } catch {}
 
     let assistantContent = "";
