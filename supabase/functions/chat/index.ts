@@ -56,6 +56,9 @@ ${context ? JSON.stringify(context) : "No context provided yet."}
 You can suggest actions by responding with structured JSON blocks wrapped in \`\`\`action markers. Available actions:
 - create_task: {"action":"create_task","title":"...","priority":"low|medium|high","due_date":"YYYY-MM-DD","description":"..."}
 - complete_task: {"action":"complete_task","task_id":"..."}
+- create_calendar_event: {"action":"create_calendar_event","summary":"Meeting title","date":"YYYY-MM-DD","start_time":"HH:MM","end_time":"HH:MM","description":"Optional description","location":"Optional location"}
+
+When the user asks you to schedule a meeting, event, or appointment, use create_calendar_event. Use the date and time from the user's request. If they don't specify an end time, default to 1 hour after the start time. If they say "tomorrow", "next Monday", etc., calculate the actual date based on today's date from the context.
 
 When the user asks you to create tasks, schedule things, or manage their work, respond conversationally AND include the action block.
 
