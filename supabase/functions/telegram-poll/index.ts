@@ -10,6 +10,7 @@ serve(async () => {
 
   const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
   if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not configured");
+  console.log("BOT_TOKEN length:", BOT_TOKEN.length, "starts with:", BOT_TOKEN.substring(0, 12));
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
