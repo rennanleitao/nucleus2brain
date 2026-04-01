@@ -49,7 +49,7 @@ export function SharedNoteEditor({ content, onChange, editable = false }: Shared
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       isUpdatingRef.current = true;
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content, { emitUpdate: false });
       isUpdatingRef.current = false;
     }
   }, [content, editor]);
