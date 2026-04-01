@@ -155,8 +155,8 @@ export default function SpaceDetail() {
     } catch (err: any) { toast.error(err.message); }
   };
 
-  const handleSaveNote = async () => {
-    if (!selectedNote || !editNoteTitle.trim()) return;
+  const handleSaveNote = useCallback(async () => {
+    if (!selectedNote || !editNoteTitle.trim() || noteSaving) return;
     setNoteSaving(true);
     try {
       await updateNote(selectedNote.id, {
@@ -168,7 +168,15 @@ export default function SpaceDetail() {
       load();
     } catch (err: any) { toast.error(err.message); }
     finally { setNoteSaving(false); }
-  };
+  }, [selectedNote, editNoteTitle, editNoteContent, editNoteTags, noteSaving]);
+
+  // Autosave with debounce
+  useEffect(() => {
+    if (!noteDirty || !selectedNote) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => handleSaveNote(), 3000);
+    return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+  }, [editNoteContent, editNoteTitle, editNoteTags, noteDirty]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
