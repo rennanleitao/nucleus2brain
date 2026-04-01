@@ -91,6 +91,13 @@ export default function SettingsPage() {
   const [waSecret, setWaSecret] = useState("");
   const [waSaving, setWaSaving] = useState(false);
 
+  // Telegram state
+  const [tgLinked, setTgLinked] = useState(false);
+  const [tgUsername, setTgUsername] = useState("");
+  const [tgLinkCode, setTgLinkCode] = useState("");
+  const [tgEnabled, setTgEnabled] = useState(false);
+  const [tgLinking, setTgLinking] = useState(false);
+
   // Import state
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; errors: number } | null>(null);
