@@ -279,27 +279,39 @@ export default function SpaceDetail() {
         {/* NOTES TAB */}
         <TabsContent value="notes" className="space-y-3">
           {selectedNote ? (
-            /* Inline rich editor */
+            /* Inline rich editor - identical to Notes page */
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <Button variant="ghost" size="sm" onClick={() => { if (noteDirty) handleSaveNote(); setSelectedNote(null); }}>
                   <ArrowLeftIcon className="h-4 w-4 mr-1" /> Voltar
                 </Button>
-                {noteDirty && (
-                  <Button size="sm" onClick={handleSaveNote} disabled={noteSaving}
-                    className="gradient-primary text-primary-foreground border-0 text-xs">
-                    {noteSaving ? "Salvando..." : "Salvar"}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 mr-1">
+                    <Save className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">Autosave ✓</span>
+                  </div>
+                  {noteDirty && (
+                    <Button size="sm" onClick={handleSaveNote} disabled={noteSaving}
+                      className="gradient-primary text-primary-foreground border-0 text-xs">
+                      {noteSaving ? "..." : "Salvar"}
+                    </Button>
+                  )}
+                  {!noteDirty && selectedNote && (
+                    <span className="text-[10px] text-muted-foreground">Salvo ✓</span>
+                  )}
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary"
+                    onClick={() => setShareNoteOpen(true)}>
+                    <Share2 className="h-4 w-4" />
                   </Button>
-                )}
-                <div className="flex-1" />
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => { handleDeleteNote(selectedNote.id); setSelectedNote(null); }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => { handleDeleteNote(selectedNote.id); setSelectedNote(null); }}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <input type="text" value={editNoteTitle}
                 onChange={e => { setEditNoteTitle(e.target.value); setNoteDirty(true); }}
-                className="w-full text-xl font-bold bg-transparent outline-none placeholder:text-muted-foreground"
+                className="w-full text-h1 bg-transparent outline-none placeholder:text-muted-foreground"
                 placeholder="Título da nota" />
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Tag className="h-3 w-3 text-muted-foreground" />
@@ -326,8 +338,21 @@ export default function SpaceDetail() {
                 }}
                 noteId={selectedNote?.id}
                 existingTags={[...new Set(notes.flatMap((n: any) => n.tags || []))]}
+                spaceId={id || null}
                 placeholder="Comece a escrever... Use #tag para tags, ()Task para criar tasks ao salvar"
               />
+
+              {/* AI Chat */}
+              <NoteAIChat noteContent={editNoteContent} noteTitle={editNoteTitle} />
+
+              {selectedNote && (
+                <ShareNoteDialog
+                  noteId={selectedNote.id}
+                  noteTitle={editNoteTitle}
+                  open={shareNoteOpen}
+                  onOpenChange={setShareNoteOpen}
+                />
+              )}
             </div>
           ) : (
             /* Note list */
