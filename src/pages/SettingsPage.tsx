@@ -278,8 +278,9 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="ai" className="space-y-4">
-        <TabsList className="bg-muted">
+        <TabsList className="bg-muted flex-wrap">
           <TabsTrigger value="ai" className="text-xs"><Bot className="h-3 w-3 mr-1" /> Assistant</TabsTrigger>
+          <TabsTrigger value="telegram" className="text-xs"><Send className="h-3 w-3 mr-1" /> Telegram</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs"><MessageSquare className="h-3 w-3 mr-1" /> WhatsApp</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs"><Bell className="h-3 w-3 mr-1" /> Lembretes</TabsTrigger>
           <TabsTrigger value="import" className="text-xs"><Upload className="h-3 w-3 mr-1" /> Import</TabsTrigger>
