@@ -34,6 +34,11 @@ export function useReminders() {
           // Show toast
           toast.info(`⏰ Lembrete: ${taskTitle}`, { duration: 10000 });
 
+          // Send via Telegram (fire and forget)
+          supabase.functions.invoke("telegram-send", {
+            body: { action: "send_reminder", user_id: user.id, message: `⏰ Lembrete: ${taskTitle}` },
+          }).catch(() => {});
+
           // Mark as sent
           await supabase.from("reminders").update({ sent: true }).eq("id", reminder.id);
         }
