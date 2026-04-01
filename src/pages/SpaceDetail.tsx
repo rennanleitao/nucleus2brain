@@ -46,6 +46,7 @@ export default function SpaceDetail() {
   const [uploading, setUploading] = useState(false);
   const [editSpaceOpen, setEditSpaceOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareNoteOpen, setShareNoteOpen] = useState(false);
 
   // Note editor state
   const [editNoteTitle, setEditNoteTitle] = useState("");
