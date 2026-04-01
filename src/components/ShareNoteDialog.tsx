@@ -123,7 +123,7 @@ export function ShareNoteDialog({ noteId, noteTitle, open, onOpenChange }: Share
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <Share2 className="h-4 w-4" /> Compartilhar nota
