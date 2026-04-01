@@ -381,6 +381,146 @@ export default function SettingsPage() {
           </Button>
         </TabsContent>
 
+        {/* TELEGRAM TAB */}
+        <TabsContent value="telegram" className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Integração Telegram</h3>
+              {tgLinked && <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">Vinculado</Badge>}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Receba lembretes de tarefas e consulte seus compromissos diretamente pelo Telegram.
+            </p>
+
+            {tgLinked ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Conta vinculada{tgUsername ? ` (@${tgUsername})` : ""}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Notificações ativas</span>
+                  <Switch
+                    checked={tgEnabled}
+                    onCheckedChange={async (checked) => {
+                      setTgEnabled(checked);
+                      if (user) {
+                        await supabase
+                          .from("telegram_chat_links")
+                          .update({ enabled: checked })
+                          .eq("user_id", user.id);
+                        toast.success(checked ? "Notificações Telegram ativadas" : "Notificações Telegram desativadas");
+                      }
+                    }}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!user) return;
+                    await supabase.from("telegram_chat_links").delete().eq("user_id", user.id);
+                    setTgLinked(false);
+                    setTgUsername("");
+                    setTgEnabled(false);
+                    toast.success("Telegram desvinculado");
+                  }}
+                >
+                  Desvincular
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Button
+                  onClick={async () => {
+                    if (!user) return;
+                    setTgLinking(true);
+                    try {
+                      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                      // Upsert a link record with the code
+                      const { data: existing } = await supabase
+                        .from("telegram_chat_links")
+                        .select("id")
+                        .eq("user_id", user.id)
+                        .maybeSingle();
+
+                      if (existing) {
+                        await supabase
+                          .from("telegram_chat_links")
+                          .update({ link_code: code, chat_id: 0 })
+                          .eq("id", existing.id);
+                      } else {
+                        await supabase
+                          .from("telegram_chat_links")
+                          .insert({ user_id: user.id, link_code: code, chat_id: 0, enabled: true });
+                      }
+
+                      setTgLinkCode(code);
+                    } catch (err: any) {
+                      toast.error(err.message || "Erro ao gerar código");
+                    } finally {
+                      setTgLinking(false);
+                    }
+                  }}
+                  disabled={tgLinking}
+                  className="w-full"
+                >
+                  <Send className="h-4 w-4 mr-1.5" />
+                  {tgLinking ? "Gerando..." : "Gerar código de vinculação"}
+                </Button>
+
+                {tgLinkCode && (
+                  <div className="space-y-2 p-3 rounded-lg bg-muted">
+                    <p className="text-xs font-medium">Clique no link abaixo para vincular:</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`https://t.me/nucleus_reminders_bot?start=${tgLinkCode}`}
+                        className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-xs font-mono outline-none"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://t.me/nucleus_reminders_bot?start=${tgLinkCode}`);
+                          toast.success("Link copiado!");
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Abra o link no Telegram e clique em "Start" para vincular.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => window.open(`https://t.me/nucleus_reminders_bot?start=${tgLinkCode}`, "_blank")}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Abrir no Telegram
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Commands reference */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h3 className="text-sm font-semibold">Comandos disponíveis no Telegram</h3>
+            <div className="space-y-1.5 text-xs text-muted-foreground">
+              <p>📋 <strong>/tarefas</strong> — Ver todas as tarefas pendentes</p>
+              <p>📅 <strong>/hoje</strong> — Tarefas de hoje</p>
+              <p>💬 <strong>Texto livre</strong> — Pergunte sobre tarefas, lembretes e compromissos</p>
+              <p>⏰ <strong>Lembretes</strong> — Receba automaticamente quando um lembrete disparar</p>
+              <p>❓ <strong>/ajuda</strong> — Lista de comandos</p>
+            </div>
+          </div>
+        </TabsContent>
+
         {/* WHATSAPP TAB */}
         <TabsContent value="whatsapp" className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
