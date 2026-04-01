@@ -8,6 +8,7 @@ import { FileText, Send, Loader2, Wand2, MessageSquare, User, X } from "lucide-r
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { SharedNoteEditor } from "@/components/SharedNoteEditor";
 
 interface GuestInfo {
   id: string;
@@ -73,7 +74,6 @@ export default function SharedNote() {
       setContent(data.note.content || "");
       setShareConfig(data.share);
       setOwnerName(data.owner_name);
-
       if (!guest) setShowGuestForm(true);
     } catch (err: any) {
       setError(err.message || "Erro ao carregar nota");
@@ -143,6 +143,11 @@ export default function SharedNote() {
     }
   };
 
+  const handleEditorChange = useCallback((html: string) => {
+    setContent(html);
+    setDirty(true);
+  }, []);
+
   const handleComment = async () => {
     if (!commentInput.trim() || !guest || !token) return;
     try {
@@ -209,7 +214,6 @@ export default function SharedNote() {
     );
   }
 
-  // Guest registration modal
   if (showGuestForm && !guest) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -250,6 +254,13 @@ export default function SharedNote() {
         <div className="flex items-center gap-2 min-w-0">
           <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <h1 className="text-sm font-semibold truncate">{note?.title}</h1>
+          {note?.tags?.length > 0 && (
+            <div className="hidden sm:flex gap-1">
+              {note.tags.map((tag: string) => (
+                <Badge key={tag} variant="secondary" className="text-[10px]">#{tag}</Badge>
+              ))}
+            </div>
+          )}
           {dirty && <Badge variant="secondary" className="text-[10px]">Editando...</Badge>}
           {saving && <Badge variant="outline" className="text-[10px]">Salvando...</Badge>}
         </div>
@@ -273,18 +284,11 @@ export default function SharedNote() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1">
             <div className="max-w-3xl mx-auto p-6">
-              {shareConfig?.allow_edit ? (
-                <textarea
-                  value={content}
-                  onChange={e => { setContent(e.target.value); setDirty(true); }}
-                  className="w-full min-h-[60vh] bg-transparent text-sm leading-relaxed outline-none resize-none font-mono"
-                  placeholder="Conteúdo da nota..."
-                />
-              ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <div dangerouslySetInnerHTML={{ __html: content }} />
-                </div>
-              )}
+              <SharedNoteEditor
+                content={content}
+                onChange={handleEditorChange}
+                editable={!!shareConfig?.allow_edit}
+              />
             </div>
           </ScrollArea>
 
