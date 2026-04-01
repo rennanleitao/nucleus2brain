@@ -135,16 +135,16 @@ export function ShareNoteDialog({ noteId, noteTitle, open, onOpenChange }: Share
         {!share ? (
           <div className="space-y-4">
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Permitir edição</Label>
+              <div className="flex items-center justify-between gap-4">
+                <Label className="text-xs shrink-0">Permitir edição</Label>
                 <Switch checked={allowEdit} onCheckedChange={setAllowEdit} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Permitir usar IA</Label>
+              <div className="flex items-center justify-between gap-4">
+                <Label className="text-xs shrink-0">Permitir usar IA</Label>
                 <Switch checked={allowAi} onCheckedChange={setAllowAi} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Permitir comentários</Label>
+              <div className="flex items-center justify-between gap-4">
+                <Label className="text-xs shrink-0">Permitir comentários</Label>
                 <Switch checked={allowComments} onCheckedChange={setAllowComments} />
               </div>
             </div>
