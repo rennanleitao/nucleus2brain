@@ -127,6 +127,18 @@ export default function SettingsPage() {
         setWaSecret(waData.webhook_secret);
       }
 
+      // Load Telegram link
+      const { data: tgData } = await supabase
+        .from("telegram_chat_links")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (tgData) {
+        setTgLinked(!!tgData.chat_id);
+        setTgUsername(tgData.username || "");
+        setTgEnabled(tgData.enabled);
+      }
+
       setLoaded(true);
     };
     load();
