@@ -65,10 +65,16 @@ serve(async () => {
       const text = update.message.text || "";
       const username = update.message.from?.username || update.message.from?.first_name || "";
 
-      // Handle /start command — link user
+      // Extract link code from /start command or pasted URL
+      let linkCode: string | null = null;
       if (text.startsWith("/start ")) {
-        const linkCode = text.slice(7).trim();
-        if (linkCode) {
+        linkCode = text.slice(7).trim();
+      } else if (text.includes("t.me/nucleus_reminders_bot?start=")) {
+        const match = text.match(/start=([A-Za-z0-9]+)/);
+        if (match) linkCode = match[1];
+      }
+
+      if (linkCode) {
           // Find user by link_code and update chat_id
           const { data: existing } = await supabase
             .from("telegram_chat_links")
@@ -86,7 +92,6 @@ serve(async () => {
           } else {
             await sendTelegram(BOT_TOKEN, chatId, "❌ Código de vinculação inválido ou expirado. Gere um novo código nas configurações do Nucleus.");
           }
-        }
       } else if (text === "/start") {
         await sendTelegram(BOT_TOKEN, chatId, "👋 Olá! Eu sou o bot do Nucleus.\n\nPara vincular sua conta, acesse as configurações do Nucleus e clique em 'Vincular Telegram'.");
       } else if (text === "/tarefas" || text === "/tasks") {
