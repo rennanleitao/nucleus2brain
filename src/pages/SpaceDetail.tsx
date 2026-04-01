@@ -54,11 +54,7 @@ export default function SpaceDetail() {
   const [editNoteTags, setEditNoteTags] = useState<string[]>([]);
   const [noteDirty, setNoteDirty] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
-
-  // Link creation
-  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
-  const [linkTitle, setLinkTitle] = useState("");
-  const [linkUrl, setLinkUrl] = useState("");
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [linkDesc, setLinkDesc] = useState("");
 
 
