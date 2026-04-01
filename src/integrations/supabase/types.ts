@@ -724,6 +724,81 @@ export type Database = {
           },
         ]
       }
+      telegram_bot_state: {
+        Row: {
+          id: number
+          update_offset: number
+          updated_at: string
+        }
+        Insert: {
+          id: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_chat_links: {
+        Row: {
+          chat_id: number
+          enabled: boolean
+          id: string
+          link_code: string | null
+          linked_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          chat_id: number
+          enabled?: boolean
+          id?: string
+          link_code?: string | null
+          linked_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          chat_id?: number
+          enabled?: boolean
+          id?: string
+          link_code?: string | null
+          linked_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: number
+          created_at: string
+          processed: boolean
+          raw_update: Json
+          text: string | null
+          update_id: number
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          processed?: boolean
+          raw_update: Json
+          text?: string | null
+          update_id: number
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          processed?: boolean
+          raw_update?: Json
+          text?: string | null
+          update_id?: number
+        }
+        Relationships: []
+      }
       user_api_keys: {
         Row: {
           api_key: string
