@@ -382,6 +382,61 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             </div>
           </div>
 
+          {/* Linked Tasks */}
+          <div className="border border-border rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                <Link2 className="h-3 w-3" /> Tasks Vinculadas
+              </label>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowLinkDialog(true)} className="h-6 px-2 text-[10px]">
+                <Plus className="h-3 w-3 mr-1" /> Vincular
+              </Button>
+            </div>
+            {linkedTasks.length > 0 ? (
+              <div className="space-y-1 ml-1">
+                {linkedTasks.map((link: any) => {
+                  const lt = link.linked_task;
+                  if (!lt) return null;
+                  return (
+                    <div key={link.id} className="flex items-center gap-2 py-0.5">
+                      <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="text-xs flex-1 truncate">{lt.title}</span>
+                      {lt.spaces?.name && (
+                        <span className="text-[10px] text-muted-foreground shrink-0">{lt.spaces.name}</span>
+                      )}
+                      <button type="button" onClick={async () => {
+                        try {
+                          await deleteTaskLink(link.id);
+                          loadLinkedTasks();
+                          toast.success("Vínculo removido");
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        }
+                      }} className="text-muted-foreground hover:text-destructive transition-colors">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-[10px] text-muted-foreground">Nenhuma task vinculada</p>
+            )}
+          </div>
+
+          <LinkTaskDialog
+            open={showLinkDialog}
+            onOpenChange={setShowLinkDialog}
+            currentTaskId={task.id}
+            currentTaskTitle={task.title}
+            spaces={spaces}
+            onLinked={() => {
+              loadLinkedTasks();
+              fetchSubtasks(task.id).then(setSubtasks).catch(() => {});
+              onUpdated();
+            }}
+          />
+
           {/* Estimated time */}
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
