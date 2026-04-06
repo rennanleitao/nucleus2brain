@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask } from "@/lib/api";
+import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchTaskLinks, deleteTaskLink } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays } from "lucide-react";
+import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2 } from "lucide-react";
+import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
 
 function getBrtToday() {
