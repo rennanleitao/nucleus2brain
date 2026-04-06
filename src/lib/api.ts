@@ -419,3 +419,45 @@ export async function fetchRunningTimeEntries() {
   if (error) throw error;
   return data;
 }
+
+// ---- TASK LINKS ----
+export async function createTaskLink(taskId: string, linkedTaskId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("task_links")
+    .insert({ task_id: taskId, linked_task_id: linkedTaskId, user_id: user.id })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchTaskLinks(taskId: string) {
+  const { data, error } = await supabase
+    .from("task_links")
+    .select("*, linked_task:linked_task_id(id, title, status, priority, space_id, spaces(name))")
+    .eq("task_id", taskId);
+  if (error) throw error;
+  
+  // Also fetch reverse links (where this task is the linked one)
+  const { data: reverseData, error: reverseError } = await supabase
+    .from("task_links")
+    .select("*, linked_task:task_id(id, title, status, priority, space_id, spaces(name))")
+    .eq("linked_task_id", taskId);
+  if (reverseError) throw reverseError;
+  
+  return [...(data || []), ...(reverseData || [])];
+}
+
+export async function deleteTaskLink(id: string) {
+  const { error } = await supabase.from("task_links").delete().eq("id", id);
+  if (error) throw error;
+}
+  const { data, error } = await supabase
+    .from("task_time_entries")
+    .select("*")
+    .is("ended_at", null);
+  if (error) throw error;
+  return data;
+}
