@@ -112,10 +112,20 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskDate, setNewSubtaskDate] = useState("");
 
+  // Linked tasks state
+  const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+
+  const loadLinkedTasks = () => {
+    fetchTaskLinks(task.id).then(setLinkedTasks).catch(() => {});
+  };
+
   useEffect(() => {
     if (open) {
       fetchAllTags().then(setAllTags).catch(() => {});
       fetchSubtasks(task.id).then(setSubtasks).catch(() => {});
+      loadLinkedTasks();
+    }
     }
   }, [open, task.id]);
 
