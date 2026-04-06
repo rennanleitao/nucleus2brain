@@ -454,10 +454,3 @@ export async function deleteTaskLink(id: string) {
   const { error } = await supabase.from("task_links").delete().eq("id", id);
   if (error) throw error;
 }
-  const { data, error } = await supabase
-    .from("task_time_entries")
-    .select("*")
-    .is("ended_at", null);
-  if (error) throw error;
-  return data;
-}
