@@ -225,6 +225,65 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Assistant Chat */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="p-3 border-b border-border flex items-center gap-2">
+          <Bot className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Assistant</span>
+        </div>
+        <div className="max-h-64 overflow-auto p-3 space-y-3">
+          {chatMessages.map(msg => (
+            <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
+              {msg.role === "assistant" && (
+                <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Bot className="h-3 w-3 text-primary" />
+                </div>
+              )}
+              <div className={`max-w-[80%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+              }`}>
+                {msg.role === "assistant" ? (
+                  <div className="prose prose-xs max-w-none dark:prose-invert">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : msg.content}
+              </div>
+              {msg.role === "user" && (
+                <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                  <User className="h-3 w-3 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          ))}
+          {chatLoading && chatMessages[chatMessages.length - 1]?.role !== "assistant" && (
+            <div className="flex gap-2">
+              <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Bot className="h-3 w-3 text-primary" />
+              </div>
+              <div className="bg-muted rounded-lg px-3 py-2 flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse" />
+                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.2s]" />
+                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.4s]" />
+              </div>
+            </div>
+          )}
+          <div ref={chatBottomRef} />
+        </div>
+        <form onSubmit={sendChatMessage} className="p-3 border-t border-border flex gap-2">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={e => setChatInput(e.target.value)}
+            placeholder="Pergunte algo ou peça para criar uma task..."
+            className="flex-1 bg-background border border-border rounded-lg px-3 py-2.5 sm:py-2 text-sm sm:text-xs outline-none focus:border-primary placeholder:text-muted-foreground/60 min-w-0"
+            disabled={chatLoading}
+          />
+          <button type="submit" disabled={!chatInput.trim() || chatLoading}
+            className="bg-primary text-primary-foreground rounded-lg px-3 py-2.5 sm:py-2 disabled:opacity-40 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation">
+            <Send className="h-4 w-4" />
+          </button>
+        </form>
+      </div>
 
       <div className="space-y-6">
         {overdueTasks.length > 0 && (
@@ -232,7 +291,7 @@ export default function Dashboard() {
             <SectionHeader icon={AlertTriangle} title="Overdue" count={overdueTasks.length} isOpen={openSections.overdue} onToggle={() => toggleSection("overdue")} />
             {openSections.overdue && (
               <div className="space-y-2">
-                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)}
+                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)}
               </div>
             )}
           </section>
@@ -243,7 +302,7 @@ export default function Dashboard() {
           {openSections.today && (
             <div className="space-y-2">
               {todayTasks.length > 0 ? (
-                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)
+                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)
               ) : (
                 <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
               )}
@@ -256,7 +315,7 @@ export default function Dashboard() {
             <SectionHeader icon={TrendingUp} title="Upcoming" count={upcomingTasks.length} isOpen={openSections.upcoming} onToggle={() => toggleSection("upcoming")} />
             {openSections.upcoming && (
               <div className="space-y-2">
-                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)}
+                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)}
               </div>
             )}
           </section>
@@ -348,65 +407,6 @@ export default function Dashboard() {
       <AccomplishmentHistory tasks={tasks} onSelectTask={setSelectedTask} onDeleteTask={setTaskToDelete} />
       </div>
 
-      {/* Assistant Chat */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="p-3 border-b border-border flex items-center gap-2">
-          <Bot className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Assistant</span>
-        </div>
-        <div className="max-h-64 overflow-auto p-3 space-y-3">
-          {chatMessages.map(msg => (
-            <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
-              {msg.role === "assistant" && (
-                <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Bot className="h-3 w-3 text-primary" />
-                </div>
-              )}
-              <div className={`max-w-[80%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
-                msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-              }`}>
-                {msg.role === "assistant" ? (
-                  <div className="prose prose-xs max-w-none dark:prose-invert">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
-                ) : msg.content}
-              </div>
-              {msg.role === "user" && (
-                <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                  <User className="h-3 w-3 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-          ))}
-          {chatLoading && chatMessages[chatMessages.length - 1]?.role !== "assistant" && (
-            <div className="flex gap-2">
-              <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Bot className="h-3 w-3 text-primary" />
-              </div>
-              <div className="bg-muted rounded-lg px-3 py-2 flex gap-1">
-                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse" />
-                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.2s]" />
-                <div className="w-1 h-1 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.4s]" />
-              </div>
-            </div>
-          )}
-          <div ref={chatBottomRef} />
-        </div>
-        <form onSubmit={sendChatMessage} className="p-3 border-t border-border flex gap-2">
-          <input
-            type="text"
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            placeholder="Pergunte algo ou peça para criar uma task..."
-            className="flex-1 bg-background border border-border rounded-lg px-3 py-2.5 sm:py-2 text-sm sm:text-xs outline-none focus:border-primary placeholder:text-muted-foreground/60 min-w-0"
-            disabled={chatLoading}
-          />
-          <button type="submit" disabled={!chatInput.trim() || chatLoading}
-            className="bg-primary text-primary-foreground rounded-lg px-3 py-2.5 sm:py-2 disabled:opacity-40 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation">
-            <Send className="h-4 w-4" />
-          </button>
-        </form>
-      </div>
 
       {/* Edit Task Dialog */}
       {selectedTask && (

@@ -37,6 +37,7 @@ interface TaskCardProps {
   onAddSubtask?: (taskId: string, title: string, dueDate?: string) => void;
   onDeleteSubtask?: (id: string) => void;
   onPriorityChange?: (id: string, priority: TaskPriority) => void;
+  onSelect?: (task: TaskCardProps["task"]) => void;
   hideSpace?: boolean;
 }
 
@@ -106,7 +107,7 @@ function formatDate(dateStr: string) {
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, hideSpace
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, hideSpace
 }, ref) => {
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
@@ -147,7 +148,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           <ToggleIcon className="h-5 w-5 sm:h-4 sm:w-4" />
         </button>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onSelect?.(task)}>
           <p className={`text-small font-medium leading-tight ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
             {task.title}
           </p>
