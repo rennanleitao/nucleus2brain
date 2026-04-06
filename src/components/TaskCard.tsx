@@ -37,6 +37,7 @@ interface TaskCardProps {
   onAddSubtask?: (taskId: string, title: string, dueDate?: string) => void;
   onDeleteSubtask?: (id: string) => void;
   onPriorityChange?: (id: string, priority: TaskPriority) => void;
+  onSelect?: (task: TaskCardProps["task"]) => void;
   hideSpace?: boolean;
 }
 
@@ -106,7 +107,7 @@ function formatDate(dateStr: string) {
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, hideSpace
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, hideSpace
 }, ref) => {
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
