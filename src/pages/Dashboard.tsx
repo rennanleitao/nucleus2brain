@@ -232,7 +232,7 @@ export default function Dashboard() {
             <SectionHeader icon={AlertTriangle} title="Overdue" count={overdueTasks.length} isOpen={openSections.overdue} onToggle={() => toggleSection("overdue")} />
             {openSections.overdue && (
               <div className="space-y-2">
-                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)}
+                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)}
               </div>
             )}
           </section>
@@ -243,7 +243,7 @@ export default function Dashboard() {
           {openSections.today && (
             <div className="space-y-2">
               {todayTasks.length > 0 ? (
-                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)
+                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)
               ) : (
                 <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
               )}
@@ -256,7 +256,7 @@ export default function Dashboard() {
             <SectionHeader icon={TrendingUp} title="Upcoming" count={upcomingTasks.length} isOpen={openSections.upcoming} onToggle={() => toggleSection("upcoming")} />
             {openSections.upcoming && (
               <div className="space-y-2">
-                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} />)}
+                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)}
               </div>
             )}
           </section>
