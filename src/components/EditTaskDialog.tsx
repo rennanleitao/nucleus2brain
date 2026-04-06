@@ -126,7 +126,6 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
       fetchSubtasks(task.id).then(setSubtasks).catch(() => {});
       loadLinkedTasks();
     }
-    }
   }, [open, task.id]);
 
   useEffect(() => {
