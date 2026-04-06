@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask } from "@/lib/api";
+import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchTaskLinks, deleteTaskLink } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays } from "lucide-react";
+import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2 } from "lucide-react";
+import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
 
 function getBrtToday() {
@@ -111,10 +112,19 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskDate, setNewSubtaskDate] = useState("");
 
+  // Linked tasks state
+  const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+
+  const loadLinkedTasks = () => {
+    fetchTaskLinks(task.id).then(setLinkedTasks).catch(() => {});
+  };
+
   useEffect(() => {
     if (open) {
       fetchAllTags().then(setAllTags).catch(() => {});
       fetchSubtasks(task.id).then(setSubtasks).catch(() => {});
+      loadLinkedTasks();
     }
   }, [open, task.id]);
 
@@ -371,6 +381,61 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
               </Button>
             </div>
           </div>
+
+          {/* Linked Tasks */}
+          <div className="border border-border rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                <Link2 className="h-3 w-3" /> Tasks Vinculadas
+              </label>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowLinkDialog(true)} className="h-6 px-2 text-[10px]">
+                <Plus className="h-3 w-3 mr-1" /> Vincular
+              </Button>
+            </div>
+            {linkedTasks.length > 0 ? (
+              <div className="space-y-1 ml-1">
+                {linkedTasks.map((link: any) => {
+                  const lt = link.linked_task;
+                  if (!lt) return null;
+                  return (
+                    <div key={link.id} className="flex items-center gap-2 py-0.5">
+                      <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="text-xs flex-1 truncate">{lt.title}</span>
+                      {lt.spaces?.name && (
+                        <span className="text-[10px] text-muted-foreground shrink-0">{lt.spaces.name}</span>
+                      )}
+                      <button type="button" onClick={async () => {
+                        try {
+                          await deleteTaskLink(link.id);
+                          loadLinkedTasks();
+                          toast.success("Vínculo removido");
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        }
+                      }} className="text-muted-foreground hover:text-destructive transition-colors">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-[10px] text-muted-foreground">Nenhuma task vinculada</p>
+            )}
+          </div>
+
+          <LinkTaskDialog
+            open={showLinkDialog}
+            onOpenChange={setShowLinkDialog}
+            currentTaskId={task.id}
+            currentTaskTitle={task.title}
+            spaces={spaces}
+            onLinked={() => {
+              loadLinkedTasks();
+              fetchSubtasks(task.id).then(setSubtasks).catch(() => {});
+              onUpdated();
+            }}
+          />
 
           {/* Estimated time */}
           <div>
