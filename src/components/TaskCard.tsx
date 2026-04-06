@@ -148,7 +148,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           <ToggleIcon className="h-5 w-5 sm:h-4 sm:w-4" />
         </button>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onSelect?.(task)}>
           <p className={`text-small font-medium leading-tight ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
             {task.title}
           </p>
