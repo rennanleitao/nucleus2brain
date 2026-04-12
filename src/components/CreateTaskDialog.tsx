@@ -310,7 +310,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                   }}
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
                 />
-                {showTagPicker && filteredTags.length > 0 && (
+                {showTagPicker && (
                   <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
                     {filteredTags.map(t => (
                       <button key={t} type="button"
@@ -320,6 +320,17 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                         #{t}
                       </button>
                     ))}
+                    {tagInput.trim() && !allTags.some(t => t.toLowerCase() === tagInput.trim().toLowerCase().replace(/^#/, "")) && (
+                      <button type="button"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => { setTag(tagInput.trim().replace(/^#/, "")); setTagInput(""); setShowTagPicker(false); }}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors text-primary font-medium">
+                        <Plus className="h-3 w-3 inline mr-1" />Criar tag "#{tagInput.trim().replace(/^#/, "")}"
+                      </button>
+                    )}
+                    {filteredTags.length === 0 && !tagInput.trim() && (
+                      <p className="px-3 py-2 text-xs text-muted-foreground">Nenhuma tag encontrada</p>
+                    )}
                   </div>
                 )}
               </div>
