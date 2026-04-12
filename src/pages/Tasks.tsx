@@ -265,34 +265,9 @@ export default function Tasks() {
     }
   };
 
-  const handleReorder = async (taskList: any[], fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= taskList.length) return;
-    const reordered = [...taskList];
-    const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, moved);
-
-    // Optimistic update
-    const updatedTasks = tasks.map(t => {
-      const idx = reordered.findIndex(r => r.id === t.id);
-      if (idx !== -1) return { ...t, day_order: idx + 1 };
-      return t;
-    });
-    setTasks(updatedTasks);
-
-    // Persist all orders
-    try {
-      await Promise.all(reordered.map((t, idx) => updateTask(t.id, { day_order: idx + 1 } as any)));
-    } catch (err: any) {
-      toast.error(err.message);
-      load();
-    }
-  };
-
-  const isTodayFilter = filter === "today";
-
   const renderTaskList = (taskList: any[], hideSpace = false) => (
     <div className="space-y-2">
-      {taskList.map((t, idx) => (
+      {taskList.map((t) => (
         <div key={t.id} onClick={() => setEditingTask(t)} className="cursor-pointer">
           <TaskCard
             task={t}
@@ -305,13 +280,6 @@ export default function Tasks() {
             onDeleteSubtask={handleDeleteSubtask}
             onPriorityChange={handlePriorityChange}
             hideSpace={hideSpace}
-            {...(isTodayFilter ? {
-              orderNumber: idx + 1,
-              onMoveUp: () => handleReorder(taskList, idx, idx - 1),
-              onMoveDown: () => handleReorder(taskList, idx, idx + 1),
-              isFirst: idx === 0,
-              isLast: idx === taskList.length - 1,
-            } : {})}
           />
         </div>
       ))}
