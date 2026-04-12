@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, AlertTriangle, ArrowRight } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, AlertTriangle, ArrowRight, CalendarClock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { updateTask } from "@/lib/api";
@@ -32,8 +32,10 @@ export function DayPlanner({
   onToggle, onDelete, onToggleSubtask, onAddSubtask,
   onDeleteSubtask, onPriorityChange, onSelect, onReload,
 }: DayPlannerProps) {
-  const [showOverdue, setShowOverdue] = useState(true);
+  const [showOverdue, setShowOverdue] = useState(false);
   const [overdueCollapsed, setOverdueCollapsed] = useState(false);
+  const [showFuture, setShowFuture] = useState(false);
+  const [futureCollapsed, setFutureCollapsed] = useState(false);
 
   const today = getBrtToday();
 
@@ -51,6 +53,12 @@ export function DayPlanner({
   const overdueTasks = useMemo(() => {
     return tasks
       .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date < today)
+      .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
+  }, [tasks, today]);
+
+  const futureTasks = useMemo(() => {
+    return tasks
+      .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date > today)
       .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
   }, [tasks, today]);
 
@@ -133,7 +141,7 @@ export function DayPlanner({
         </div>
       )}
 
-      {/* Overdue toggle */}
+      {/* Overdue section */}
       {overdueTasks.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -168,6 +176,74 @@ export function DayPlanner({
               {!overdueCollapsed && (
                 <div className="space-y-2">
                   {overdueTasks.map(t => (
+                    <div key={t.id} className="flex items-start gap-2">
+                      <div className="flex-1 cursor-pointer" onClick={() => onSelect(t)}>
+                        <TaskCard
+                          task={t}
+                          subtasks={subtasksMap[t.id] || []}
+                          reminder={remindersMap[t.id] || null}
+                          onToggle={() => onToggle(t.id)}
+                          onDelete={() => onDelete(t.id)}
+                          onToggleSubtask={onToggleSubtask}
+                          onAddSubtask={onAddSubtask}
+                          onDeleteSubtask={onDeleteSubtask}
+                          onPriorityChange={onPriorityChange}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-primary hover:bg-primary/10 flex-shrink-0 mt-2"
+                        title="Mover para hoje"
+                        onClick={() => handleMoveToToday(t.id)}
+                      >
+                        <ArrowRight className="h-3.5 w-3.5 mr-1" />
+                        <span className="text-[10px]">Hoje</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Future tasks section */}
+      {futureTasks.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-small font-medium text-muted-foreground">
+                Atividades futuras ({futureTasks.length})
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-micro text-muted-foreground">Mostrar</span>
+              <Switch checked={showFuture} onCheckedChange={setShowFuture} />
+            </div>
+          </div>
+
+          {showFuture && (
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <button
+                onClick={() => setFutureCollapsed(!futureCollapsed)}
+                className="flex items-center gap-2 mb-2 text-left w-full"
+              >
+                {futureCollapsed ? (
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+                <span className="text-xs font-medium text-muted-foreground">
+                  {futureTasks.length} task{futureTasks.length !== 1 ? "s" : ""} futura{futureTasks.length !== 1 ? "s" : ""}
+                </span>
+              </button>
+
+              {!futureCollapsed && (
+                <div className="space-y-2">
+                  {futureTasks.map(t => (
                     <div key={t.id} className="flex items-start gap-2">
                       <div className="flex-1 cursor-pointer" onClick={() => onSelect(t)}>
                         <TaskCard
