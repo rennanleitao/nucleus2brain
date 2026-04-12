@@ -41,6 +41,7 @@ interface TaskCardProps {
   onDeleteSubtask?: (id: string) => void;
   onPriorityChange?: (id: string, priority: TaskPriority) => void;
   onSelect?: (task: TaskCardProps["task"]) => void;
+  onReschedule?: (id: string, newDate: string) => void;
   hideSpace?: boolean;
   orderNumber?: number;
   onMoveUp?: () => void;
