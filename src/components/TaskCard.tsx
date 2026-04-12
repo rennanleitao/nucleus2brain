@@ -181,10 +181,42 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const [newSubtaskDate, setNewSubtaskDate] = useState("");
   const [materials, setMaterials] = useState<any[]>([]);
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [addingMaterial, setAddingMaterial] = useState(false);
+  const [newMatTitle, setNewMatTitle] = useState("");
+  const [newMatUrl, setNewMatUrl] = useState("");
+  const [newMatDesc, setNewMatDesc] = useState("");
 
   useEffect(() => {
     fetchTaskMaterials(task.id).then(setMaterials).catch(() => {});
   }, [task.id]);
+
+  const handleAddMaterialInCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!newMatTitle.trim() || !newMatUrl.trim()) return;
+    try {
+      const { createTaskMaterial } = await import("@/lib/api");
+      await createTaskMaterial({ task_id: task.id, title: newMatTitle.trim(), url: newMatUrl.trim(), description: newMatDesc.trim() || null });
+      const updated = await fetchTaskMaterials(task.id);
+      setMaterials(updated);
+      setNewMatTitle(""); setNewMatUrl(""); setNewMatDesc("");
+      setAddingMaterial(false);
+      toast.success("Material adicionado");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteMaterialInCard = async (matId: string) => {
+    try {
+      const { deleteTaskMaterial } = await import("@/lib/api");
+      await deleteTaskMaterial(matId);
+      setMaterials(prev => prev.filter(m => m.id !== matId));
+      toast.success("Material removido");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,32 +478,62 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
         </Collapsible>
       )}
 
-      {/* Materials */}
-      {materials.length > 0 && (
-        <Collapsible open={materialsOpen} onOpenChange={setMaterialsOpen}>
-          <div className="px-3 pb-2 flex items-center gap-1" onClick={e => e.stopPropagation()}>
-            <CollapsibleTrigger className="flex items-center gap-1 text-micro text-muted-foreground hover:text-foreground transition-colors">
-              {materialsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-              <LinkIcon className="h-3 w-3" />
-              {materials.length} {materials.length === 1 ? "material" : "materiais"}
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent onClick={e => e.stopPropagation()}>
-            <div className="px-3 pb-3 space-y-1 ml-4 border-l border-border">
-              {materials.map((mat: any) => (
-                <a key={mat.id} href={mat.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-start gap-2 py-1 text-xs hover:bg-muted/50 rounded px-1 -mx-1 transition-colors group/mat">
-                  <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate text-foreground group-hover/mat:underline">{mat.title}</p>
-                    {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
-                  </div>
+      {/* Materials - always visible like subtasks */}
+      <Collapsible open={materialsOpen} onOpenChange={setMaterialsOpen}>
+        <div className="px-3 pb-2 flex items-center gap-1" onClick={e => e.stopPropagation()}>
+          <CollapsibleTrigger className="flex items-center gap-1 text-micro text-muted-foreground hover:text-foreground transition-colors">
+            {materialsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            <LinkIcon className="h-3 w-3" />
+            {materials.length > 0 ? `${materials.length} ${materials.length === 1 ? "material" : "materiais"}` : "Materiais"}
+          </CollapsibleTrigger>
+          <button
+            onClick={(e) => { e.stopPropagation(); setAddingMaterial(true); setMaterialsOpen(true); }}
+            className="ml-auto text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Plus className="h-3 w-3" />
+          </button>
+        </div>
+        <CollapsibleContent onClick={e => e.stopPropagation()}>
+          <div className="px-3 pb-3 space-y-1 ml-4 border-l border-border">
+            {materials.map((mat: any) => (
+              <div key={mat.id} className="flex items-start gap-2 py-1 group/mat">
+                <a href={mat.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 shrink-0 text-primary hover:text-primary/80">
+                  <ExternalLink className="h-3 w-3" />
                 </a>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+                <a href={mat.url} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 hover:underline">
+                  <p className="text-xs font-medium truncate text-foreground">{mat.title}</p>
+                  {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                </a>
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteMaterialInCard(mat.id); }}
+                  className="text-muted-foreground hover:text-destructive transition-colors shrink-0 opacity-0 group-hover/mat:opacity-100">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {addingMaterial && (
+              <form onSubmit={handleAddMaterialInCard} className="space-y-1.5 pt-1">
+                <input type="text" placeholder="Nome do material" value={newMatTitle} onChange={e => setNewMatTitle(e.target.value)}
+                  className="w-full bg-background border border-border rounded px-2 py-1 text-micro outline-none focus:border-primary"
+                  autoFocus onClick={e => e.stopPropagation()} />
+                <input type="url" placeholder="https://..." value={newMatUrl} onChange={e => setNewMatUrl(e.target.value)}
+                  className="w-full bg-background border border-border rounded px-2 py-1 text-micro outline-none focus:border-primary"
+                  onClick={e => e.stopPropagation()} />
+                <input type="text" placeholder="Descrição curta (opcional)" value={newMatDesc} onChange={e => setNewMatDesc(e.target.value)}
+                  className="w-full bg-background border border-border rounded px-2 py-1 text-micro outline-none focus:border-primary"
+                  onClick={e => e.stopPropagation()} />
+                <div className="flex items-center gap-2">
+                  <button type="submit" disabled={!newMatTitle.trim() || !newMatUrl.trim()}
+                    className="text-primary hover:text-primary/80 text-micro font-medium disabled:opacity-50">OK</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setAddingMaterial(false); }}
+                    className="text-muted-foreground hover:text-destructive">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 });
