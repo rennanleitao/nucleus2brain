@@ -186,9 +186,20 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const [newMatUrl, setNewMatUrl] = useState("");
   const [newMatDesc, setNewMatDesc] = useState("");
 
+  const loadMaterials = async () => {
+    const data = await fetchTaskMaterials(task.id);
+    setMaterials(data || []);
+  };
+
   useEffect(() => {
-    fetchTaskMaterials(task.id).then(setMaterials).catch(() => {});
+    loadMaterials().catch(() => {});
   }, [task.id]);
+
+  useEffect(() => {
+    if (materialsOpen) {
+      loadMaterials().catch(() => {});
+    }
+  }, [materialsOpen, task.id]);
 
   const handleAddMaterialInCard = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,8 +208,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
     try {
       const { createTaskMaterial } = await import("@/lib/api");
       await createTaskMaterial({ task_id: task.id, title: newMatTitle.trim(), url: newMatUrl.trim(), description: newMatDesc.trim() || null });
-      const updated = await fetchTaskMaterials(task.id);
-      setMaterials(updated);
+      await loadMaterials();
       setNewMatTitle(""); setNewMatUrl(""); setNewMatDesc("");
       setAddingMaterial(false);
       toast.success("Material adicionado");

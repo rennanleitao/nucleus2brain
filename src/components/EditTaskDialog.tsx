@@ -202,7 +202,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
     if (!newMatTitle.trim() || !newMatUrl.trim()) return;
     try {
       await createTaskMaterial({ task_id: task.id, title: newMatTitle.trim(), url: newMatUrl.trim(), description: newMatDesc.trim() || null });
-      loadMaterials();
+      await loadMaterials();
       setNewMatTitle(""); setNewMatUrl(""); setNewMatDesc("");
       toast.success("Material adicionado");
     } catch (err: any) {
@@ -227,7 +227,18 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
       } as any);
 
-      // Handle reminder
+      if (newMatTitle.trim() && newMatUrl.trim()) {
+        await createTaskMaterial({
+          task_id: task.id,
+          title: newMatTitle.trim(),
+          url: newMatUrl.trim(),
+          description: newMatDesc.trim() || null,
+        });
+        setNewMatTitle("");
+        setNewMatUrl("");
+        setNewMatDesc("");
+      }
+
       if (reminderDate && reminderTime) {
         const reminderDatetime = new Date(`${reminderDate}T${reminderTime}`).toISOString();
         const { data: { user } } = await supabase.auth.getUser();
