@@ -127,6 +127,15 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
   const reminderTriggered = !!(reminder && new Date(reminder.reminder_time) <= new Date() && !reminder.sent);
 
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [showCustomDate, setShowCustomDate] = useState(false);
+
+  const handleReschedule = (dateStr: string) => {
+    onReschedule?.(task.id, dateStr);
+    setRescheduleOpen(false);
+    setShowCustomDate(false);
+  };
+
   const [isOpen, setIsOpen] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
