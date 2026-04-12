@@ -257,6 +257,61 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
         </div>
 
+        {!isCompleted && onReschedule && (
+          <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
+            <Popover open={rescheduleOpen} onOpenChange={(open) => { setRescheduleOpen(open); if (!open) setShowCustomDate(false); }}>
+              <PopoverTrigger asChild>
+                <button
+                  className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-md px-2 py-1 transition-colors"
+                  title="Reprogramar"
+                >
+                  <CalendarClock className="h-3 w-3" />
+                  <span className="hidden sm:inline">Reprogramar</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end" side="bottom">
+                {!showCustomDate ? (
+                  <div className="flex flex-col p-1 min-w-[140px]">
+                    <button
+                      onClick={() => handleReschedule(getBrtToday())}
+                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                    >
+                      📅 Hoje
+                    </button>
+                    <button
+                      onClick={() => handleReschedule(getBrtTomorrow())}
+                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                    >
+                      ➡️ Amanhã
+                    </button>
+                    <button
+                      onClick={() => setShowCustomDate(true)}
+                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                    >
+                      📆 Outra data
+                    </button>
+                  </div>
+                ) : (
+                  <Calendar
+                    mode="single"
+                    selected={task.due_date ? new Date(task.due_date + "T00:00:00") : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth() + 1).padStart(2, "0");
+                        const d = String(date.getDate()).padStart(2, "0");
+                        handleReschedule(`${y}-${m}-${d}`);
+                      }
+                    }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
         {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
         <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
 
