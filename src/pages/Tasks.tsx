@@ -381,6 +381,7 @@ export default function Tasks() {
           onDeleteSubtask={handleDeleteSubtask}
           onPriorityChange={handlePriorityChange}
           onSelect={setEditingTask}
+          onReschedule={handleReschedule}
           onReload={load}
         />
       ) : viewMode === "kanban" ? (
