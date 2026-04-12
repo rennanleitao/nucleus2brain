@@ -458,6 +458,8 @@ export default function Tasks() {
           </div>
         )
       )}
+      </>
+      )}
 
       {editingTask && (
         <EditTaskDialog
