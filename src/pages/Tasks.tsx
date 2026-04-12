@@ -314,46 +314,48 @@ export default function Tasks() {
         </TabsList>
       </Tabs>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
-        <div className="flex items-center border border-border rounded-md overflow-hidden">
-          <button
-            onClick={() => setViewMode("list")}
-            className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-            title="Lista"
-          >
-            <LayoutList className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setViewMode("kanban")}
-            className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-            title="Kanban"
-          >
-            <Columns3 className="h-4 w-4" />
-          </button>
+      {filter !== "planner" && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
+          <div className="flex items-center border border-border rounded-md overflow-hidden">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Lista"
+            >
+              <LayoutList className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Kanban"
+            >
+              <Columns3 className="h-4 w-4" />
+            </button>
+          </div>
+          {viewMode === "list" && (
+            <>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All priorities</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={groupBy} onValueChange={setGroupBy}>
+                <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No grouping</SelectItem>
+                  <SelectItem value="space">By Space</SelectItem>
+                  <SelectItem value="date">By Date</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
-        {viewMode === "list" && (
-          <>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All priorities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={groupBy} onValueChange={setGroupBy}>
-              <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No grouping</SelectItem>
-                <SelectItem value="space">By Space</SelectItem>
-                <SelectItem value="date">By Date</SelectItem>
-              </SelectContent>
-            </Select>
-          </>
-        )}
-      </div>
+      )}
 
       {filter === "planner" ? (
         <DayPlanner
