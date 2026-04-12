@@ -1,7 +1,10 @@
 import { useState, useMemo } from "react";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -31,13 +34,14 @@ interface DayPlannerProps {
   onPriorityChange: (id: string, priority: "low" | "medium" | "high") => void;
   onSelect: (task: any) => void;
   onReschedule: (id: string, newDate: string) => void;
+  onRescheduleSubtask: (id: string, newDate: string) => void;
   onReload: () => void;
 }
 
 export function DayPlanner({
   tasks, setTasks, subtasksMap, remindersMap,
   onToggle, onDelete, onToggleSubtask, onAddSubtask,
-  onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onReload,
+  onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onReload,
 }: DayPlannerProps) {
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [tomorrowCollapsed, setTomorrowCollapsed] = useState(false);
@@ -59,6 +63,22 @@ export function DayPlanner({
         return a.created_at.localeCompare(b.created_at);
       });
   }, [tasks, today]);
+
+  // Subtasks with due_date=today whose parent task is NOT today
+  const todayOrphanSubtasks = useMemo(() => {
+    const todayTaskIds = new Set(todayTasks.map(t => t.id));
+    const result: { subtask: any; parentTask: any }[] = [];
+    for (const task of tasks) {
+      if (todayTaskIds.has(task.id)) continue; // parent already shown in today
+      const subs = subtasksMap[task.id] || [];
+      for (const sub of subs) {
+        if (sub.status !== "completed" && sub.due_date === today) {
+          result.push({ subtask: sub, parentTask: task });
+        }
+      }
+    }
+    return result;
+  }, [tasks, subtasksMap, todayTasks, today]);
 
   const tomorrowTasks = useMemo(() => {
     return tasks
@@ -112,6 +132,7 @@ export function DayPlanner({
         onDeleteSubtask={onDeleteSubtask}
         onPriorityChange={onPriorityChange}
         onReschedule={onReschedule}
+        onRescheduleSubtask={onRescheduleSubtask}
       />
     </div>
   );
@@ -176,13 +197,13 @@ export function DayPlanner({
           <CalendarCheck className="h-4 w-4 text-primary" />
           <h2 className="text-h2">Planejamento do Dia</h2>
           <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
-            {todayTasks.length} task{todayTasks.length !== 1 ? "s" : ""}
+            {todayTasks.length + todayOrphanSubtasks.length} item{(todayTasks.length + todayOrphanSubtasks.length) !== 1 ? "s" : ""}
           </span>
         </div>
       </div>
 
       {/* Today tasks – reorderable */}
-      {todayTasks.length > 0 ? (
+      {(todayTasks.length > 0 || todayOrphanSubtasks.length > 0) ? (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
           <div className="space-y-2">
             {todayTasks.map((t, idx) => (
@@ -198,12 +219,45 @@ export function DayPlanner({
                   onDeleteSubtask={onDeleteSubtask}
                   onPriorityChange={onPriorityChange}
                   onReschedule={onReschedule}
+                  onRescheduleSubtask={onRescheduleSubtask}
                   orderNumber={idx + 1}
                   onMoveUp={() => handleReorder(idx, idx - 1)}
                   onMoveDown={() => handleReorder(idx, idx + 1)}
                   isFirst={idx === 0}
                   isLast={idx === todayTasks.length - 1}
                 />
+              </div>
+            ))}
+
+            {/* Orphan subtasks for today */}
+            {todayOrphanSubtasks.map(({ subtask, parentTask }) => (
+              <div
+                key={`sub-${subtask.id}`}
+                className="rounded-lg border border-border bg-card p-3 flex items-center gap-3 cursor-pointer hover:shadow-card transition-all"
+                onClick={() => onSelect(parentTask)}
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); onToggleSubtask(subtask.id); }}
+                  className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {subtask.status === "completed" ? (
+                    <CalendarCheck className="h-4 w-4" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-small font-medium leading-tight">{subtask.title}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Link2 className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-micro text-muted-foreground truncate">
+                      Subtask de: {parentTask.title}
+                    </span>
+                  </div>
+                </div>
+                <div onClick={e => e.stopPropagation()}>
+                  <SubtaskRescheduleInline subtaskId={subtask.id} currentDate={subtask.due_date} onReschedule={onRescheduleSubtask} />
+                </div>
               </div>
             ))}
           </div>
@@ -235,5 +289,57 @@ export function DayPlanner({
         futureTasks, showFuture, setShowFuture, futureCollapsed, setFutureCollapsed,
       )}
     </div>
+  );
+}
+
+function SubtaskRescheduleInline({ subtaskId, currentDate, onReschedule }: { subtaskId: string; currentDate?: string | null; onReschedule: (id: string, newDate: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [showCal, setShowCal] = useState(false);
+  const handle = (d: string) => { onReschedule(subtaskId, d); setOpen(false); setShowCal(false); };
+  const today = getBrtToday();
+  const tomorrow = getBrtTomorrow();
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setShowCal(false); }}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={e => e.stopPropagation()}
+          className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-md px-2 py-1 transition-colors"
+          title="Reprogramar"
+        >
+          <CalendarClock className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="end" side="bottom" onClick={e => e.stopPropagation()}>
+        {!showCal ? (
+          <div className="flex flex-col p-1 min-w-[140px]">
+            <button onClick={() => handle(today)} className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors">
+              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /> Hoje
+            </button>
+            <button onClick={() => handle(tomorrow)} className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors">
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> Amanhã
+            </button>
+            <button onClick={() => setShowCal(true)} className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors">
+              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" /> Outra data
+            </button>
+          </div>
+        ) : (
+          <Calendar
+            mode="single"
+            selected={currentDate ? new Date(currentDate + "T00:00:00") : undefined}
+            onSelect={(date) => {
+              if (date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                handle(`${y}-${m}-${d}`);
+              }
+            }}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }

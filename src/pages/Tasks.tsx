@@ -275,6 +275,22 @@ export default function Tasks() {
     }
   };
 
+  const handleRescheduleSubtask = async (id: string, newDate: string) => {
+    try {
+      await updateSubtask(id, { due_date: newDate });
+      setSubtasksMap(prev => {
+        const updated = { ...prev };
+        for (const taskId of Object.keys(updated)) {
+          updated[taskId] = updated[taskId].map(s => s.id === id ? { ...s, due_date: newDate } : s);
+        }
+        return updated;
+      });
+      toast.success("Data da subtask atualizada");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const renderTaskList = (taskList: any[], hideSpace = false) => (
     <div className="space-y-2">
       {taskList.map((t) => (
@@ -290,6 +306,7 @@ export default function Tasks() {
             onDeleteSubtask={handleDeleteSubtask}
             onPriorityChange={handlePriorityChange}
             onReschedule={handleReschedule}
+            onRescheduleSubtask={handleRescheduleSubtask}
             hideSpace={hideSpace}
           />
         </div>
@@ -382,6 +399,7 @@ export default function Tasks() {
           onPriorityChange={handlePriorityChange}
           onSelect={setEditingTask}
           onReschedule={handleReschedule}
+          onRescheduleSubtask={handleRescheduleSubtask}
           onReload={load}
         />
       ) : viewMode === "kanban" ? (
