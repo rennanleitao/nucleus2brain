@@ -44,11 +44,8 @@ export function DayPlanner({
   onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onReload,
 }: DayPlannerProps) {
   const [showTomorrow, setShowTomorrow] = useState(false);
-  const [tomorrowCollapsed, setTomorrowCollapsed] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
-  const [overdueCollapsed, setOverdueCollapsed] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [futureCollapsed, setFutureCollapsed] = useState(false);
 
   const today = getBrtToday();
   const tomorrow = getBrtTomorrow();
