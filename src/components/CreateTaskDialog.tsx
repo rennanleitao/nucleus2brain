@@ -195,6 +195,18 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setPendingSubtasks(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const handleAddPendingMaterial = () => {
+    if (!materialTitle.trim() || !materialUrl.trim()) return;
+    setPendingMaterials(prev => [...prev, { title: materialTitle.trim(), url: materialUrl.trim(), description: materialDesc.trim() || undefined }]);
+    setMaterialTitle("");
+    setMaterialUrl("");
+    setMaterialDesc("");
+  };
+
+  const handleRemovePendingMaterial = (idx: number) => {
+    setPendingMaterials(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -222,9 +234,20 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         );
       }
 
+      // Create pending materials
+      if (pendingMaterials.length > 0 && task?.id) {
+        await Promise.all(
+          pendingMaterials.map(mat =>
+            createTaskMaterial({ task_id: task.id, title: mat.title, url: mat.url, description: mat.description || null })
+          )
+        );
+      }
+
       toast.success("Task criada!");
       setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
       setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
+      setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
+      setShowMaterials(false);
       setOpen(false);
       onCreated();
     } catch (err: any) {
