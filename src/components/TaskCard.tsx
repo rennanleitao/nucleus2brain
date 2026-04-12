@@ -181,10 +181,42 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const [newSubtaskDate, setNewSubtaskDate] = useState("");
   const [materials, setMaterials] = useState<any[]>([]);
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [addingMaterial, setAddingMaterial] = useState(false);
+  const [newMatTitle, setNewMatTitle] = useState("");
+  const [newMatUrl, setNewMatUrl] = useState("");
+  const [newMatDesc, setNewMatDesc] = useState("");
 
   useEffect(() => {
     fetchTaskMaterials(task.id).then(setMaterials).catch(() => {});
   }, [task.id]);
+
+  const handleAddMaterialInCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!newMatTitle.trim() || !newMatUrl.trim()) return;
+    try {
+      const { createTaskMaterial } = await import("@/lib/api");
+      await createTaskMaterial({ task_id: task.id, title: newMatTitle.trim(), url: newMatUrl.trim(), description: newMatDesc.trim() || null });
+      const updated = await fetchTaskMaterials(task.id);
+      setMaterials(updated);
+      setNewMatTitle(""); setNewMatUrl(""); setNewMatDesc("");
+      setAddingMaterial(false);
+      toast.success("Material adicionado");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteMaterialInCard = async (matId: string) => {
+    try {
+      const { deleteTaskMaterial } = await import("@/lib/api");
+      await deleteTaskMaterial(matId);
+      setMaterials(prev => prev.filter(m => m.id !== matId));
+      toast.success("Material removido");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
