@@ -265,6 +265,16 @@ export default function Tasks() {
     }
   };
 
+  const handleReschedule = async (id: string, newDate: string) => {
+    try {
+      await updateTask(id, { due_date: newDate } as any);
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, due_date: newDate } : t));
+      toast.success("Data atualizada");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const renderTaskList = (taskList: any[], hideSpace = false) => (
     <div className="space-y-2">
       {taskList.map((t) => (
@@ -279,6 +289,7 @@ export default function Tasks() {
             onAddSubtask={handleAddSubtask}
             onDeleteSubtask={handleDeleteSubtask}
             onPriorityChange={handlePriorityChange}
+            onReschedule={handleReschedule}
             hideSpace={hideSpace}
           />
         </div>
