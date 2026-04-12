@@ -362,6 +362,9 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                       {formatDate(sub.due_date)}
                     </span>
                   )}
+                  {onRescheduleSubtask && sub.status !== "completed" && (
+                    <SubtaskReschedulePopover subtaskId={sub.id} currentDate={sub.due_date} onReschedule={onRescheduleSubtask} />
+                  )}
                   {onDeleteSubtask && (
                     <button onClick={(e) => { e.stopPropagation(); onDeleteSubtask(sub.id); }}
                       className="text-muted-foreground hover:text-destructive transition-colors">
