@@ -116,6 +116,7 @@ export function DayPlanner({
                   onAddSubtask={onAddSubtask}
                   onDeleteSubtask={onDeleteSubtask}
                   onPriorityChange={onPriorityChange}
+                  onReschedule={onReschedule}
                   orderNumber={idx + 1}
                   onMoveUp={() => handleReorder(idx, idx - 1)}
                   onMoveDown={() => handleReorder(idx, idx + 1)}
@@ -181,6 +182,7 @@ export function DayPlanner({
                           onAddSubtask={onAddSubtask}
                           onDeleteSubtask={onDeleteSubtask}
                           onPriorityChange={onPriorityChange}
+                          onReschedule={onReschedule}
                         />
                       </div>
                       <Button
