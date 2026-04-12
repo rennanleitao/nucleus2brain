@@ -38,14 +38,13 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Spaces", url: "/spaces", icon: FolderOpen },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Notes", url: "/notes", icon: FileText },
+  { title: "Tasks", url: "/tasks", icon: CheckSquare },
+  { title: "Materials", url: "/materials", icon: Paperclip },
   { title: "Tags", url: "/tags", icon: Tag },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Pomodoro", url: "/pomodoro", icon: Timer },
-  { title: "Materials", url: "/materials", icon: Paperclip },
-  { title: "Assistant", url: "/assistant", icon: Bot },
-  
+  { title: "Personal Assistant", url: "/assistant", icon: Bot },
 ];
 
 function formatTime(seconds: number) {
