@@ -404,6 +404,50 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
           </div>
 
+          {/* Materials section */}
+          <div>
+            <button type="button" onClick={() => setShowMaterials(!showMaterials)}
+              className="text-xs text-muted-foreground mb-1 flex items-center gap-1 hover:text-foreground transition-colors">
+              <LinkIcon className="h-3 w-3" />
+              Materiais relacionados
+              <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
+              {pendingMaterials.length > 0 && <span className="text-[10px] text-primary">({pendingMaterials.length})</span>}
+            </button>
+            {showMaterials && (
+              <div className="border border-border rounded-lg p-3 space-y-2">
+                {pendingMaterials.length > 0 && (
+                  <div className="space-y-1">
+                    {pendingMaterials.map((mat, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
+                        <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{mat.title}</p>
+                          {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                          <p className="text-[10px] text-muted-foreground truncate">{mat.url}</p>
+                        </div>
+                        <button type="button" onClick={() => handleRemovePendingMaterial(idx)} className="text-muted-foreground hover:text-destructive shrink-0">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
+                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
+                  disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar material
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Estimated time */}
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
