@@ -445,6 +445,33 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </CollapsibleContent>
         </Collapsible>
       )}
+
+      {/* Materials */}
+      {materials.length > 0 && (
+        <Collapsible open={materialsOpen} onOpenChange={setMaterialsOpen}>
+          <div className="px-3 pb-2 flex items-center gap-1" onClick={e => e.stopPropagation()}>
+            <CollapsibleTrigger className="flex items-center gap-1 text-micro text-muted-foreground hover:text-foreground transition-colors">
+              {materialsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              <LinkIcon className="h-3 w-3" />
+              {materials.length} {materials.length === 1 ? "material" : "materiais"}
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent onClick={e => e.stopPropagation()}>
+            <div className="px-3 pb-3 space-y-1 ml-4 border-l border-border">
+              {materials.map((mat: any) => (
+                <a key={mat.id} href={mat.url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-start gap-2 py-1 text-xs hover:bg-muted/50 rounded px-1 -mx-1 transition-colors group/mat">
+                  <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate text-foreground group-hover/mat:underline">{mat.title}</p>
+                    {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
     </div>
   );
 });
