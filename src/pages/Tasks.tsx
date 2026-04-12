@@ -6,7 +6,7 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3 } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,9 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { KanbanView } from "@/components/KanbanView";
+import { DayPlanner } from "@/components/DayPlanner";
 
 const dateGroupFilters = [
   { value: "all", label: "All" },
+  { value: "planner", label: "Day Planner", icon: CalendarCheck },
   { value: "todo", label: "To-do" },
   { value: "today", label: "Today" },
   { value: "week", label: "This Week" },
@@ -98,16 +100,6 @@ export default function Tasks() {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(t => t.title.toLowerCase().includes(q));
-    }
-
-    // Sort by day_order when in "today" filter
-    if (filter === "today") {
-      result.sort((a: any, b: any) => {
-        const aOrder = a.day_order ?? 999999;
-        const bOrder = b.day_order ?? 999999;
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return (a.due_date || "").localeCompare(b.due_date || "");
-      });
     }
 
     return result;
@@ -273,34 +265,9 @@ export default function Tasks() {
     }
   };
 
-  const handleReorder = async (taskList: any[], fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= taskList.length) return;
-    const reordered = [...taskList];
-    const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, moved);
-
-    // Optimistic update
-    const updatedTasks = tasks.map(t => {
-      const idx = reordered.findIndex(r => r.id === t.id);
-      if (idx !== -1) return { ...t, day_order: idx + 1 };
-      return t;
-    });
-    setTasks(updatedTasks);
-
-    // Persist all orders
-    try {
-      await Promise.all(reordered.map((t, idx) => updateTask(t.id, { day_order: idx + 1 } as any)));
-    } catch (err: any) {
-      toast.error(err.message);
-      load();
-    }
-  };
-
-  const isTodayFilter = filter === "today";
-
   const renderTaskList = (taskList: any[], hideSpace = false) => (
     <div className="space-y-2">
-      {taskList.map((t, idx) => (
+      {taskList.map((t) => (
         <div key={t.id} onClick={() => setEditingTask(t)} className="cursor-pointer">
           <TaskCard
             task={t}
@@ -313,13 +280,6 @@ export default function Tasks() {
             onDeleteSubtask={handleDeleteSubtask}
             onPriorityChange={handlePriorityChange}
             hideSpace={hideSpace}
-            {...(isTodayFilter ? {
-              orderNumber: idx + 1,
-              onMoveUp: () => handleReorder(taskList, idx, idx - 1),
-              onMoveDown: () => handleReorder(taskList, idx, idx + 1),
-              isFirst: idx === 0,
-              isLast: idx === taskList.length - 1,
-            } : {})}
           />
         </div>
       ))}
@@ -354,48 +314,65 @@ export default function Tasks() {
         </TabsList>
       </Tabs>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
-        <div className="flex items-center border border-border rounded-md overflow-hidden">
-          <button
-            onClick={() => setViewMode("list")}
-            className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-            title="Lista"
-          >
-            <LayoutList className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setViewMode("kanban")}
-            className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-            title="Kanban"
-          >
-            <Columns3 className="h-4 w-4" />
-          </button>
+      {filter !== "planner" && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
+          <div className="flex items-center border border-border rounded-md overflow-hidden">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Lista"
+            >
+              <LayoutList className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Kanban"
+            >
+              <Columns3 className="h-4 w-4" />
+            </button>
+          </div>
+          {viewMode === "list" && (
+            <>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All priorities</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={groupBy} onValueChange={setGroupBy}>
+                <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No grouping</SelectItem>
+                  <SelectItem value="space">By Space</SelectItem>
+                  <SelectItem value="date">By Date</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
-        {viewMode === "list" && (
-          <>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All priorities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={groupBy} onValueChange={setGroupBy}>
-              <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No grouping</SelectItem>
-                <SelectItem value="space">By Space</SelectItem>
-                <SelectItem value="date">By Date</SelectItem>
-              </SelectContent>
-            </Select>
-          </>
-        )}
-      </div>
+      )}
 
-      {viewMode === "kanban" ? (
+      {filter === "planner" ? (
+        <DayPlanner
+          tasks={tasks}
+          setTasks={setTasks}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onSelect={setEditingTask}
+          onReload={load}
+        />
+      ) : viewMode === "kanban" ? (
         <KanbanView
           tasks={tasks}
           subtasksMap={subtasksMap}
