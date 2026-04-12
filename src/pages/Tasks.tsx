@@ -306,6 +306,7 @@ export default function Tasks() {
             onDeleteSubtask={handleDeleteSubtask}
             onPriorityChange={handlePriorityChange}
             onReschedule={handleReschedule}
+            onRescheduleSubtask={handleRescheduleSubtask}
             hideSpace={hideSpace}
           />
         </div>
@@ -398,6 +399,7 @@ export default function Tasks() {
           onPriorityChange={handlePriorityChange}
           onSelect={setEditingTask}
           onReschedule={handleReschedule}
+          onRescheduleSubtask={handleRescheduleSubtask}
           onReload={load}
         />
       ) : viewMode === "kanban" ? (
