@@ -355,7 +355,22 @@ export default function Tasks() {
         )}
       </div>
 
-      {viewMode === "kanban" ? (
+      {filter === "planner" ? (
+        <DayPlanner
+          tasks={tasks}
+          setTasks={setTasks}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onSelect={setEditingTask}
+          onReload={load}
+        />
+      ) : viewMode === "kanban" ? (
         <KanbanView
           tasks={tasks}
           subtasksMap={subtasksMap}
