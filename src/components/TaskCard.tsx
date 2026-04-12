@@ -1,8 +1,11 @@
 import { forwardRef, useState } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock } from "lucide-react";
 import { TaskTimer } from "@/components/TaskTimer";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type TaskStatus = "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
@@ -38,6 +41,7 @@ interface TaskCardProps {
   onDeleteSubtask?: (id: string) => void;
   onPriorityChange?: (id: string, priority: TaskPriority) => void;
   onSelect?: (task: TaskCardProps["task"]) => void;
+  onReschedule?: (id: string, newDate: string) => void;
   hideSpace?: boolean;
   orderNumber?: number;
   onMoveUp?: () => void;
@@ -112,7 +116,7 @@ function formatDate(dateStr: string) {
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, hideSpace,
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, hideSpace,
   orderNumber, onMoveUp, onMoveDown, isFirst, isLast
 }, ref) => {
   const isCompleted = task.status === "completed";
@@ -122,6 +126,15 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const hasSubtasks = subtasks.length > 0;
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
   const reminderTriggered = !!(reminder && new Date(reminder.reminder_time) <= new Date() && !reminder.sent);
+
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [showCustomDate, setShowCustomDate] = useState(false);
+
+  const handleReschedule = (dateStr: string) => {
+    onReschedule?.(task.id, dateStr);
+    setRescheduleOpen(false);
+    setShowCustomDate(false);
+  };
 
   const [isOpen, setIsOpen] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
@@ -243,6 +256,61 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
             )}
           </div>
         </div>
+
+        {!isCompleted && onReschedule && (
+          <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
+            <Popover open={rescheduleOpen} onOpenChange={(open) => { setRescheduleOpen(open); if (!open) setShowCustomDate(false); }}>
+              <PopoverTrigger asChild>
+                <button
+                  className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-md px-2 py-1 transition-colors"
+                  title="Reprogramar"
+                >
+                  <CalendarClock className="h-3 w-3" />
+                  <span className="hidden sm:inline">Reprogramar</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end" side="bottom">
+                {!showCustomDate ? (
+                  <div className="flex flex-col p-1 min-w-[140px]">
+                    <button
+                      onClick={() => handleReschedule(getBrtToday())}
+                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                    >
+                      📅 Hoje
+                    </button>
+                    <button
+                      onClick={() => handleReschedule(getBrtTomorrow())}
+                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                    >
+                      ➡️ Amanhã
+                    </button>
+                    <button
+                      onClick={() => setShowCustomDate(true)}
+                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                    >
+                      📆 Outra data
+                    </button>
+                  </div>
+                ) : (
+                  <Calendar
+                    mode="single"
+                    selected={task.due_date ? new Date(task.due_date + "T00:00:00") : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth() + 1).padStart(2, "0");
+                        const d = String(date.getDate()).padStart(2, "0");
+                        handleReschedule(`${y}-${m}-${d}`);
+                      }
+                    }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
 
         {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
         <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
