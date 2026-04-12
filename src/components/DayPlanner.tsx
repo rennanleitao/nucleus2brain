@@ -253,20 +253,20 @@ export function DayPlanner({
       {/* Tomorrow */}
       {renderToggleSection(
         "Amanhã", <CalendarPlus className="h-3.5 w-3.5 text-muted-foreground" />,
-        tomorrowTasks, showTomorrow, setShowTomorrow, tomorrowCollapsed, setTomorrowCollapsed,
+        tomorrowTasks, showTomorrow, setShowTomorrow,
       )}
 
       {/* Overdue */}
       {renderToggleSection(
         "Atrasadas", <AlertTriangle className="h-3.5 w-3.5 text-destructive" />,
-        overdueTasks, showOverdue, setShowOverdue, overdueCollapsed, setOverdueCollapsed,
+        overdueTasks, showOverdue, setShowOverdue,
         "border-destructive/20", "bg-destructive/5",
       )}
 
       {/* Future */}
       {renderToggleSection(
         "Atividades futuras", <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />,
-        futureTasks, showFuture, setShowFuture, futureCollapsed, setFutureCollapsed,
+        futureTasks, showFuture, setShowFuture,
       )}
     </div>
   );
