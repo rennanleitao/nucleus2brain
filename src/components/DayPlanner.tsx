@@ -46,6 +46,7 @@ export function DayPlanner({
         if (aOrder !== bOrder) return aOrder - bOrder;
         return a.created_at.localeCompare(b.created_at);
       });
+  }, [tasks, today]);
 
   const futureTasks = useMemo(() => {
     return tasks
