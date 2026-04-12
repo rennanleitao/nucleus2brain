@@ -352,6 +352,21 @@ export default function Tasks() {
         )}
       </div>
 
+      {viewMode === "kanban" ? (
+        <KanbanView
+          tasks={tasks}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onSelect={setEditingTask}
+        />
+      ) : (
+      <>
       {filter === "done" && filtered.length > 0 && (
         <div className="flex justify-end">
           <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={handleClearHistory}>
