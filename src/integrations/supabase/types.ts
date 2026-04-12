@@ -702,6 +702,7 @@ export type Database = {
           completed_at: string | null
           completion_note: string | null
           created_at: string
+          day_order: number | null
           description: string | null
           due_date: string | null
           estimated_minutes: number | null
@@ -718,6 +719,7 @@ export type Database = {
           completed_at?: string | null
           completion_note?: string | null
           created_at?: string
+          day_order?: number | null
           description?: string | null
           due_date?: string | null
           estimated_minutes?: number | null
@@ -734,6 +736,7 @@ export type Database = {
           completed_at?: string | null
           completion_note?: string | null
           created_at?: string
+          day_order?: number | null
           description?: string | null
           due_date?: string | null
           estimated_minutes?: number | null

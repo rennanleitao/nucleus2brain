@@ -1,0 +1,1 @@
+ALTER TABLE public.tasks ADD COLUMN day_order integer DEFAULT NULL;
