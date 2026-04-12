@@ -276,21 +276,21 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                   <div className="flex flex-col p-1 min-w-[140px]">
                     <button
                       onClick={() => handleReschedule(getBrtToday())}
-                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                      className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
                     >
-                      📅 Hoje
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /> Hoje
                     </button>
                     <button
                       onClick={() => handleReschedule(getBrtTomorrow())}
-                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                      className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
                     >
-                      ➡️ Amanhã
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> Amanhã
                     </button>
                     <button
                       onClick={() => setShowCustomDate(true)}
-                      className="text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                      className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
                     >
-                      📆 Outra data
+                      <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" /> Outra data
                     </button>
                   </div>
                 ) : (
