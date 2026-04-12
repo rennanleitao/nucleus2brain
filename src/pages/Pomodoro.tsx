@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { usePomodoro, FocusSoundMode } from "@/hooks/usePomodoroStore";
 import { fetchTasks } from "@/lib/api";
-import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Repeat, Bell, BellOff, Headphones, ChevronDown, ChevronRight } from "lucide-react";
+import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Repeat, Bell, BellOff, Headphones, ChevronDown, ChevronRight, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -35,7 +35,14 @@ export default function Pomodoro() {
   }, []);
 
   const todayTasks = useMemo(() => {
-    return tasks.filter(t => t.due_date === today);
+    return tasks
+      .filter(t => t.due_date === today)
+      .sort((a, b) => {
+        const aOrder = a.day_order ?? 999999;
+        const bOrder = b.day_order ?? 999999;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return a.created_at.localeCompare(b.created_at);
+      });
   }, [tasks, today]);
 
   const handleStart = () => {
@@ -208,24 +215,22 @@ export default function Pomodoro() {
                       <p className="text-micro text-muted-foreground">{t.estimated_minutes} min estimado</p>
                     )}
                   </div>
-                  <Button
-                    size="sm"
-                    variant={pomo.taskId === t.id && pomo.phase === "focus" ? "outline" : "default"}
-                    className="gap-1.5 ml-2 flex-shrink-0"
+                  <button
+                    className="ml-2 flex-shrink-0 text-muted-foreground hover:text-primary transition-colors p-1"
                     onClick={() => {
                       if (pomo.taskId === t.id && pomo.phase === "focus") {
-                        pomo.pause();
+                        pomo.reset();
                       } else {
                         handleStartWithTask(t);
                       }
                     }}
                   >
                     {pomo.taskId === t.id && pomo.phase === "focus" ? (
-                      <><Pause className="h-3.5 w-3.5" /> Pausar</>
+                      <Square className="h-3.5 w-3.5" />
                     ) : (
-                      <><Play className="h-3.5 w-3.5" /> Focar</>
+                      <Play className="h-3.5 w-3.5" />
                     )}
-                  </Button>
+                  </button>
                 </div>
               ))}
             </div>
