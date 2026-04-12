@@ -43,7 +43,7 @@ const navItems = [
   { title: "Tags", url: "/tags", icon: Tag },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Pomodoro", url: "/pomodoro", icon: Timer },
-  { title: "Materials", url: "/materials", icon: Clock },
+  { title: "Materials", url: "/materials", icon: Paperclip },
   { title: "Assistant", url: "/assistant", icon: Bot },
   
 ];
