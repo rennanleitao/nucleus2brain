@@ -141,48 +141,31 @@ export function DayPlanner({
     label: string,
     icon: React.ReactNode,
     tasksList: any[],
-    show: boolean,
-    setShow: (v: boolean) => void,
-    collapsed: boolean,
-    setCollapsed: (v: boolean) => void,
+    expanded: boolean,
+    setExpanded: (v: boolean) => void,
     borderColor = "border-border",
     bgColor = "bg-muted/30",
   ) => {
     if (tasksList.length === 0) return null;
     return (
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {icon}
-            <span className="text-small font-medium text-muted-foreground">
-              {label} ({tasksList.length})
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-micro text-muted-foreground">Mostrar</span>
-            <Switch checked={show} onCheckedChange={setShow} />
-          </div>
-        </div>
-        {show && (
-          <div className={`rounded-xl border ${borderColor} ${bgColor} p-3`}>
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="flex items-center gap-2 mb-2 text-left w-full"
-            >
-              {collapsed ? (
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-              <span className="text-xs font-medium text-muted-foreground">
-                {tasksList.length} task{tasksList.length !== 1 ? "s" : ""}
-              </span>
-            </button>
-            {!collapsed && (
-              <div className="space-y-2">
-                {tasksList.map(t => renderTaskCardInSection(t))}
-              </div>
-            )}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 w-full text-left group/section"
+        >
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+          {icon}
+          <span className="text-small font-medium text-muted-foreground">
+            {label} ({tasksList.length})
+          </span>
+        </button>
+        {expanded && (
+          <div className={`rounded-xl border ${borderColor} ${bgColor} p-3 space-y-2`}>
+            {tasksList.map(t => renderTaskCardInSection(t))}
           </div>
         )}
       </div>
