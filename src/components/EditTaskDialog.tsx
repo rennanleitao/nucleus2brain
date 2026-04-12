@@ -198,6 +198,18 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
     }
   };
 
+  const handleAddMaterial = async () => {
+    if (!newMatTitle.trim() || !newMatUrl.trim()) return;
+    try {
+      await createTaskMaterial({ task_id: task.id, title: newMatTitle.trim(), url: newMatUrl.trim(), description: newMatDesc.trim() || null });
+      loadMaterials();
+      setNewMatTitle(""); setNewMatUrl(""); setNewMatDesc("");
+      toast.success("Material adicionado");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
