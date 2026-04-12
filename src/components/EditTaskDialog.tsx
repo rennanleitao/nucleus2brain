@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchTaskLinks, deleteTaskLink } from "@/lib/api";
+import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchTaskLinks, deleteTaskLink, fetchTaskMaterials, createTaskMaterial, deleteTaskMaterial } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2 } from "lucide-react";
+import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink } from "lucide-react";
 import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
 
@@ -116,8 +116,18 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
 
+  // Materials state
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [newMatTitle, setNewMatTitle] = useState("");
+  const [newMatUrl, setNewMatUrl] = useState("");
+  const [newMatDesc, setNewMatDesc] = useState("");
+
   const loadLinkedTasks = () => {
     fetchTaskLinks(task.id).then(setLinkedTasks).catch(() => {});
+  };
+
+  const loadMaterials = () => {
+    fetchTaskMaterials(task.id).then(setMaterials).catch(() => {});
   };
 
   useEffect(() => {
@@ -125,6 +135,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
       fetchAllTags().then(setAllTags).catch(() => {});
       fetchSubtasks(task.id).then(setSubtasks).catch(() => {});
       loadLinkedTasks();
+      loadMaterials();
     }
   }, [open, task.id]);
 
@@ -182,6 +193,18 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
       await deleteSubtask(subId);
       setSubtasks(prev => prev.filter(s => s.id !== subId));
       toast.success("Subtask removida");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleAddMaterial = async () => {
+    if (!newMatTitle.trim() || !newMatUrl.trim()) return;
+    try {
+      await createTaskMaterial({ task_id: task.id, title: newMatTitle.trim(), url: newMatUrl.trim(), description: newMatDesc.trim() || null });
+      loadMaterials();
+      setNewMatTitle(""); setNewMatUrl(""); setNewMatDesc("");
+      toast.success("Material adicionado");
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -442,6 +465,45 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
             <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+
+          {/* Materials */}
+          <div className="border border-border rounded-lg p-3 space-y-2">
+            <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <LinkIcon className="h-3 w-3" /> Materiais Relacionados
+            </label>
+            {materials.length > 0 && (
+              <div className="space-y-1">
+                {materials.map((mat: any) => (
+                  <div key={mat.id} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
+                    <a href={mat.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 shrink-0 text-primary hover:text-primary/80">
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <a href={mat.url} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 hover:underline">
+                      <p className="font-medium truncate">{mat.title}</p>
+                      {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                    </a>
+                    <button type="button" onClick={async () => {
+                      try { await deleteTaskMaterial(mat.id); loadMaterials(); toast.success("Material removido"); }
+                      catch (err: any) { toast.error(err.message); }
+                    }} className="text-muted-foreground hover:text-destructive shrink-0">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input type="text" placeholder="Nome do material" value={newMatTitle} onChange={e => setNewMatTitle(e.target.value)}
+              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+            <input type="url" placeholder="https://..." value={newMatUrl} onChange={e => setNewMatUrl(e.target.value)}
+              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+            <input type="text" placeholder="Descrição curta (opcional)" value={newMatDesc} onChange={e => setNewMatDesc(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddMaterial(); } }}
+              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+            <Button type="button" variant="ghost" size="sm" onClick={handleAddMaterial}
+              disabled={!newMatTitle.trim() || !newMatUrl.trim()} className="h-7 text-xs w-full">
+              <Plus className="h-3 w-3 mr-1" /> Adicionar material
+            </Button>
           </div>
 
           {/* Reminder */}

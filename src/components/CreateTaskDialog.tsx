@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Tag, X, Search, ChevronDown } from "lucide-react";
-import { createTask, createSpace, createSubtask, fetchAllTags } from "@/lib/api";
+import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink } from "lucide-react";
+import { createTask, createSpace, createSubtask, createTaskMaterial, fetchAllTags } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +143,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [subtaskDate, setSubtaskDate] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
 
+  // Materials state
+  const [pendingMaterials, setPendingMaterials] = useState<{ title: string; url: string; description?: string }[]>([]);
+  const [materialTitle, setMaterialTitle] = useState("");
+  const [materialUrl, setMaterialUrl] = useState("");
+  const [materialDesc, setMaterialDesc] = useState("");
+  const [showMaterials, setShowMaterials] = useState(false);
+
   useEffect(() => {
     if (open) {
       fetchAllTags().then(setAllTags).catch(() => {});
@@ -188,6 +195,18 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setPendingSubtasks(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const handleAddPendingMaterial = () => {
+    if (!materialTitle.trim() || !materialUrl.trim()) return;
+    setPendingMaterials(prev => [...prev, { title: materialTitle.trim(), url: materialUrl.trim(), description: materialDesc.trim() || undefined }]);
+    setMaterialTitle("");
+    setMaterialUrl("");
+    setMaterialDesc("");
+  };
+
+  const handleRemovePendingMaterial = (idx: number) => {
+    setPendingMaterials(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -215,9 +234,20 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         );
       }
 
+      // Create pending materials
+      if (pendingMaterials.length > 0 && task?.id) {
+        await Promise.all(
+          pendingMaterials.map(mat =>
+            createTaskMaterial({ task_id: task.id, title: mat.title, url: mat.url, description: mat.description || null })
+          )
+        );
+      }
+
       toast.success("Task criada!");
       setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
       setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
+      setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
+      setShowMaterials(false);
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -372,6 +402,50 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                 <Plus className="h-3 w-3" />
               </Button>
             </div>
+          </div>
+
+          {/* Materials section */}
+          <div>
+            <button type="button" onClick={() => setShowMaterials(!showMaterials)}
+              className="text-xs text-muted-foreground mb-1 flex items-center gap-1 hover:text-foreground transition-colors">
+              <LinkIcon className="h-3 w-3" />
+              Materiais relacionados
+              <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
+              {pendingMaterials.length > 0 && <span className="text-[10px] text-primary">({pendingMaterials.length})</span>}
+            </button>
+            {showMaterials && (
+              <div className="border border-border rounded-lg p-3 space-y-2">
+                {pendingMaterials.length > 0 && (
+                  <div className="space-y-1">
+                    {pendingMaterials.map((mat, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
+                        <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{mat.title}</p>
+                          {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                          <p className="text-[10px] text-muted-foreground truncate">{mat.url}</p>
+                        </div>
+                        <button type="button" onClick={() => handleRemovePendingMaterial(idx)} className="text-muted-foreground hover:text-destructive shrink-0">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
+                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
+                  disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar material
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Estimated time */}
