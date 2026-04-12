@@ -455,6 +455,45 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
 
+          {/* Materials */}
+          <div className="border border-border rounded-lg p-3 space-y-2">
+            <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <LinkIcon className="h-3 w-3" /> Materiais Relacionados
+            </label>
+            {materials.length > 0 && (
+              <div className="space-y-1">
+                {materials.map((mat: any) => (
+                  <div key={mat.id} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
+                    <a href={mat.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 shrink-0 text-primary hover:text-primary/80">
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <a href={mat.url} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 hover:underline">
+                      <p className="font-medium truncate">{mat.title}</p>
+                      {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                    </a>
+                    <button type="button" onClick={async () => {
+                      try { await deleteTaskMaterial(mat.id); loadMaterials(); toast.success("Material removido"); }
+                      catch (err: any) { toast.error(err.message); }
+                    }} className="text-muted-foreground hover:text-destructive shrink-0">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input type="text" placeholder="Nome do material" value={newMatTitle} onChange={e => setNewMatTitle(e.target.value)}
+              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+            <input type="url" placeholder="https://..." value={newMatUrl} onChange={e => setNewMatUrl(e.target.value)}
+              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+            <input type="text" placeholder="Descrição curta (opcional)" value={newMatDesc} onChange={e => setNewMatDesc(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddMaterial(); } }}
+              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+            <Button type="button" variant="ghost" size="sm" onClick={handleAddMaterial}
+              disabled={!newMatTitle.trim() || !newMatUrl.trim()} className="h-7 text-xs w-full">
+              <Plus className="h-3 w-3 mr-1" /> Adicionar material
+            </Button>
+          </div>
+
           {/* Reminder */}
           <div className="border border-border rounded-lg p-3 space-y-2">
             <label className="text-xs text-muted-foreground font-medium flex items-center gap-1">
