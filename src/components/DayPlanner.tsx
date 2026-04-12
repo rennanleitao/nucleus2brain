@@ -32,7 +32,7 @@ export function DayPlanner({
   onToggle, onDelete, onToggleSubtask, onAddSubtask,
   onDeleteSubtask, onPriorityChange, onSelect, onReload,
 }: DayPlannerProps) {
-  const [showOverdue, setShowOverdue] = useState(false);
+  const [showOverdue, setShowOverdue] = useState(true);
   const [overdueCollapsed, setOverdueCollapsed] = useState(false);
 
   const today = getBrtToday();
