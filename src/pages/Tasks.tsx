@@ -6,13 +6,14 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { KanbanView } from "@/components/KanbanView";
 
 const dateGroupFilters = [
   { value: "all", label: "All" },
@@ -33,6 +34,7 @@ export default function Tasks() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   
   const [groupBy, setGroupBy] = useState("space");
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<any | null>(null);
@@ -311,25 +313,60 @@ export default function Tasks() {
 
       <div className="flex items-center gap-2 flex-wrap">
         <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All priorities</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={groupBy} onValueChange={setGroupBy}>
-          <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No grouping</SelectItem>
-            <SelectItem value="space">By Space</SelectItem>
-            <SelectItem value="date">By Date</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center border border-border rounded-md overflow-hidden">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+            title="Lista"
+          >
+            <LayoutList className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode("kanban")}
+            className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+            title="Kanban"
+          >
+            <Columns3 className="h-4 w-4" />
+          </button>
+        </div>
+        {viewMode === "list" && (
+          <>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All priorities</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={groupBy} onValueChange={setGroupBy}>
+              <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No grouping</SelectItem>
+                <SelectItem value="space">By Space</SelectItem>
+                <SelectItem value="date">By Date</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        )}
       </div>
 
+      {viewMode === "kanban" ? (
+        <KanbanView
+          tasks={tasks}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onSelect={setEditingTask}
+        />
+      ) : (
+      <>
       {filter === "done" && filtered.length > 0 && (
         <div className="flex justify-end">
           <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={handleClearHistory}>
@@ -420,6 +457,8 @@ export default function Tasks() {
             <p className="text-small text-muted-foreground">No tasks here</p>
           </div>
         )
+      )}
+      </>
       )}
 
       {editingTask && (
