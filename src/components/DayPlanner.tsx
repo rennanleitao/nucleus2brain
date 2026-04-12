@@ -39,7 +39,7 @@ export function DayPlanner({
 
   const todayTasks = useMemo(() => {
     return tasks
-      .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date === today)
+      .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date <= today)
       .sort((a, b) => {
         const aOrder = a.day_order ?? 999999;
         const bOrder = b.day_order ?? 999999;
