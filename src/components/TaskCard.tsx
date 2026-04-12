@@ -115,8 +115,45 @@ function formatDate(dateStr: string) {
   const date = new Date(dateStr + "T00:00:00");
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
+function SubtaskReschedulePopover({ subtaskId, currentDate, onReschedule }: { subtaskId: string; currentDate?: string | null; onReschedule: (id: string, newDate: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [showCal, setShowCal] = useState(false);
+  const handle = (d: string) => { onReschedule(subtaskId, d); setOpen(false); setShowCal(false); };
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setShowCal(false); }}>
+      <PopoverTrigger asChild>
+        <button onClick={e => e.stopPropagation()} className="text-muted-foreground hover:text-primary transition-colors" title="Reprogramar subtask">
+          <CalendarClock className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="end" side="bottom" onClick={e => e.stopPropagation()}>
+        {!showCal ? (
+          <div className="flex flex-col p-1 min-w-[140px]">
+            <button onClick={() => handle(getBrtToday())} className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors">
+              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /> Hoje
+            </button>
+            <button onClick={() => handle(getBrtTomorrow())} className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors">
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> Amanhã
+            </button>
+            <button onClick={() => setShowCal(true)} className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors">
+              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" /> Outra data
+            </button>
+          </div>
+        ) : (
+          <Calendar
+            mode="single"
+            selected={currentDate ? new Date(currentDate + "T00:00:00") : undefined}
+            onSelect={(date) => { if (date) { const y = date.getFullYear(); const m = String(date.getMonth()+1).padStart(2,"0"); const d = String(date.getDate()).padStart(2,"0"); handle(`${y}-${m}-${d}`); }}}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
-export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
+
   task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, hideSpace,
   orderNumber, onMoveUp, onMoveDown, isFirst, isLast
 }, ref) => {
