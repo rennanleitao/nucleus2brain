@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, AlertTriangle, ArrowRight, CalendarClock } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, ArrowRight, CalendarClock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { updateTask } from "@/lib/api";
