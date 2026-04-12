@@ -179,6 +179,12 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskDate, setNewSubtaskDate] = useState("");
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [materialsOpen, setMaterialsOpen] = useState(false);
+
+  useEffect(() => {
+    fetchTaskMaterials(task.id).then(setMaterials).catch(() => {});
+  }, [task.id]);
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
