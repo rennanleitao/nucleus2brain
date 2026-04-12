@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { usePomodoro, FocusSoundMode } from "@/hooks/usePomodoroStore";
 import { fetchTasks } from "@/lib/api";
-import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Volume2, VolumeX, Repeat, Bell, BellOff, Headphones } from "lucide-react";
+import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Repeat, Bell, BellOff, Headphones, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -14,10 +14,19 @@ function formatTime(seconds: number) {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
+function getBrtToday() {
+  const now = new Date();
+  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  return brt.toISOString().split("T")[0];
+}
+
 export default function Pomodoro() {
   const pomo = usePomodoro();
   const [tasks, setTasks] = useState<any[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string>("none");
+  const [showTodayTasks, setShowTodayTasks] = useState(true);
+
+  const today = getBrtToday();
 
   useEffect(() => {
     fetchTasks().then(t => {
@@ -25,10 +34,20 @@ export default function Pomodoro() {
     }).catch(() => {});
   }, []);
 
+  const todayTasks = useMemo(() => {
+    return tasks.filter(t => t.due_date === today);
+  }, [tasks, today]);
+
   const handleStart = () => {
     const task = tasks.find(t => t.id === selectedTaskId);
     pomo.startFocus(task?.id, task?.title);
     toast.success("Foco iniciado! 🎯");
+  };
+
+  const handleStartWithTask = (task: any) => {
+    setSelectedTaskId(task.id);
+    pomo.startFocus(task.id, task.title);
+    toast.success(`Foco iniciado: ${task.title} 🎯`);
   };
 
   const progress = pomo.totalSeconds > 0 ? ((pomo.totalSeconds - pomo.secondsLeft) / pomo.totalSeconds) * 100 : 0;
@@ -152,6 +171,70 @@ export default function Pomodoro() {
             <Switch checked={pomo.soundEnabled} onCheckedChange={pomo.toggleSound} />
           </div>
         </div>
+      </div>
+
+      {/* Today's Tasks from Day Planner */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <button
+          onClick={() => setShowTodayTasks(!showTodayTasks)}
+          className="flex items-center gap-2 w-full text-left"
+        >
+          {showTodayTasks ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+          <h2 className="text-h2">Atividades do Dia</h2>
+          <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
+            {todayTasks.length}
+          </span>
+        </button>
+
+        {showTodayTasks && (
+          todayTasks.length > 0 ? (
+            <div className="space-y-2">
+              {todayTasks.map(t => (
+                <div
+                  key={t.id}
+                  className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+                    pomo.taskId === t.id && pomo.phase === "focus"
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border bg-card hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-small font-medium truncate">{t.title}</p>
+                    {t.estimated_minutes && (
+                      <p className="text-micro text-muted-foreground">{t.estimated_minutes} min estimado</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={pomo.taskId === t.id && pomo.phase === "focus" ? "outline" : "default"}
+                    className="gap-1.5 ml-2 flex-shrink-0"
+                    onClick={() => {
+                      if (pomo.taskId === t.id && pomo.phase === "focus") {
+                        pomo.pause();
+                      } else {
+                        handleStartWithTask(t);
+                      }
+                    }}
+                  >
+                    {pomo.taskId === t.id && pomo.phase === "focus" ? (
+                      <><Pause className="h-3.5 w-3.5" /> Pausar</>
+                    ) : (
+                      <><Play className="h-3.5 w-3.5" /> Focar</>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-small text-muted-foreground text-center py-4">
+              Nenhuma atividade programada para hoje
+            </p>
+          )
+        )}
       </div>
 
       {/* Settings */}

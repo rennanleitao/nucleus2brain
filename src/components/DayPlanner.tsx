@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2 } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -42,6 +44,7 @@ export function DayPlanner({
   onToggle, onDelete, onToggleSubtask, onAddSubtask,
   onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onReload,
 }: DayPlannerProps) {
+  const navigate = useNavigate();
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
@@ -179,6 +182,19 @@ export function DayPlanner({
             {todayTasks.length + todayOrphanSubtasks.length} item{(todayTasks.length + todayOrphanSubtasks.length) !== 1 ? "s" : ""}
           </span>
         </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => navigate("/pomodoro")}
+                className="flex items-center gap-1.5 text-small font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-lg px-2.5 py-1.5 transition-colors"
+              >
+                <Timer className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent><p className="text-xs">Abrir Pomodoro</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Today tasks – reorderable */}
