@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Tag, X, Search, ChevronDown } from "lucide-react";
-import { createTask, createSpace, createSubtask, fetchAllTags } from "@/lib/api";
+import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink } from "lucide-react";
+import { createTask, createSpace, createSubtask, createTaskMaterial, fetchAllTags } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -142,6 +142,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskDate, setSubtaskDate] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
+
+  // Materials state
+  const [pendingMaterials, setPendingMaterials] = useState<{ title: string; url: string; description?: string }[]>([]);
+  const [materialTitle, setMaterialTitle] = useState("");
+  const [materialUrl, setMaterialUrl] = useState("");
+  const [materialDesc, setMaterialDesc] = useState("");
+  const [showMaterials, setShowMaterials] = useState(false);
 
   useEffect(() => {
     if (open) {

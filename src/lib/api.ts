@@ -454,3 +454,31 @@ export async function deleteTaskLink(id: string) {
   const { error } = await supabase.from("task_links").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ---- TASK MATERIALS ----
+export async function fetchTaskMaterials(taskId: string) {
+  const { data, error } = await supabase
+    .from("task_materials")
+    .select("*")
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function createTaskMaterial(material: { task_id: string; title: string; url: string; description?: string | null }) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("task_materials")
+    .insert({ ...material, user_id: user.id })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTaskMaterial(id: string) {
+  const { error } = await supabase.from("task_materials").delete().eq("id", id);
+  if (error) throw error;
+}
