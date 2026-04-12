@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { usePomodoro } from "@/hooks/usePomodoroStore";
+import { usePomodoro, FocusSoundMode } from "@/hooks/usePomodoroStore";
 import { fetchTasks } from "@/lib/api";
-import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Volume2, VolumeX, Repeat, Bell, BellOff } from "lucide-react";
+import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Volume2, VolumeX, Repeat, Bell, BellOff, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -106,15 +107,38 @@ export default function Pomodoro() {
 
         {/* Toggles row */}
         <div className="flex items-center gap-4 flex-wrap justify-center">
-          <Button
-            variant={pomo.alphaWaves ? "default" : "outline"}
-            size="sm"
-            onClick={pomo.toggleAlphaWaves}
-            className="gap-2"
-          >
-            {pomo.alphaWaves ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
-            Alpha Waves
-          </Button>
+          <div className="flex items-center gap-2">
+            <Headphones className={`h-3.5 w-3.5 ${pomo.focusSoundMode !== "off" ? "text-primary" : "text-muted-foreground"}`} />
+            <span className="text-small text-muted-foreground">Focus Sound</span>
+            <TooltipProvider>
+              <Select value={pomo.focusSoundMode} onValueChange={(v) => pomo.setFocusSoundMode(v as FocusSoundMode)}>
+                <SelectTrigger className="w-[140px] h-8 text-small">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SelectItem value="deep">Deep Focus</SelectItem>
+                    </TooltipTrigger>
+                    <TooltipContent side="left"><p className="text-xs">15 Hz · Melhor para trabalho intenso</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SelectItem value="light">Light Focus</SelectItem>
+                    </TooltipTrigger>
+                    <TooltipContent side="left"><p className="text-xs">10 Hz · Foco relaxado</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SelectItem value="creative">Creative</SelectItem>
+                    </TooltipTrigger>
+                    <TooltipContent side="left"><p className="text-xs">6 Hz · Ideação e brainstorming</p></TooltipContent>
+                  </Tooltip>
+                  <SelectItem value="off">Desligado</SelectItem>
+                </SelectContent>
+              </Select>
+            </TooltipProvider>
+          </div>
 
           <div className="flex items-center gap-2">
             <Repeat className={`h-3.5 w-3.5 ${pomo.autoRepeat ? "text-primary" : "text-muted-foreground"}`} />
