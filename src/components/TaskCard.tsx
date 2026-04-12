@@ -116,7 +116,7 @@ function formatDate(dateStr: string) {
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, hideSpace,
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, hideSpace,
   orderNumber, onMoveUp, onMoveDown, isFirst, isLast
 }, ref) => {
   const isCompleted = task.status === "completed";
