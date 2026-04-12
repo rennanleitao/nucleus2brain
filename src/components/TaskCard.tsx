@@ -153,7 +153,7 @@ function SubtaskReschedulePopover({ subtaskId, currentDate, onReschedule }: { su
   );
 }
 
-
+export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, hideSpace,
   orderNumber, onMoveUp, onMoveDown, isFirst, isLast
 }, ref) => {
