@@ -99,6 +99,17 @@ export default function Tasks() {
       const q = search.toLowerCase();
       result = result.filter(t => t.title.toLowerCase().includes(q));
     }
+
+    // Sort by day_order when in "today" filter
+    if (filter === "today") {
+      result.sort((a: any, b: any) => {
+        const aOrder = a.day_order ?? 999999;
+        const bOrder = b.day_order ?? 999999;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return (a.due_date || "").localeCompare(b.due_date || "");
+      });
+    }
+
     return result;
   }, [tasks, filter, priorityFilter, search]);
 
