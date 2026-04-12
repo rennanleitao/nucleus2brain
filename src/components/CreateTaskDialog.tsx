@@ -225,7 +225,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
       } as any);
 
-      // Create pending subtasks
+      const materialsToCreate = [
+        ...pendingMaterials,
+        ...(materialTitle.trim() && materialUrl.trim()
+          ? [{ title: materialTitle.trim(), url: materialUrl.trim(), description: materialDesc.trim() || undefined }]
+          : []),
+      ];
+
       if (pendingSubtasks.length > 0 && task?.id) {
         await Promise.all(
           pendingSubtasks.map(sub =>
@@ -234,10 +240,9 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         );
       }
 
-      // Create pending materials
-      if (pendingMaterials.length > 0 && task?.id) {
+      if (materialsToCreate.length > 0 && task?.id) {
         await Promise.all(
-          pendingMaterials.map(mat =>
+          materialsToCreate.map(mat =>
             createTaskMaterial({ task_id: task.id, title: mat.title, url: mat.url, description: mat.description || null })
           )
         );
