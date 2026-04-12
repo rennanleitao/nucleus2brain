@@ -24,13 +24,14 @@ interface DayPlannerProps {
   onDeleteSubtask: (id: string) => void;
   onPriorityChange: (id: string, priority: "low" | "medium" | "high") => void;
   onSelect: (task: any) => void;
+  onReschedule: (id: string, newDate: string) => void;
   onReload: () => void;
 }
 
 export function DayPlanner({
   tasks, setTasks, subtasksMap, remindersMap,
   onToggle, onDelete, onToggleSubtask, onAddSubtask,
-  onDeleteSubtask, onPriorityChange, onSelect, onReload,
+  onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onReload,
 }: DayPlannerProps) {
   const [showFuture, setShowFuture] = useState(false);
   const [futureCollapsed, setFutureCollapsed] = useState(false);
