@@ -302,11 +302,10 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
             <Popover open={rescheduleOpen} onOpenChange={(open) => { setRescheduleOpen(open); if (!open) setShowCustomDate(false); }}>
               <PopoverTrigger asChild>
                 <button
-                  className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-md px-2 py-1 transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-colors p-1"
                   title="Reprogramar"
                 >
-                  <CalendarClock className="h-3 w-3" />
-                  <span className="hidden sm:inline">Reprogramar</span>
+                  <CalendarClock className="h-3.5 w-3.5" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end" side="bottom">

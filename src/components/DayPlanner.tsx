@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { TaskCard } from "@/components/TaskCard";
 import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -44,11 +43,8 @@ export function DayPlanner({
   onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onReload,
 }: DayPlannerProps) {
   const [showTomorrow, setShowTomorrow] = useState(false);
-  const [tomorrowCollapsed, setTomorrowCollapsed] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
-  const [overdueCollapsed, setOverdueCollapsed] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [futureCollapsed, setFutureCollapsed] = useState(false);
 
   const today = getBrtToday();
   const tomorrow = getBrtTomorrow();
@@ -141,48 +137,31 @@ export function DayPlanner({
     label: string,
     icon: React.ReactNode,
     tasksList: any[],
-    show: boolean,
-    setShow: (v: boolean) => void,
-    collapsed: boolean,
-    setCollapsed: (v: boolean) => void,
+    expanded: boolean,
+    setExpanded: (v: boolean) => void,
     borderColor = "border-border",
     bgColor = "bg-muted/30",
   ) => {
     if (tasksList.length === 0) return null;
     return (
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {icon}
-            <span className="text-small font-medium text-muted-foreground">
-              {label} ({tasksList.length})
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-micro text-muted-foreground">Mostrar</span>
-            <Switch checked={show} onCheckedChange={setShow} />
-          </div>
-        </div>
-        {show && (
-          <div className={`rounded-xl border ${borderColor} ${bgColor} p-3`}>
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="flex items-center gap-2 mb-2 text-left w-full"
-            >
-              {collapsed ? (
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-              <span className="text-xs font-medium text-muted-foreground">
-                {tasksList.length} task{tasksList.length !== 1 ? "s" : ""}
-              </span>
-            </button>
-            {!collapsed && (
-              <div className="space-y-2">
-                {tasksList.map(t => renderTaskCardInSection(t))}
-              </div>
-            )}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 w-full text-left group/section"
+        >
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+          {icon}
+          <span className="text-small font-medium text-muted-foreground">
+            {label} ({tasksList.length})
+          </span>
+        </button>
+        {expanded && (
+          <div className={`rounded-xl border ${borderColor} ${bgColor} p-3 space-y-2`}>
+            {tasksList.map(t => renderTaskCardInSection(t))}
           </div>
         )}
       </div>
@@ -273,20 +252,20 @@ export function DayPlanner({
       {/* Tomorrow */}
       {renderToggleSection(
         "Amanhã", <CalendarPlus className="h-3.5 w-3.5 text-muted-foreground" />,
-        tomorrowTasks, showTomorrow, setShowTomorrow, tomorrowCollapsed, setTomorrowCollapsed,
+        tomorrowTasks, showTomorrow, setShowTomorrow,
       )}
 
       {/* Overdue */}
       {renderToggleSection(
         "Atrasadas", <AlertTriangle className="h-3.5 w-3.5 text-destructive" />,
-        overdueTasks, showOverdue, setShowOverdue, overdueCollapsed, setOverdueCollapsed,
+        overdueTasks, showOverdue, setShowOverdue,
         "border-destructive/20", "bg-destructive/5",
       )}
 
       {/* Future */}
       {renderToggleSection(
         "Atividades futuras", <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />,
-        futureTasks, showFuture, setShowFuture, futureCollapsed, setFutureCollapsed,
+        futureTasks, showFuture, setShowFuture,
       )}
     </div>
   );
