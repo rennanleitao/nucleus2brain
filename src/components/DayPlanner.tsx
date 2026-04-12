@@ -32,8 +32,6 @@ export function DayPlanner({
   onToggle, onDelete, onToggleSubtask, onAddSubtask,
   onDeleteSubtask, onPriorityChange, onSelect, onReload,
 }: DayPlannerProps) {
-  const [showOverdue, setShowOverdue] = useState(false);
-  const [overdueCollapsed, setOverdueCollapsed] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
   const [futureCollapsed, setFutureCollapsed] = useState(false);
 
@@ -48,13 +46,6 @@ export function DayPlanner({
         if (aOrder !== bOrder) return aOrder - bOrder;
         return a.created_at.localeCompare(b.created_at);
       });
-  }, [tasks, today]);
-
-  const overdueTasks = useMemo(() => {
-    return tasks
-      .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date < today)
-      .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
-  }, [tasks, today]);
 
   const futureTasks = useMemo(() => {
     return tasks
@@ -138,74 +129,6 @@ export function DayPlanner({
           <CalendarCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-small text-muted-foreground">Nenhuma task para hoje</p>
           <p className="text-micro text-muted-foreground mt-1">Agende tasks com data de hoje para planejar seu dia</p>
-        </div>
-      )}
-
-      {/* Overdue section */}
-      {overdueTasks.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-small font-medium text-destructive">
-                Atrasadas ({overdueTasks.length})
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-micro text-muted-foreground">Mostrar</span>
-              <Switch checked={showOverdue} onCheckedChange={setShowOverdue} />
-            </div>
-          </div>
-
-          {showOverdue && (
-            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3">
-              <button
-                onClick={() => setOverdueCollapsed(!overdueCollapsed)}
-                className="flex items-center gap-2 mb-2 text-left w-full"
-              >
-                {overdueCollapsed ? (
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                )}
-                <span className="text-xs font-medium text-destructive">
-                  {overdueTasks.length} task{overdueTasks.length !== 1 ? "s" : ""} atrasada{overdueTasks.length !== 1 ? "s" : ""}
-                </span>
-              </button>
-
-              {!overdueCollapsed && (
-                <div className="space-y-2">
-                  {overdueTasks.map(t => (
-                    <div key={t.id} className="flex items-start gap-2">
-                      <div className="flex-1 cursor-pointer" onClick={() => onSelect(t)}>
-                        <TaskCard
-                          task={t}
-                          subtasks={subtasksMap[t.id] || []}
-                          reminder={remindersMap[t.id] || null}
-                          onToggle={() => onToggle(t.id)}
-                          onDelete={() => onDelete(t.id)}
-                          onToggleSubtask={onToggleSubtask}
-                          onAddSubtask={onAddSubtask}
-                          onDeleteSubtask={onDeleteSubtask}
-                          onPriorityChange={onPriorityChange}
-                        />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-primary hover:bg-primary/10 flex-shrink-0 mt-2"
-                        title="Mover para hoje"
-                        onClick={() => handleMoveToToday(t.id)}
-                      >
-                        <ArrowRight className="h-3.5 w-3.5 mr-1" />
-                        <span className="text-[10px]">Hoje</span>
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 
