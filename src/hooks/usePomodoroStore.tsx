@@ -1,9 +1,15 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from "react";
 
-// Generate alpha wave binaural beats using Web Audio API
-function createAlphaWavesNode(audioCtx: AudioContext): { start: () => void; stop: () => void } {
+export type FocusSoundMode = "deep" | "light" | "creative" | "off";
+
+const FOCUS_FREQUENCIES: Record<Exclude<FocusSoundMode, "off">, number> = {
+  deep: 15,    // Low Beta – intense work
+  light: 10,   // Alpha – relaxed focus
+  creative: 6, // Theta – ideation
+};
+
+function createBinauralNode(audioCtx: AudioContext, beatFreq: number): { start: () => void; stop: () => void } {
   const baseFreq = 200;
-  const alphaFreq = 10; // 10Hz alpha wave
   const gainNode = audioCtx.createGain();
   gainNode.gain.value = 0.15;
   gainNode.connect(audioCtx.destination);
@@ -13,7 +19,7 @@ function createAlphaWavesNode(audioCtx: AudioContext): { start: () => void; stop
   oscLeft.type = "sine";
   oscRight.type = "sine";
   oscLeft.frequency.value = baseFreq;
-  oscRight.frequency.value = baseFreq + alphaFreq;
+  oscRight.frequency.value = baseFreq + beatFreq;
 
   const panLeft = audioCtx.createStereoPanner();
   const panRight = audioCtx.createStereoPanner();
@@ -23,7 +29,7 @@ function createAlphaWavesNode(audioCtx: AudioContext): { start: () => void; stop
   oscLeft.connect(panLeft).connect(gainNode);
   oscRight.connect(panRight).connect(gainNode);
 
-  // Add pink noise for ambience
+  // Pink noise for ambience
   const bufferSize = audioCtx.sampleRate * 2;
   const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const output = noiseBuffer.getChannelData(0);
@@ -64,7 +70,6 @@ function playNotificationSound(audioCtx: AudioContext) {
   osc.connect(gain).connect(audioCtx.destination);
   osc.start(audioCtx.currentTime);
   osc.stop(audioCtx.currentTime + 1.2);
-  // Second beep
   setTimeout(() => {
     const osc2 = audioCtx.createOscillator();
     const gain2 = audioCtx.createGain();
@@ -89,6 +94,7 @@ interface PomodoroState {
   breakMinutes: number;
   sessionsCompleted: number;
   alphaWaves: boolean;
+  focusSoundMode: FocusSoundMode;
   autoRepeat: boolean;
   soundEnabled: boolean;
   startFocus: (taskId?: string, taskTitle?: string) => void;
@@ -99,6 +105,7 @@ interface PomodoroState {
   setFocusMinutes: (m: number) => void;
   setBreakMinutes: (m: number) => void;
   toggleAlphaWaves: () => void;
+  setFocusSoundMode: (mode: FocusSoundMode) => void;
   toggleAutoRepeat: () => void;
   toggleSound: () => void;
 }
@@ -115,7 +122,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [focusMinutes, setFocusMinutes] = useState(25);
   const [breakMinutes, setBreakMinutes] = useState(5);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
-  const [alphaWaves, setAlphaWaves] = useState(false);
+  const [focusSoundMode, setFocusSoundMode] = useState<FocusSoundMode>("deep");
   const [autoRepeat, setAutoRepeat] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -127,6 +134,9 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const breakMinutesRef = useRef(breakMinutes);
   const taskIdRef = useRef<string | null>(null);
   const taskTitleRef = useRef<string | null>(null);
+
+  // Derived: is sound active?
+  const alphaWaves = focusSoundMode !== "off";
 
   useEffect(() => { autoRepeatRef.current = autoRepeat; }, [autoRepeat]);
   useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
@@ -153,12 +163,10 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         clearTimer();
         setIsRunning(false);
 
-        // Play sound
         if (soundEnabledRef.current) {
           try { playNotificationSound(getAudioCtx()); } catch {}
         }
 
-        // Browser notification
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification(phase === "focus" ? "⏰ Foco finalizado!" : "☕ Pausa finalizada!", {
             body: phase === "focus" ? "Hora de descansar!" : "Volte ao foco!",
@@ -168,7 +176,6 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
         if (phase === "focus") {
           setSessionsCompleted(s => s + 1);
-          // Auto-repeat: start break
           if (autoRepeatRef.current) {
             setTimeout(() => {
               const secs = breakMinutesRef.current * 60;
@@ -183,7 +190,6 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
             setPhase("idle");
           }
         } else if (phase === "break") {
-          // Auto-repeat: start focus
           if (autoRepeatRef.current) {
             setTimeout(() => {
               const secs = focusMinutesRef.current * 60;
@@ -213,19 +219,24 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     return clearTimer;
   }, [isRunning, tick, clearTimer]);
 
-  // Alpha waves binaural beats
+  // Binaural beats – driven by focusSoundMode
   useEffect(() => {
-    if (alphaWaves && isRunning && phase === "focus") {
+    const shouldPlay = focusSoundMode !== "off" && isRunning && phase === "focus";
+    if (shouldPlay) {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioContext();
       }
-      if (!alphaNodeRef.current) {
-        try {
-          const node = createAlphaWavesNode(audioCtxRef.current);
-          node.start();
-          alphaNodeRef.current = node;
-        } catch {}
+      // Stop previous if any
+      if (alphaNodeRef.current) {
+        try { alphaNodeRef.current.stop(); } catch {}
+        alphaNodeRef.current = null;
       }
+      try {
+        const freq = FOCUS_FREQUENCIES[focusSoundMode as Exclude<FocusSoundMode, "off">];
+        const node = createBinauralNode(audioCtxRef.current, freq);
+        node.start();
+        alphaNodeRef.current = node;
+      } catch {}
     } else {
       if (alphaNodeRef.current) {
         try { alphaNodeRef.current.stop(); } catch {}
@@ -233,14 +244,14 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       }
     }
     return () => {
-      if (!alphaWaves || !isRunning || phase !== "focus") {
+      if (!shouldPlay) {
         if (alphaNodeRef.current) {
           try { alphaNodeRef.current.stop(); } catch {}
           alphaNodeRef.current = null;
         }
       }
     };
-  }, [alphaWaves, isRunning, phase]);
+  }, [focusSoundMode, isRunning, phase]);
 
   const startFocus = useCallback((tId?: string, tTitle?: string) => {
     clearTimer();
@@ -281,7 +292,9 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     if (alphaNodeRef.current) { try { alphaNodeRef.current.stop(); } catch {} alphaNodeRef.current = null; }
   }, [clearTimer]);
 
-  const toggleAlphaWaves = useCallback(() => setAlphaWaves(a => !a), []);
+  const toggleAlphaWaves = useCallback(() => {
+    setFocusSoundMode(m => m === "off" ? "deep" : "off");
+  }, []);
   const toggleAutoRepeat = useCallback(() => setAutoRepeat(a => !a), []);
   const toggleSound = useCallback(() => setSoundEnabled(s => !s), []);
 
@@ -289,10 +302,10 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     <PomodoroContext.Provider value={{
       phase, secondsLeft, totalSeconds, isRunning, taskId, taskTitle,
       focusMinutes, breakMinutes, sessionsCompleted, alphaWaves,
-      autoRepeat, soundEnabled,
+      focusSoundMode, autoRepeat, soundEnabled,
       startFocus, startBreak, pause, resume, reset,
       setFocusMinutes, setBreakMinutes, toggleAlphaWaves,
-      toggleAutoRepeat, toggleSound,
+      setFocusSoundMode, toggleAutoRepeat, toggleSound,
     }}>
       {children}
     </PomodoroContext.Provider>
