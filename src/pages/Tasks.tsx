@@ -411,6 +411,7 @@ export default function Tasks() {
           onSelect={setEditingTask}
           onReschedule={handleReschedule}
           onRescheduleSubtask={handleRescheduleSubtask}
+          onDuplicate={handleDuplicate}
           onReload={load}
         />
       ) : viewMode === "kanban" ? (
