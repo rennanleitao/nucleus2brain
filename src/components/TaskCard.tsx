@@ -401,6 +401,16 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
         )}
 
+        {!isCompleted && onDuplicate && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDuplicate(task.id); }}
+            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all flex-shrink-0 p-1"
+            title="Duplicar tarefa"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        )}
+
         {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
         <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
 
