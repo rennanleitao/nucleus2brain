@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchTasks, fetchSpaces, updateTask, deleteTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders } from "@/lib/api";
+import { fetchTasks, fetchSpaces, updateTask, deleteTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders, duplicateTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
@@ -270,6 +270,16 @@ export default function Tasks() {
       await updateTask(id, { due_date: newDate } as any);
       setTasks(prev => prev.map(t => t.id === id ? { ...t, due_date: newDate } : t));
       toast.success("Data atualizada");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDuplicate = async (id: string) => {
+    try {
+      await duplicateTask(id);
+      toast.success("Tarefa duplicada");
+      load();
     } catch (err: any) {
       toast.error(err.message);
     }
