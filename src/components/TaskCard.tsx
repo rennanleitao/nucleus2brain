@@ -347,72 +347,74 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
         </div>
 
-        {!isCompleted && onReschedule && (
-          <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
-            <Popover open={rescheduleOpen} onOpenChange={(open) => { setRescheduleOpen(open); if (!open) setShowCustomDate(false); }}>
-              <PopoverTrigger asChild>
-                <button
-                  className="text-muted-foreground hover:text-primary transition-colors p-1"
-                  title="Reprogramar"
-                >
-                  <CalendarClock className="h-3.5 w-3.5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end" side="bottom">
-                {!showCustomDate ? (
-                  <div className="flex flex-col p-1 min-w-[140px]">
-                    <button
-                      onClick={() => handleReschedule(getBrtToday())}
-                      className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
-                    >
-                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /> Hoje
-                    </button>
-                    <button
-                      onClick={() => handleReschedule(getBrtTomorrow())}
-                      className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> Amanhã
-                    </button>
-                    <button
-                      onClick={() => setShowCustomDate(true)}
-                      className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
-                    >
-                      <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" /> Outra data
-                    </button>
-                  </div>
-                ) : (
-                  <Calendar
-                    mode="single"
-                    selected={task.due_date ? new Date(task.due_date + "T00:00:00") : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, "0");
-                        const d = String(date.getDate()).padStart(2, "0");
-                        handleReschedule(`${y}-${m}-${d}`);
-                      }
-                    }}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                )}
-              </PopoverContent>
-            </Popover>
-          </div>
-        )}
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {!isCompleted && onReschedule && (
+            <div onClick={e => e.stopPropagation()}>
+              <Popover open={rescheduleOpen} onOpenChange={(open) => { setRescheduleOpen(open); if (!open) setShowCustomDate(false); }}>
+                <PopoverTrigger asChild>
+                  <button
+                    className="text-muted-foreground hover:text-primary transition-colors p-1"
+                    title="Reprogramar"
+                  >
+                    <CalendarClock className="h-3.5 w-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end" side="bottom">
+                  {!showCustomDate ? (
+                    <div className="flex flex-col p-1 min-w-[140px]">
+                      <button
+                        onClick={() => handleReschedule(getBrtToday())}
+                        className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /> Hoje
+                      </button>
+                      <button
+                        onClick={() => handleReschedule(getBrtTomorrow())}
+                        className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> Amanhã
+                      </button>
+                      <button
+                        onClick={() => setShowCustomDate(true)}
+                        className="flex items-center gap-2 text-left text-sm px-3 py-2 rounded hover:bg-muted transition-colors"
+                      >
+                        <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" /> Outra data
+                      </button>
+                    </div>
+                  ) : (
+                    <Calendar
+                      mode="single"
+                      selected={task.due_date ? new Date(task.due_date + "T00:00:00") : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          const y = date.getFullYear();
+                          const m = String(date.getMonth() + 1).padStart(2, "0");
+                          const d = String(date.getDate()).padStart(2, "0");
+                          handleReschedule(`${y}-${m}-${d}`);
+                        }
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
-        {!isCompleted && onDuplicate && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDuplicate(task.id); }}
-            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all flex-shrink-0 p-1"
-            title="Duplicar tarefa"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-        )}
+          {!isCompleted && onDuplicate && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDuplicate(task.id); }}
+              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all p-1"
+              title="Duplicar tarefa"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          )}
 
-        {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
-        <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
+          {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
+          <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
+        </div>
 
         {onDelete && (
           <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
