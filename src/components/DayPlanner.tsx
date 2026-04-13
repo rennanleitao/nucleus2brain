@@ -36,13 +36,14 @@ interface DayPlannerProps {
   onSelect: (task: any) => void;
   onReschedule: (id: string, newDate: string) => void;
   onRescheduleSubtask: (id: string, newDate: string) => void;
+  onDuplicate: (id: string) => void;
   onReload: () => void;
 }
 
 export function DayPlanner({
   tasks, setTasks, subtasksMap, remindersMap,
   onToggle, onDelete, onToggleSubtask, onAddSubtask,
-  onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onReload,
+  onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onDuplicate, onReload,
 }: DayPlannerProps) {
   const navigate = useNavigate();
   const [showTomorrow, setShowTomorrow] = useState(false);
@@ -132,6 +133,7 @@ export function DayPlanner({
         onPriorityChange={onPriorityChange}
         onReschedule={onReschedule}
         onRescheduleSubtask={onRescheduleSubtask}
+        onDuplicate={onDuplicate}
       />
     </div>
   );
@@ -215,6 +217,7 @@ export function DayPlanner({
                   onPriorityChange={onPriorityChange}
                   onReschedule={onReschedule}
                   onRescheduleSubtask={onRescheduleSubtask}
+                  onDuplicate={onDuplicate}
                   orderNumber={idx + 1}
                   onMoveUp={() => handleReorder(idx, idx - 1)}
                   onMoveDown={() => handleReorder(idx, idx + 1)}
