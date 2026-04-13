@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchTasks, fetchSpaces, updateTask, deleteTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders } from "@/lib/api";
+import { fetchTasks, fetchSpaces, updateTask, deleteTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders, duplicateTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
@@ -275,6 +275,16 @@ export default function Tasks() {
     }
   };
 
+  const handleDuplicate = async (id: string) => {
+    try {
+      await duplicateTask(id);
+      toast.success("Tarefa duplicada");
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const handleRescheduleSubtask = async (id: string, newDate: string) => {
     try {
       await updateSubtask(id, { due_date: newDate });
@@ -308,6 +318,7 @@ export default function Tasks() {
             onReschedule={handleReschedule}
             onRescheduleSubtask={handleRescheduleSubtask}
             hideSpace={hideSpace}
+            onDuplicate={handleDuplicate}
           />
         </div>
       ))}
@@ -400,6 +411,7 @@ export default function Tasks() {
           onSelect={setEditingTask}
           onReschedule={handleReschedule}
           onRescheduleSubtask={handleRescheduleSubtask}
+          onDuplicate={handleDuplicate}
           onReload={load}
         />
       ) : viewMode === "kanban" ? (

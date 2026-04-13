@@ -94,6 +94,21 @@ export async function fetchTasks() {
   return data;
 }
 
+export async function duplicateTask(taskId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data: original, error: fetchErr } = await supabase.from("tasks").select("*").eq("id", taskId).single();
+  if (fetchErr || !original) throw fetchErr || new Error("Task not found");
+  const { id, created_at, completed_at, completion_note, day_order, ...fields } = original;
+  const { data, error } = await supabase
+    .from("tasks")
+    .insert({ ...fields, user_id: user.id, status: "todo" as any, completed_at: null, completion_note: null, day_order: null })
+    .select("*, spaces(name)")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function createTask(task: Omit<TaskInsert, "user_id">) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
