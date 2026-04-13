@@ -1,5 +1,5 @@
 import { forwardRef, useState, useEffect } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy } from "lucide-react";
 import { TaskTimer } from "@/components/TaskTimer";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -44,6 +44,7 @@ interface TaskCardProps {
   onSelect?: (task: TaskCardProps["task"]) => void;
   onReschedule?: (id: string, newDate: string) => void;
   onRescheduleSubtask?: (id: string, newDate: string) => void;
+  onDuplicate?: (id: string) => void;
   hideSpace?: boolean;
   orderNumber?: number;
   onMoveUp?: () => void;
@@ -155,7 +156,7 @@ function SubtaskReschedulePopover({ subtaskId, currentDate, onReschedule }: { su
 }
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
-  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, hideSpace,
+  task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onDuplicate, hideSpace,
   orderNumber, onMoveUp, onMoveDown, isFirst, isLast
 }, ref) => {
   const isCompleted = task.status === "completed";
