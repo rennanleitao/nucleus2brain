@@ -318,6 +318,7 @@ export default function Tasks() {
             onReschedule={handleReschedule}
             onRescheduleSubtask={handleRescheduleSubtask}
             hideSpace={hideSpace}
+            onDuplicate={handleDuplicate}
           />
         </div>
       ))}
