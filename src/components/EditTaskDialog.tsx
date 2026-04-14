@@ -220,6 +220,67 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
     }
   };
 
+  const handleAIAnalyze = async () => {
+    if (!title.trim()) return;
+    setValidationState("validating");
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-task", {
+        body: { title: title.trim() },
+      });
+      if (error || data?.error) {
+        toast.error("Não foi possível analisar a tarefa");
+        setValidationState("idle");
+        return;
+      }
+      setValidationResult(data);
+      if (!data.is_clear && data.suggested_subtasks) {
+        setSelectedSuggestions(new Set(data.suggested_subtasks.map((_: string, i: number) => i)));
+      }
+      setValidationState("result");
+    } catch {
+      toast.error("Erro ao analisar tarefa");
+      setValidationState("idle");
+    }
+  };
+
+  const handleAcceptSuggestions = async () => {
+    if (!validationResult) return;
+    if (validationResult.suggested_title) {
+      setTitle(validationResult.suggested_title);
+    }
+    const subs = (validationResult.suggested_subtasks || [])
+      .filter((_, i) => selectedSuggestions.has(i));
+    for (const sub of subs) {
+      try {
+        await createSubtask({ task_id: task.id, title: sub, due_date: null });
+      } catch {}
+    }
+    if (subs.length > 0) {
+      const updated = await fetchSubtasks(task.id);
+      setSubtasks(updated);
+      toast.success(`${subs.length} subtask(s) adicionada(s)`);
+    }
+    setValidationState("idle");
+    setValidationResult(null);
+  };
+
+  const handleAcceptTitleOnly = () => {
+    if (validationResult?.suggested_title) {
+      setTitle(validationResult.suggested_title);
+    }
+    setValidationState("idle");
+    setValidationResult(null);
+  };
+
+  const toggleSuggestion = (idx: number) => {
+    setSelectedSuggestions(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
