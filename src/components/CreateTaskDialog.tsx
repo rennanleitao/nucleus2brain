@@ -563,49 +563,70 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
           )}
 
-          {validationState === "vague" && (
-            <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-3 space-y-2">
+          {validationState === "result" && validationResult && (
+            <div className={`border rounded-lg p-3 space-y-2 ${validationResult.is_clear ? "border-green-500/30 bg-green-500/5" : "border-yellow-500/30 bg-yellow-500/5"}`}>
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                {validationResult.is_clear ? (
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                )}
                 <div className="text-xs">
-                  <p className="font-medium text-foreground">Atividade genérica</p>
-                  <p className="text-muted-foreground mt-0.5">{validationReason}</p>
+                  <p className="font-medium text-foreground">
+                    {validationResult.is_clear ? "Atividade clara ✓" : "Atividade pode ser mais específica"}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5">{validationResult.reason}</p>
                 </div>
+                <button type="button" onClick={() => { setValidationState("idle"); setValidationResult(null); }}
+                  className="ml-auto text-muted-foreground hover:text-foreground shrink-0">
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
 
-              {suggestedSubtasks.length > 0 && (
-                <div className="space-y-1.5 ml-6">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Subtasks sugeridas:</p>
-                  {suggestedSubtasks.map((sub, idx) => (
-                    <label key={idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={selectedSuggestions.has(idx)}
-                        onChange={() => toggleSuggestion(idx)}
-                        className="rounded border-border"
-                      />
-                      <span>{sub}</span>
-                    </label>
-                  ))}
-                </div>
+              {!validationResult.is_clear && (
+                <>
+                  {validationResult.suggested_title && (
+                    <div className="ml-6 space-y-1">
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Título sugerido:</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs bg-accent/50 rounded px-2 py-1 flex-1">"{validationResult.suggested_title}"</p>
+                        <button type="button" onClick={handleAcceptTitleOnly}
+                          className="text-[10px] text-primary hover:underline shrink-0">Usar</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {validationResult.suggested_subtasks && validationResult.suggested_subtasks.length > 0 && (
+                    <div className="space-y-1.5 ml-6">
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Subtasks sugeridas:</p>
+                      {validationResult.suggested_subtasks.map((sub, idx) => (
+                        <label key={idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={selectedSuggestions.has(idx)}
+                            onChange={() => toggleSuggestion(idx)}
+                            className="rounded border-border"
+                          />
+                          <span>{sub}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 ml-6 mt-2">
+                    <Button type="button" size="sm" className="text-xs h-7 gradient-primary text-primary-foreground border-0"
+                      onClick={handleAcceptSuggestions}
+                      disabled={selectedSuggestions.size === 0 && !validationResult.suggested_title}>
+                      <Sparkles className="h-3 w-3 mr-1" /> Aplicar sugestões
+                    </Button>
+                  </div>
+                </>
               )}
-
-              <div className="flex gap-2 ml-6 mt-2">
-                <Button type="button" variant="outline" size="sm" className="text-xs h-7"
-                  onClick={() => { setValidationState("clear"); doSaveTask(); }}>
-                  Salvar assim
-                </Button>
-                <Button type="button" size="sm" className="text-xs h-7 gradient-primary text-primary-foreground border-0"
-                  onClick={handleAcceptSuggestions}
-                  disabled={selectedSuggestions.size === 0}>
-                  <Sparkles className="h-3 w-3 mr-1" /> Adicionar subtasks
-                </Button>
-              </div>
             </div>
           )}
 
-          <Button type="submit" disabled={loading || validationState === "validating" || validationState === "vague"} className="w-full gradient-primary text-primary-foreground border-0">
-            {loading ? "Criando..." : validationState === "validating" ? "Analisando..." : "Criar Task"}
+          <Button type="submit" disabled={loading || validationState === "validating"} className="w-full gradient-primary text-primary-foreground border-0">
+            {loading ? "Criando..." : "Criar Task"}
           </Button>
         </form>
       </DialogContent>
