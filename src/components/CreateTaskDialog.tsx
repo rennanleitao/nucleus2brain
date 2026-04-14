@@ -214,9 +214,59 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setPendingMaterials(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateAndSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    // If already validated as vague and user chose to save anyway, or if clear, proceed
+    if (validationState === "vague" || validationState === "clear") {
+      await doSaveTask();
+      return;
+    }
+
+    // Validate with AI
+    setValidationState("validating");
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-task", {
+        body: { title: title.trim() },
+      });
+      if (error || data?.error) {
+        // On error, just save without validation
+        await doSaveTask();
+        return;
+      }
+      if (data.is_clear) {
+        setValidationState("clear");
+        await doSaveTask();
+      } else {
+        setValidationState("vague");
+        setValidationReason(data.reason || "");
+        setSuggestedSubtasks(data.suggested_subtasks || []);
+        setSelectedSuggestions(new Set((data.suggested_subtasks || []).map((_: string, i: number) => i)));
+      }
+    } catch {
+      await doSaveTask();
+    }
+  };
+
+  const handleAcceptSuggestions = () => {
+    const newSubs = suggestedSubtasks
+      .filter((_, i) => selectedSuggestions.has(i))
+      .map(s => ({ title: s, due_date: undefined }));
+    setPendingSubtasks(prev => [...prev, ...newSubs]);
+    setValidationState("clear");
+  };
+
+  const toggleSuggestion = (idx: number) => {
+    setSelectedSuggestions(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const doSaveTask = async () => {
     setLoading(true);
     const autoStatus = dueDate ? "in_progress" : "todo";
     try {
@@ -256,10 +306,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       }
 
       toast.success("Task criada!");
-      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
-      setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
-      setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
-      setShowMaterials(false);
+      resetForm();
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -267,6 +314,14 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
+    setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
+    setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
+    setShowMaterials(false);
+    setValidationState("idle"); setValidationReason(""); setSuggestedSubtasks([]); setSelectedSuggestions(new Set());
   };
 
   const todayStr = getBrtToday();
