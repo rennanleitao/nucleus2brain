@@ -151,6 +151,12 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [materialDesc, setMaterialDesc] = useState("");
   const [showMaterials, setShowMaterials] = useState(false);
 
+  // AI validation state
+  const [validationState, setValidationState] = useState<"idle" | "validating" | "vague" | "clear">("idle");
+  const [validationReason, setValidationReason] = useState("");
+  const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
+
   useEffect(() => {
     if (open) {
       fetchAllTags().then(setAllTags).catch(() => {});
