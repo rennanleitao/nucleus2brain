@@ -537,8 +537,57 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             onCreateSpace={handleCreateSpace}
           />
 
-          <Button type="submit" disabled={loading} className="w-full gradient-primary text-primary-foreground border-0">
-            {loading ? "Criando..." : "Criar Task"}
+          {/* AI Validation feedback */}
+          {validationState === "validating" && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Analisando clareza da atividade...
+            </div>
+          )}
+
+          {validationState === "vague" && (
+            <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                <div className="text-xs">
+                  <p className="font-medium text-foreground">Atividade genérica</p>
+                  <p className="text-muted-foreground mt-0.5">{validationReason}</p>
+                </div>
+              </div>
+
+              {suggestedSubtasks.length > 0 && (
+                <div className="space-y-1.5 ml-6">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Subtasks sugeridas:</p>
+                  {suggestedSubtasks.map((sub, idx) => (
+                    <label key={idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={selectedSuggestions.has(idx)}
+                        onChange={() => toggleSuggestion(idx)}
+                        className="rounded border-border"
+                      />
+                      <span>{sub}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2 ml-6 mt-2">
+                <Button type="button" variant="outline" size="sm" className="text-xs h-7"
+                  onClick={() => { setValidationState("clear"); doSaveTask(); }}>
+                  Salvar assim
+                </Button>
+                <Button type="button" size="sm" className="text-xs h-7 gradient-primary text-primary-foreground border-0"
+                  onClick={handleAcceptSuggestions}
+                  disabled={selectedSuggestions.size === 0}>
+                  <Sparkles className="h-3 w-3 mr-1" /> Adicionar subtasks
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Button type="submit" disabled={loading || validationState === "validating" || validationState === "vague"} className="w-full gradient-primary text-primary-foreground border-0">
+            {loading ? "Criando..." : validationState === "validating" ? "Analisando..." : "Criar Task"}
           </Button>
         </form>
       </DialogContent>
