@@ -122,6 +122,16 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [newMatUrl, setNewMatUrl] = useState("");
   const [newMatDesc, setNewMatDesc] = useState("");
 
+  // AI validation state
+  const [validationState, setValidationState] = useState<"idle" | "validating" | "result">("idle");
+  const [validationResult, setValidationResult] = useState<{
+    is_clear: boolean;
+    reason: string;
+    suggested_title?: string;
+    suggested_subtasks?: string[];
+  } | null>(null);
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
+
   const loadLinkedTasks = () => {
     fetchTaskLinks(task.id).then(setLinkedTasks).catch(() => {});
   };
