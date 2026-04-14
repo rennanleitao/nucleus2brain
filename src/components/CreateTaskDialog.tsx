@@ -152,9 +152,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [showMaterials, setShowMaterials] = useState(false);
 
   // AI validation state
-  const [validationState, setValidationState] = useState<"idle" | "validating" | "vague" | "clear">("idle");
-  const [validationReason, setValidationReason] = useState("");
-  const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
+  const [validationState, setValidationState] = useState<"idle" | "validating" | "result">("idle");
+  const [validationResult, setValidationResult] = useState<{
+    is_clear: boolean;
+    reason: string;
+    suggested_title?: string;
+    suggested_subtasks?: string[];
+  } | null>(null);
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -214,47 +218,48 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setPendingMaterials(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const validateAndSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAIAnalyze = async () => {
     if (!title.trim()) return;
-
-    // If already validated as vague and user chose to save anyway, or if clear, proceed
-    if (validationState === "vague" || validationState === "clear") {
-      await doSaveTask();
-      return;
-    }
-
-    // Validate with AI
     setValidationState("validating");
     try {
       const { data, error } = await supabase.functions.invoke("validate-task", {
         body: { title: title.trim() },
       });
       if (error || data?.error) {
-        // On error, just save without validation
-        await doSaveTask();
+        toast.error("Não foi possível analisar a tarefa");
+        setValidationState("idle");
         return;
       }
-      if (data.is_clear) {
-        setValidationState("clear");
-        await doSaveTask();
-      } else {
-        setValidationState("vague");
-        setValidationReason(data.reason || "");
-        setSuggestedSubtasks(data.suggested_subtasks || []);
-        setSelectedSuggestions(new Set((data.suggested_subtasks || []).map((_: string, i: number) => i)));
+      setValidationResult(data);
+      if (!data.is_clear && data.suggested_subtasks) {
+        setSelectedSuggestions(new Set(data.suggested_subtasks.map((_: string, i: number) => i)));
       }
+      setValidationState("result");
     } catch {
-      await doSaveTask();
+      toast.error("Erro ao analisar tarefa");
+      setValidationState("idle");
     }
   };
 
   const handleAcceptSuggestions = () => {
-    const newSubs = suggestedSubtasks
+    if (!validationResult) return;
+    if (validationResult.suggested_title) {
+      setTitle(validationResult.suggested_title);
+    }
+    const subs = (validationResult.suggested_subtasks || [])
       .filter((_, i) => selectedSuggestions.has(i))
       .map(s => ({ title: s, due_date: undefined }));
-    setPendingSubtasks(prev => [...prev, ...newSubs]);
-    setValidationState("clear");
+    setPendingSubtasks(prev => [...prev, ...subs]);
+    setValidationState("idle");
+    setValidationResult(null);
+  };
+
+  const handleAcceptTitleOnly = () => {
+    if (validationResult?.suggested_title) {
+      setTitle(validationResult.suggested_title);
+    }
+    setValidationState("idle");
+    setValidationResult(null);
   };
 
   const toggleSuggestion = (idx: number) => {
@@ -264,6 +269,12 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       else next.add(idx);
       return next;
     });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    await doSaveTask();
   };
 
   const doSaveTask = async () => {
@@ -321,7 +332,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
     setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
     setShowMaterials(false);
-    setValidationState("idle"); setValidationReason(""); setSuggestedSubtasks([]); setSelectedSuggestions(new Set());
+    setValidationState("idle"); setValidationResult(null); setSelectedSuggestions(new Set());
   };
 
   const todayStr = getBrtToday();
@@ -341,9 +352,16 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       )}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Criar Task</DialogTitle></DialogHeader>
-        <form onSubmit={validateAndSubmit} className="space-y-3">
-          <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") setValidationState("idle"); }}
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex items-center gap-1.5">
+            <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") { setValidationState("idle"); setValidationResult(null); } }}
+              className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
+            <button type="button" onClick={handleAIAnalyze} disabled={!title.trim() || validationState === "validating"}
+              className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-40"
+              title="Analisar com IA">
+              {validationState === "validating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            </button>
+          </div>
           <textarea placeholder="Descrição (opcional)" value={description} onChange={e => setDescription(e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
           <div className="grid grid-cols-2 gap-3">
@@ -545,49 +563,70 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
           )}
 
-          {validationState === "vague" && (
-            <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-3 space-y-2">
+          {validationState === "result" && validationResult && (
+            <div className={`border rounded-lg p-3 space-y-2 ${validationResult.is_clear ? "border-green-500/30 bg-green-500/5" : "border-yellow-500/30 bg-yellow-500/5"}`}>
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                {validationResult.is_clear ? (
+                  <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                )}
                 <div className="text-xs">
-                  <p className="font-medium text-foreground">Atividade genérica</p>
-                  <p className="text-muted-foreground mt-0.5">{validationReason}</p>
+                  <p className="font-medium text-foreground">
+                    {validationResult.is_clear ? "Atividade clara ✓" : "Atividade pode ser mais específica"}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5">{validationResult.reason}</p>
                 </div>
+                <button type="button" onClick={() => { setValidationState("idle"); setValidationResult(null); }}
+                  className="ml-auto text-muted-foreground hover:text-foreground shrink-0">
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
 
-              {suggestedSubtasks.length > 0 && (
-                <div className="space-y-1.5 ml-6">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Subtasks sugeridas:</p>
-                  {suggestedSubtasks.map((sub, idx) => (
-                    <label key={idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={selectedSuggestions.has(idx)}
-                        onChange={() => toggleSuggestion(idx)}
-                        className="rounded border-border"
-                      />
-                      <span>{sub}</span>
-                    </label>
-                  ))}
-                </div>
+              {!validationResult.is_clear && (
+                <>
+                  {validationResult.suggested_title && (
+                    <div className="ml-6 space-y-1">
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Título sugerido:</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs bg-accent/50 rounded px-2 py-1 flex-1">"{validationResult.suggested_title}"</p>
+                        <button type="button" onClick={handleAcceptTitleOnly}
+                          className="text-[10px] text-primary hover:underline shrink-0">Usar</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {validationResult.suggested_subtasks && validationResult.suggested_subtasks.length > 0 && (
+                    <div className="space-y-1.5 ml-6">
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Subtasks sugeridas:</p>
+                      {validationResult.suggested_subtasks.map((sub, idx) => (
+                        <label key={idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={selectedSuggestions.has(idx)}
+                            onChange={() => toggleSuggestion(idx)}
+                            className="rounded border-border"
+                          />
+                          <span>{sub}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 ml-6 mt-2">
+                    <Button type="button" size="sm" className="text-xs h-7 gradient-primary text-primary-foreground border-0"
+                      onClick={handleAcceptSuggestions}
+                      disabled={selectedSuggestions.size === 0 && !validationResult.suggested_title}>
+                      <Sparkles className="h-3 w-3 mr-1" /> Aplicar sugestões
+                    </Button>
+                  </div>
+                </>
               )}
-
-              <div className="flex gap-2 ml-6 mt-2">
-                <Button type="button" variant="outline" size="sm" className="text-xs h-7"
-                  onClick={() => { setValidationState("clear"); doSaveTask(); }}>
-                  Salvar assim
-                </Button>
-                <Button type="button" size="sm" className="text-xs h-7 gradient-primary text-primary-foreground border-0"
-                  onClick={handleAcceptSuggestions}
-                  disabled={selectedSuggestions.size === 0}>
-                  <Sparkles className="h-3 w-3 mr-1" /> Adicionar subtasks
-                </Button>
-              </div>
             </div>
           )}
 
-          <Button type="submit" disabled={loading || validationState === "validating" || validationState === "vague"} className="w-full gradient-primary text-primary-foreground border-0">
-            {loading ? "Criando..." : validationState === "validating" ? "Analisando..." : "Criar Task"}
+          <Button type="submit" disabled={loading || validationState === "validating"} className="w-full gradient-primary text-primary-foreground border-0">
+            {loading ? "Criando..." : "Criar Task"}
           </Button>
         </form>
       </DialogContent>
