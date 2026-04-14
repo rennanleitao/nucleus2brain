@@ -352,9 +352,16 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       )}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Criar Task</DialogTitle></DialogHeader>
-        <form onSubmit={validateAndSubmit} className="space-y-3">
-          <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") setValidationState("idle"); }}
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex items-center gap-1.5">
+            <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") { setValidationState("idle"); setValidationResult(null); } }}
+              className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
+            <button type="button" onClick={handleAIAnalyze} disabled={!title.trim() || validationState === "validating"}
+              className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-40"
+              title="Analisar com IA">
+              {validationState === "validating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            </button>
+          </div>
           <textarea placeholder="Descrição (opcional)" value={description} onChange={e => setDescription(e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
           <div className="grid grid-cols-2 gap-3">
