@@ -218,47 +218,48 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setPendingMaterials(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const validateAndSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAIAnalyze = async () => {
     if (!title.trim()) return;
-
-    // If already validated as vague and user chose to save anyway, or if clear, proceed
-    if (validationState === "vague" || validationState === "clear") {
-      await doSaveTask();
-      return;
-    }
-
-    // Validate with AI
     setValidationState("validating");
     try {
       const { data, error } = await supabase.functions.invoke("validate-task", {
         body: { title: title.trim() },
       });
       if (error || data?.error) {
-        // On error, just save without validation
-        await doSaveTask();
+        toast.error("Não foi possível analisar a tarefa");
+        setValidationState("idle");
         return;
       }
-      if (data.is_clear) {
-        setValidationState("clear");
-        await doSaveTask();
-      } else {
-        setValidationState("vague");
-        setValidationReason(data.reason || "");
-        setSuggestedSubtasks(data.suggested_subtasks || []);
-        setSelectedSuggestions(new Set((data.suggested_subtasks || []).map((_: string, i: number) => i)));
+      setValidationResult(data);
+      if (!data.is_clear && data.suggested_subtasks) {
+        setSelectedSuggestions(new Set(data.suggested_subtasks.map((_: string, i: number) => i)));
       }
+      setValidationState("result");
     } catch {
-      await doSaveTask();
+      toast.error("Erro ao analisar tarefa");
+      setValidationState("idle");
     }
   };
 
   const handleAcceptSuggestions = () => {
-    const newSubs = suggestedSubtasks
+    if (!validationResult) return;
+    if (validationResult.suggested_title) {
+      setTitle(validationResult.suggested_title);
+    }
+    const subs = (validationResult.suggested_subtasks || [])
       .filter((_, i) => selectedSuggestions.has(i))
       .map(s => ({ title: s, due_date: undefined }));
-    setPendingSubtasks(prev => [...prev, ...newSubs]);
-    setValidationState("clear");
+    setPendingSubtasks(prev => [...prev, ...subs]);
+    setValidationState("idle");
+    setValidationResult(null);
+  };
+
+  const handleAcceptTitleOnly = () => {
+    if (validationResult?.suggested_title) {
+      setTitle(validationResult.suggested_title);
+    }
+    setValidationState("idle");
+    setValidationResult(null);
   };
 
   const toggleSuggestion = (idx: number) => {
@@ -268,6 +269,12 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       else next.add(idx);
       return next;
     });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    await doSaveTask();
   };
 
   const doSaveTask = async () => {
