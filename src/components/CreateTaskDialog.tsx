@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink } from "lucide-react";
+import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check } from "lucide-react";
 import { createTask, createSpace, createSubtask, createTaskMaterial, fetchAllTags } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 function getBrtToday() {
   const now = new Date();
@@ -150,6 +151,12 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [materialDesc, setMaterialDesc] = useState("");
   const [showMaterials, setShowMaterials] = useState(false);
 
+  // AI validation state
+  const [validationState, setValidationState] = useState<"idle" | "validating" | "vague" | "clear">("idle");
+  const [validationReason, setValidationReason] = useState("");
+  const [suggestedSubtasks, setSuggestedSubtasks] = useState<string[]>([]);
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
+
   useEffect(() => {
     if (open) {
       fetchAllTags().then(setAllTags).catch(() => {});
@@ -207,9 +214,59 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setPendingMaterials(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateAndSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    // If already validated as vague and user chose to save anyway, or if clear, proceed
+    if (validationState === "vague" || validationState === "clear") {
+      await doSaveTask();
+      return;
+    }
+
+    // Validate with AI
+    setValidationState("validating");
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-task", {
+        body: { title: title.trim() },
+      });
+      if (error || data?.error) {
+        // On error, just save without validation
+        await doSaveTask();
+        return;
+      }
+      if (data.is_clear) {
+        setValidationState("clear");
+        await doSaveTask();
+      } else {
+        setValidationState("vague");
+        setValidationReason(data.reason || "");
+        setSuggestedSubtasks(data.suggested_subtasks || []);
+        setSelectedSuggestions(new Set((data.suggested_subtasks || []).map((_: string, i: number) => i)));
+      }
+    } catch {
+      await doSaveTask();
+    }
+  };
+
+  const handleAcceptSuggestions = () => {
+    const newSubs = suggestedSubtasks
+      .filter((_, i) => selectedSuggestions.has(i))
+      .map(s => ({ title: s, due_date: undefined }));
+    setPendingSubtasks(prev => [...prev, ...newSubs]);
+    setValidationState("clear");
+  };
+
+  const toggleSuggestion = (idx: number) => {
+    setSelectedSuggestions(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const doSaveTask = async () => {
     setLoading(true);
     const autoStatus = dueDate ? "in_progress" : "todo";
     try {
@@ -249,10 +306,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       }
 
       toast.success("Task criada!");
-      setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
-      setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
-      setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
-      setShowMaterials(false);
+      resetForm();
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -260,6 +314,14 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
+    setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
+    setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
+    setShowMaterials(false);
+    setValidationState("idle"); setValidationReason(""); setSuggestedSubtasks([]); setSelectedSuggestions(new Set());
   };
 
   const todayStr = getBrtToday();
@@ -279,8 +341,8 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       )}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Criar Task</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input type="text" placeholder="Título da task" value={title} onChange={e => setTitle(e.target.value)}
+        <form onSubmit={validateAndSubmit} className="space-y-3">
+          <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") setValidationState("idle"); }}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
           <textarea placeholder="Descrição (opcional)" value={description} onChange={e => setDescription(e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
@@ -475,8 +537,57 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             onCreateSpace={handleCreateSpace}
           />
 
-          <Button type="submit" disabled={loading} className="w-full gradient-primary text-primary-foreground border-0">
-            {loading ? "Criando..." : "Criar Task"}
+          {/* AI Validation feedback */}
+          {validationState === "validating" && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Analisando clareza da atividade...
+            </div>
+          )}
+
+          {validationState === "vague" && (
+            <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                <div className="text-xs">
+                  <p className="font-medium text-foreground">Atividade genérica</p>
+                  <p className="text-muted-foreground mt-0.5">{validationReason}</p>
+                </div>
+              </div>
+
+              {suggestedSubtasks.length > 0 && (
+                <div className="space-y-1.5 ml-6">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Subtasks sugeridas:</p>
+                  {suggestedSubtasks.map((sub, idx) => (
+                    <label key={idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={selectedSuggestions.has(idx)}
+                        onChange={() => toggleSuggestion(idx)}
+                        className="rounded border-border"
+                      />
+                      <span>{sub}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2 ml-6 mt-2">
+                <Button type="button" variant="outline" size="sm" className="text-xs h-7"
+                  onClick={() => { setValidationState("clear"); doSaveTask(); }}>
+                  Salvar assim
+                </Button>
+                <Button type="button" size="sm" className="text-xs h-7 gradient-primary text-primary-foreground border-0"
+                  onClick={handleAcceptSuggestions}
+                  disabled={selectedSuggestions.size === 0}>
+                  <Sparkles className="h-3 w-3 mr-1" /> Adicionar subtasks
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Button type="submit" disabled={loading || validationState === "validating" || validationState === "vague"} className="w-full gradient-primary text-primary-foreground border-0">
+            {loading ? "Criando..." : validationState === "validating" ? "Analisando..." : "Criar Task"}
           </Button>
         </form>
       </DialogContent>
