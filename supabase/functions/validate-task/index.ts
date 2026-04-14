@@ -10,6 +10,12 @@ serve(async (req) => {
 
   try {
     const { title } = await req.json();
+    if (!title || typeof title !== "string" || title.trim().length === 0) {
+      return new Response(JSON.stringify({ error: "Title is required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -24,16 +30,18 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a task clarity evaluator. Analyze ONLY the task title text provided. 
+            content: `You are a task clarity evaluator. Analyze ONLY the task title text provided.
 A task is "clear" if it alone declares effectively WHAT will be done — it should be specific and actionable.
 A task is "vague" if it's too generic, broad, or doesn't specify a concrete deliverable or action.
 
-Examples of VAGUE tasks: "Study", "Work on project", "Organize things", "Research", "Fix stuff", "Planning", "Review"
-Examples of CLEAR tasks: "Write introduction for marketing report", "Fix login button bug on mobile", "Send proposal to client X", "Buy groceries for dinner"
+Examples of VAGUE: "Study", "Work on project", "Organize things", "Research", "Fix stuff", "Planning"
+Examples of CLEAR: "Write introduction for marketing report", "Fix login button bug on mobile", "Send proposal to client X"
 
-If the task is vague, suggest 3-5 specific subtasks that would break it down into actionable pieces.
+If the task is vague:
+1. Suggest a better, more specific title (suggested_title)
+2. Suggest 3-5 subtasks that break it into actionable pieces
 
-Respond with JSON using this tool.`,
+Always respond in the SAME LANGUAGE as the task title.`,
           },
           { role: "user", content: `Task title: "${title}"` },
         ],
@@ -47,11 +55,12 @@ Respond with JSON using this tool.`,
                 type: "object",
                 properties: {
                   is_clear: { type: "boolean", description: "true if the task is specific and actionable" },
-                  reason: { type: "string", description: "Brief explanation in the user's language (match the task language)" },
+                  reason: { type: "string", description: "Brief explanation in the user's language" },
+                  suggested_title: { type: "string", description: "A better, more specific title suggestion. Only if vague." },
                   suggested_subtasks: {
                     type: "array",
                     items: { type: "string" },
-                    description: "If vague, 3-5 specific subtask suggestions in the same language as the task",
+                    description: "If vague, 3-5 specific subtask suggestions",
                   },
                 },
                 required: ["is_clear", "reason"],
@@ -68,6 +77,11 @@ Respond with JSON using this tool.`,
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit" }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos esgotados" }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error("AI error");
