@@ -200,6 +200,36 @@ export default function Notes() {
     }
   };
 
+  const handleMoveOrReplicate = async (targetSpaceId: string) => {
+    if (!selectedNote) return;
+    const realSpaceId = targetSpaceId === "__none__" ? null : targetSpaceId;
+
+    if (moveMode === "move") {
+      try {
+        await updateNote(selectedNote.id, { space_id: realSpaceId });
+        setEditSpaceId(realSpaceId || "");
+        setDirty(false);
+        toast.success("Nota movida com sucesso");
+        load();
+      } catch (err: any) {
+        toast.error(err.message);
+      }
+    } else {
+      try {
+        await createNote({
+          title: selectedNote.title,
+          content: selectedNote.content || "",
+          tags: selectedNote.tags || [],
+          space_id: realSpaceId,
+        });
+        toast.success("Nota replicada com sucesso");
+        load();
+      } catch (err: any) {
+        toast.error(err.message);
+      }
+    }
+  };
+
   const handleTagsDetected = (tags: string[]) => {
     setEditTags(prev => {
       const merged = [...new Set([...prev, ...tags])];
