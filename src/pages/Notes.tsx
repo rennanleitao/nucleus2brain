@@ -377,10 +377,27 @@ export default function Notes() {
                       onClick={() => setShareOpen(true)}>
                       <Share2 className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDelete(selectedNote.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setMoveMode("move"); setMoveDialogOpen(true); }}>
+                          <FolderInput className="h-4 w-4 mr-2" />
+                          Mover para outro Space
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setMoveMode("replicate"); setMoveDialogOpen(true); }}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Replicar para outro Space
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(selectedNote.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir nota
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
