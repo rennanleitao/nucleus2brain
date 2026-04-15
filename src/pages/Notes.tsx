@@ -526,6 +526,17 @@ export default function Notes() {
                   onOpenChange={setShareOpen}
                 />
               )}
+
+              {selectedNote && (
+                <MoveNoteDialog
+                  open={moveDialogOpen}
+                  onOpenChange={setMoveDialogOpen}
+                  mode={moveMode}
+                  currentSpaceId={editSpaceId || null}
+                  spaces={spaces}
+                  onConfirm={handleMoveOrReplicate}
+                />
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
