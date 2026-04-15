@@ -449,8 +449,28 @@ export default function Notes() {
                     existingTags={allTags}
                     spaceId={editSpaceId || null}
                     onTaskCreated={() => { if (editSpaceId) loadLinkedTasks(editSpaceId); }}
-                    placeholder="Comece a escrever... Use #tag para tags, ()Task para criar tasks ao salvar"
+                    placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
                     className="border-0 rounded-none min-h-full"
+                    allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
+                    onNoteLinkClick={(noteId) => {
+                      const note = notes.find(n => n.id === noteId);
+                      if (note) selectNote(note);
+                    }}
+                    onCreateSubNote={async (title) => {
+                      try {
+                        const newNote = await createNote({
+                          title,
+                          content: "",
+                          tags: [],
+                          space_id: editSpaceId || null,
+                        });
+                        await load();
+                        selectNote(newNote);
+                        toast.success(`Nota "${title}" criada`);
+                      } catch (err: any) {
+                        toast.error(err.message);
+                      }
+                    }}
                   />
                 </div>
 
