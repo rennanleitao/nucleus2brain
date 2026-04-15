@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2,
+  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoveNoteDialog } from "@/components/MoveNoteDialog";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
@@ -39,6 +41,8 @@ export default function Notes() {
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveMode, setMoveMode] = useState<"move" | "replicate">("move");
   const autosaveEnabled = true;
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -196,6 +200,36 @@ export default function Notes() {
     }
   };
 
+  const handleMoveOrReplicate = async (targetSpaceId: string) => {
+    if (!selectedNote) return;
+    const realSpaceId = targetSpaceId === "__none__" ? null : targetSpaceId;
+
+    if (moveMode === "move") {
+      try {
+        await updateNote(selectedNote.id, { space_id: realSpaceId });
+        setEditSpaceId(realSpaceId || "");
+        setDirty(false);
+        toast.success("Nota movida com sucesso");
+        load();
+      } catch (err: any) {
+        toast.error(err.message);
+      }
+    } else {
+      try {
+        await createNote({
+          title: selectedNote.title,
+          content: selectedNote.content || "",
+          tags: selectedNote.tags || [],
+          space_id: realSpaceId,
+        });
+        toast.success("Nota replicada com sucesso");
+        load();
+      } catch (err: any) {
+        toast.error(err.message);
+      }
+    }
+  };
+
   const handleTagsDetected = (tags: string[]) => {
     setEditTags(prev => {
       const merged = [...new Set([...prev, ...tags])];
@@ -343,10 +377,27 @@ export default function Notes() {
                       onClick={() => setShareOpen(true)}>
                       <Share2 className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDelete(selectedNote.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setMoveMode("move"); setMoveDialogOpen(true); }}>
+                          <FolderInput className="h-4 w-4 mr-2" />
+                          Mover para outro Space
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setMoveMode("replicate"); setMoveDialogOpen(true); }}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Replicar para outro Space
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(selectedNote.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir nota
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
@@ -473,6 +524,17 @@ export default function Notes() {
                   noteTitle={editTitle}
                   open={shareOpen}
                   onOpenChange={setShareOpen}
+                />
+              )}
+
+              {selectedNote && (
+                <MoveNoteDialog
+                  open={moveDialogOpen}
+                  onOpenChange={setMoveDialogOpen}
+                  mode={moveMode}
+                  currentSpaceId={editSpaceId || null}
+                  spaces={spaces}
+                  onConfirm={handleMoveOrReplicate}
                 />
               )}
             </>
