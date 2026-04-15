@@ -5,13 +5,14 @@ import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Image from "@tiptap/extension-image";
+import Mention from "@tiptap/extension-mention";
 import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef, useState } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
-  List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code,
+  List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code, FilePlus,
 } from "lucide-react";
 import { Iframe } from "@/components/editor/IframeExtension";
 import { getGoogleEmbedUrl } from "@/components/editor/googleDocsEmbed";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { createNoteMentionSuggestion } from "@/components/editor/NoteMention";
 
 interface RichTextEditorProps {
   content: string;
@@ -34,18 +36,27 @@ interface RichTextEditorProps {
   onTaskItemClick?: (taskTitle: string) => void;
   spaceId?: string | null;
   onTaskCreated?: () => void;
+  allNotes?: { id: string; title: string }[];
+  onNoteLinkClick?: (noteId: string) => void;
+  onCreateSubNote?: (title: string) => void;
 }
 
 export interface RichTextEditorHandle {
-  /** Scans for ()taskName patterns, replaces them with checklist items, and returns detected task titles */
   processTaskPatterns: () => string[];
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick, spaceId = null, onTaskCreated,
+  allNotes = [], onNoteLinkClick, onCreateSubNote,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const [embedPrompt, setEmbedPrompt] = useState<{ embedUrl: string; type: string; originalUrl: string } | null>(null);
+
+  // Keep refs for the latest values so the suggestion closure always sees fresh data
+  const allNotesRef = useRef(allNotes);
+  const onCreateSubNoteRef = useRef(onCreateSubNote);
+  allNotesRef.current = allNotes;
+  onCreateSubNoteRef.current = onCreateSubNote;
 
   const handleImageUpload = useCallback(async (file: File) => {
     try {
@@ -61,6 +72,15 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     }
   }, []);
 
+  // Stable suggestion config – created once
+  const suggestionRef = useRef(
+    createNoteMentionSuggestion(async () => {
+      return (allNotesRef.current || [])
+        .filter((n) => n.id !== noteId)
+        .map((n) => ({ id: n.id, title: n.title }));
+    })
+  );
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -74,6 +94,22 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: true }),
       Iframe,
+      Mention.configure({
+        HTMLAttributes: {
+          class: "mention-note",
+        },
+        suggestion: suggestionRef.current,
+        renderText: ({ node }) => `@${node.attrs.label}`,
+        renderHTML: ({ node }) => [
+          "span",
+          {
+            class: "mention-note",
+            "data-note-id": node.attrs.id,
+            "data-mention": "",
+          },
+          `📄 ${node.attrs.label}`,
+        ],
+      }),
     ],
     content,
     editable,
@@ -83,7 +119,6 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
       const text = editor.getText();
 
-      // Detect #tags in text
       if (onTagsDetected) {
         const tagMatches = text.match(/#(\w[\w-]*)(?=[\s,.;:!?\n])/g);
         const tags = tagMatches ? [...new Set(tagMatches.map(t => t.slice(1)))] : [];
@@ -95,7 +130,6 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
       },
       handlePaste: (_view, event) => {
-        // Check for Google Docs URL in plain text
         const text = event.clipboardData?.getData("text/plain")?.trim();
         if (text) {
           const embed = getGoogleEmbedUrl(text);
@@ -105,7 +139,6 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
             return true;
           }
         }
-        // Check for image paste
         const items = event.clipboardData?.items;
         if (!items) return false;
         for (const item of Array.from(items)) {
@@ -131,12 +164,26 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         return false;
       },
       handleClick: (_view, _pos, event) => {
+        // Handle note mention clicks
+        const target = event.target as HTMLElement;
+        const mention = target.closest("[data-mention]") || (target.hasAttribute("data-mention") ? target : null);
+        if (mention) {
+          const mentionNoteId = mention.getAttribute("data-note-id");
+          if (mentionNoteId) {
+            if (mentionNoteId === "__create__") {
+              const label = mention.textContent?.replace("📄 ", "").replace('Criar nota "', "").replace('"', "").trim();
+              if (label && onCreateSubNoteRef.current) onCreateSubNoteRef.current(label);
+            } else if (onNoteLinkClick) {
+              onNoteLinkClick(mentionNoteId);
+            }
+            return true;
+          }
+        }
+
         // Check if user clicked on a task item text
         if (onTaskItemClick) {
-          const target = event.target as HTMLElement;
           const taskItem = target.closest('[data-type="taskItem"]') || target.closest('li[data-checked]');
           if (taskItem) {
-            // Don't intercept checkbox clicks
             const checkbox = taskItem.querySelector('label') || taskItem.querySelector('input');
             if (checkbox && checkbox.contains(target)) return false;
             const textContent = taskItem.textContent?.trim();
@@ -151,7 +198,6 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     },
   });
 
-  // Expose processTaskPatterns to parent via ref
   useImperativeHandle(ref, () => ({
     processTaskPatterns: () => {
       if (!editor) return [];
@@ -167,19 +213,16 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         if (!taskTitle || taskTitle.startsWith("#")) continue;
         titles.push(taskTitle);
 
-        // Remove the raw pattern from HTML
         htmlContent = htmlContent
           .replace(`() ${taskTitle}`, "")
           .replace(`()${taskTitle}`, "");
       }
 
-      // Clean up empty paragraphs
       htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, "");
       if (!htmlContent.trim()) htmlContent = "<p></p>";
 
       editor.commands.setContent(htmlContent);
 
-      // Insert checklist items for each task
       for (const title of titles) {
         editor
           .chain()
@@ -225,6 +268,15 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       {children}
     </Button>
   );
+
+  const handleInsertSubNote = () => {
+    if (onCreateSubNote) {
+      const title = prompt("Título da nova nota:");
+      if (title?.trim()) {
+        onCreateSubNote(title.trim());
+      }
+    }
+  };
 
   return (
     <div className={`border border-border rounded-lg bg-card overflow-hidden ${className}`}>
@@ -307,6 +359,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         }} title="Inserir imagem">
           <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
+        {onCreateSubNote && (
+          <ToolbarButton onClick={handleInsertSubNote} title="Criar sub-nota">
+            <FilePlus className="h-3.5 w-3.5" />
+          </ToolbarButton>
+        )}
       </div>
 
 
