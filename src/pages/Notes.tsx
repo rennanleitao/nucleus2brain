@@ -41,6 +41,8 @@ export default function Notes() {
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveMode, setMoveMode] = useState<"move" | "replicate">("move");
   const autosaveEnabled = true;
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
