@@ -247,9 +247,17 @@ export default function Notes() {
   };
 
   const stripHtml = (html: string) => {
+    if (!html) return "";
+    // Preserve line breaks between block-level elements before extracting text
+    const withBreaks = html
+      .replace(/<\/(p|div|li|h[1-6]|blockquote|tr)>/gi, "$&\n")
+      .replace(/<br\s*\/?>(?!\n)/gi, "\n")
+      .replace(/<li[^>]*>/gi, "• ");
     const tmp = document.createElement("div");
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || "";
+    tmp.innerHTML = withBreaks;
+    const text = tmp.textContent || tmp.innerText || "";
+    // Collapse extra whitespace but keep single newlines
+    return text.replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim();
   };
 
   const handleBack = () => {
@@ -307,30 +315,41 @@ export default function Notes() {
 
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-0.5">
-              {filteredNotes.map(note => (
-                <button
-                  key={note.id}
-                  onClick={() => selectNote(note)}
-                  className={`w-full text-left p-3 sm:p-3 rounded-lg transition-colors touch-manipulation active:scale-[0.98] ${
-                    selectedNote?.id === note.id
-                      ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent/50"
-                  }`}
-                >
-                  <p className="text-small font-medium truncate">{note.title}</p>
-                  <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
-                    {stripHtml(note.content || "Sem conteúdo")}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                    {note.spaces?.name && (
-                      <span className="text-[10px] text-muted-foreground">{note.spaces.name}</span>
-                    )}
-                    {(note.tags || []).slice(0, 3).map((tag: string) => (
-                      <Badge key={tag} variant="secondary" className="text-[9px] px-1 py-0">#{tag}</Badge>
-                    ))}
-                  </div>
-                </button>
-              ))}
+              {filteredNotes.map(note => {
+                const isSelected = selectedNote?.id === note.id;
+                return (
+                  <button
+                    key={note.id}
+                    onClick={() => selectNote(note)}
+                    className={`w-full text-left p-3 sm:p-3 rounded-lg transition-colors touch-manipulation active:scale-[0.98] ${
+                      isSelected
+                        ? "bg-accent text-accent-foreground"
+                        : "hover:bg-accent/50"
+                    }`}
+                  >
+                    <p className={`text-small font-semibold truncate ${isSelected ? "text-accent-foreground" : "text-foreground"}`}>
+                      {note.title}
+                    </p>
+                    <p
+                      className={`text-[11px] line-clamp-3 mt-1 whitespace-pre-line leading-relaxed ${
+                        isSelected ? "text-accent-foreground/80" : "text-muted-foreground"
+                      }`}
+                    >
+                      {stripHtml(note.content || "") || "Sem conteúdo"}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {note.spaces?.name && (
+                        <span className={`text-[10px] ${isSelected ? "text-accent-foreground/70" : "text-muted-foreground"}`}>
+                          {note.spaces.name}
+                        </span>
+                      )}
+                      {(note.tags || []).slice(0, 3).map((tag: string) => (
+                        <Badge key={tag} variant="secondary" className="text-[9px] px-1 py-0">#{tag}</Badge>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
               {filteredNotes.length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-xs text-muted-foreground">Nenhuma nota encontrada</p>
