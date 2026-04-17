@@ -345,6 +345,25 @@ export default function Pomodoro() {
           </span>
         </div>
       </div>
+
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { const t = completionTask; setCompletionTask(null); setFollowUpTask(t); loadTasks(); }}
+        />
+      )}
+
+      {followUpTask && (
+        <FollowUpDialog
+          completedTask={followUpTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!followUpTask}
+          onOpenChange={(open) => !open && setFollowUpTask(null)}
+          onCreated={loadTasks}
+        />
+      )}
     </div>
   );
 }
