@@ -76,7 +76,8 @@ export default function Notes() {
   }, []);
 
   useEffect(() => {
-    const noteId = searchParams.get("note");
+    load();
+  }, []);
     if (noteId && notes.length > 0 && !selectedNote) {
       const note = notes.find(n => n.id === noteId);
       if (note) {
