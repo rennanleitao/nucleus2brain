@@ -26,15 +26,23 @@ function getBrtToday() {
 export default function Pomodoro() {
   const pomo = usePomodoro();
   const [tasks, setTasks] = useState<any[]>([]);
+  const [spaces, setSpaces] = useState<any[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string>("none");
   const [showTodayTasks, setShowTodayTasks] = useState(true);
+  const [completionTask, setCompletionTask] = useState<any | null>(null);
+  const [followUpTask, setFollowUpTask] = useState<any | null>(null);
 
   const today = getBrtToday();
 
-  useEffect(() => {
+  const loadTasks = () => {
     fetchTasks().then(t => {
       setTasks(t.filter((tk: any) => tk.status !== "completed" && tk.status !== "cancelled"));
     }).catch(() => {});
+  };
+
+  useEffect(() => {
+    loadTasks();
+    fetchSpaces().then(setSpaces).catch(() => {});
   }, []);
 
   const todayTasks = useMemo(() => {
