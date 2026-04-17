@@ -543,8 +543,8 @@ export default function CalendarPage() {
                       key={ev.id}
                       className="text-[10px] leading-tight truncate rounded px-1 py-px"
                       style={{
-                        backgroundColor: (ev.calendarColor || "hsl(var(--primary))") + "33",
-                        borderLeft: `2px solid ${ev.calendarColor || "hsl(var(--primary))"}`,
+                        backgroundColor: (ev.calendarColor || "oklch(var(--primary))") + "33",
+                        borderLeft: `2px solid ${ev.calendarColor || "oklch(var(--primary))"}`,
                       }}
                       title={ev.summary}
                     >
