@@ -798,3 +798,39 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+function SidebarItemsSettings() {
+  const { visible, toggle, reset, all } = useSidebarItems();
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Itens da sidebar</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Escolha quais atalhos aparecem no menu lateral. Pelo menos um item permanece visível.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={reset} className="text-xs">
+          <RotateCcw className="h-3 w-3 mr-1" /> Restaurar
+        </Button>
+      </div>
+      <div className="space-y-2">
+        {all.map((item) => {
+          const checked = visible.includes(item.key);
+          return (
+            <div
+              key={item.key}
+              className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{item.title}</span>
+                <span className="text-[11px] text-muted-foreground">{item.url}</span>
+              </div>
+              <Switch checked={checked} onCheckedChange={() => toggle(item.key)} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
