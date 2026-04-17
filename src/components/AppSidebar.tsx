@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PwaInstallButton } from "@/components/PwaInstallPrompt";
+
 import { 
   LayoutDashboard, 
   FolderOpen, 
