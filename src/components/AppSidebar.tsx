@@ -21,6 +21,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { usePomodoro } from "@/hooks/usePomodoroStore";
+import { useSidebarItems } from "@/hooks/useSidebarItems";
 import {
   Sidebar,
   SidebarContent,
