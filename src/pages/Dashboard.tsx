@@ -285,43 +285,6 @@ export default function Dashboard() {
         </form>
       </div>
 
-      <div className="space-y-6">
-        {overdueTasks.length > 0 && (
-          <section>
-            <SectionHeader icon={AlertTriangle} title="Overdue" count={overdueTasks.length} isOpen={openSections.overdue} onToggle={() => toggleSection("overdue")} />
-            {openSections.overdue && (
-              <div className="space-y-2">
-                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)}
-              </div>
-            )}
-          </section>
-        )}
-
-        <section>
-          <SectionHeader icon={Clock} title="Today" count={todayTasks.length} isOpen={openSections.today} onToggle={() => toggleSection("today")} />
-          {openSections.today && (
-            <div className="space-y-2">
-              {todayTasks.length > 0 ? (
-                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)
-              ) : (
-                <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
-              )}
-            </div>
-          )}
-        </section>
-
-        {upcomingTasks.length > 0 && (
-          <section>
-            <SectionHeader icon={TrendingUp} title="Upcoming" count={upcomingTasks.length} isOpen={openSections.upcoming} onToggle={() => toggleSection("upcoming")} />
-            {openSections.upcoming && (
-              <div className="space-y-2">
-                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)}
-              </div>
-            )}
-          </section>
-        )}
-      </div>
-
       {/* Daily Accomplishment */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="p-3 border-b border-border flex items-center gap-2">
@@ -402,9 +365,46 @@ export default function Dashboard() {
             );
           })()}
       </div>
+      </div>
 
       {/* Accomplishment History */}
       <AccomplishmentHistory tasks={tasks} onSelectTask={setSelectedTask} onDeleteTask={setTaskToDelete} />
+
+      <div className="space-y-6">
+        {overdueTasks.length > 0 && (
+          <section>
+            <SectionHeader icon={AlertTriangle} title="Overdue" count={overdueTasks.length} isOpen={openSections.overdue} onToggle={() => toggleSection("overdue")} />
+            {openSections.overdue && (
+              <div className="space-y-2">
+                {overdueTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)}
+              </div>
+            )}
+          </section>
+        )}
+
+        <section>
+          <SectionHeader icon={Clock} title="Today" count={todayTasks.length} isOpen={openSections.today} onToggle={() => toggleSection("today")} />
+          {openSections.today && (
+            <div className="space-y-2">
+              {todayTasks.length > 0 ? (
+                todayTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)
+              ) : (
+                <p className="text-small text-muted-foreground py-4 text-center">No tasks due today</p>
+              )}
+            </div>
+          )}
+        </section>
+
+        {upcomingTasks.length > 0 && (
+          <section>
+            <SectionHeader icon={TrendingUp} title="Upcoming" count={upcomingTasks.length} isOpen={openSections.upcoming} onToggle={() => toggleSection("upcoming")} />
+            {openSections.upcoming && (
+              <div className="space-y-2">
+                {upcomingTasks.map(t => <TaskCard key={t.id} task={t} onToggle={toggleTask} onPriorityChange={handlePriorityChange} onSelect={setSelectedTask} onDelete={(id) => setTaskToDelete(id)} />)}
+              </div>
+            )}
+          </section>
+        )}
       </div>
 
 
