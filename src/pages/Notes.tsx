@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, fetchTasksBySpace, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
+import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { NoteAIChat } from "@/components/NoteAIChat";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
@@ -60,17 +61,19 @@ export default function Notes() {
     }
   };
 
-  const loadLinkedTasks = useCallback(async (spaceId: string) => {
-    if (!spaceId) { setLinkedTasks([]); return; }
+  const loadLinkedTasks = useCallback(async (noteId: string) => {
+    if (!noteId) { setLinkedTasks([]); return; }
     try {
-      const tasks = await fetchTasksBySpace(spaceId);
-      setLinkedTasks(tasks);
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*, spaces(name)")
+        .eq("note_id", noteId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setLinkedTasks(data || []);
     } catch { setLinkedTasks([]); }
   }, []);
 
-  useEffect(() => { load(); }, []);
-
-  // Auto-select note from query param
   useEffect(() => {
     const noteId = searchParams.get("note");
     if (noteId && notes.length > 0 && !selectedNote) {
@@ -83,9 +86,9 @@ export default function Notes() {
   }, [notes, searchParams]);
 
   useEffect(() => {
-    if (editSpaceId) loadLinkedTasks(editSpaceId);
+    if (selectedNote?.id) loadLinkedTasks(selectedNote.id);
     else setLinkedTasks([]);
-  }, [editSpaceId, loadLinkedTasks]);
+  }, [selectedNote?.id, loadLinkedTasks]);
 
   // Autosave: debounce 2s after dirty changes
   const dirtyRef = useRef(dirty);
@@ -179,7 +182,7 @@ export default function Notes() {
         space_id: editSpaceId || null,
       });
       setDirty(false);
-      if (editSpaceId) loadLinkedTasks(editSpaceId);
+      if (selectedNote?.id) loadLinkedTasks(selectedNote.id);
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -400,7 +403,7 @@ export default function Notes() {
                     {linkedTasks.length > 0 && (
                       <Sheet>
                         <SheetTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary relative" title="Tasks do Space">
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary relative" title="Tasks vinculadas">
                             <ListTodo className="h-4 w-4" />
                             <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold flex items-center justify-center">
                               {linkedTasks.length}
@@ -411,7 +414,7 @@ export default function Notes() {
                           <SheetHeader className="px-4 py-3 border-b border-border">
                             <SheetTitle className="flex items-center gap-2 text-base">
                               <CheckSquare className="h-4 w-4 text-primary" />
-                              Tasks do Space ({linkedTasks.length})
+                              Tasks vinculadas ({linkedTasks.length})
                             </SheetTitle>
                           </SheetHeader>
                           <ScrollArea className="flex-1">
@@ -522,7 +525,7 @@ export default function Notes() {
                     noteId={selectedNote?.id}
                     existingTags={allTags}
                     spaceId={editSpaceId || null}
-                    onTaskCreated={() => { if (editSpaceId) loadLinkedTasks(editSpaceId); }}
+                    onTaskCreated={() => { if (selectedNote?.id) loadLinkedTasks(selectedNote.id); }}
                     placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
                     className="border-0 rounded-none min-h-full"
                     allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
@@ -560,7 +563,7 @@ export default function Notes() {
                   spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
                   open={!!editingTask}
                   onOpenChange={(open) => !open && setEditingTask(null)}
-                  onUpdated={() => { setEditingTask(null); if (editSpaceId) loadLinkedTasks(editSpaceId); }}
+                  onUpdated={() => { setEditingTask(null); if (selectedNote?.id) loadLinkedTasks(selectedNote.id); }}
                 />
               )}
 
