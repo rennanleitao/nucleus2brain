@@ -228,7 +228,7 @@ export default function Pomodoro() {
                           await updateTask(t.id, { status: "completed", completed_at: new Date().toISOString() } as any);
                           setTasks(prev => prev.filter(x => x.id !== t.id));
                           if (pomo.taskId === t.id && pomo.phase === "focus") pomo.reset();
-                          toast.success(`Concluída: ${t.title} ✓`);
+                          setCompletionTask(t);
                         } catch {
                           toast.error("Erro ao concluir tarefa");
                         }
