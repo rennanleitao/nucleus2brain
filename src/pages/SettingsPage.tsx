@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send, LayoutGrid, RotateCcw } from "lucide-react";
+import { useSidebarItems } from "@/hooks/useSidebarItems";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
