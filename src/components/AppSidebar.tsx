@@ -116,6 +116,8 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const collapsed = state === "collapsed";
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
+  const { visible } = useSidebarItems();
+  const navItems = navItemsAll.filter((item) => visible.includes(item.key as any));
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
