@@ -772,6 +772,11 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
 
+        {/* SIDEBAR TAB */}
+        <TabsContent value="sidebar" className="space-y-4">
+          <SidebarItemsSettings />
+        </TabsContent>
+
         {/* ACCOUNT TAB */}
         <TabsContent value="account" className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
