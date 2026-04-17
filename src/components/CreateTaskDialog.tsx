@@ -356,7 +356,11 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         </DialogHeader>
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
           {/* Seção: Conteúdo principal */}
-          <section className="space-y-3">
+          <section className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center gap-2 text-foreground">
+              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Conteúdo</h3>
+            </div>
             <div className="flex items-center gap-1.5">
               <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") { setValidationState("idle"); setValidationResult(null); } }}
                 className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
@@ -370,11 +374,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
           </section>
 
-          <div className="border-t border-border" />
 
           {/* Seção: Agendamento */}
-          <section className="space-y-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Agendamento</h3>
+          <section className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Agendamento</h3>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Prioridade</label>
@@ -411,11 +417,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
           </section>
 
-          <div className="border-t border-border" />
 
           {/* Seção: Organização */}
-          <section className="space-y-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Organização</h3>
+          <section className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Organização</h3>
+            </div>
             {/* Tag selector */}
             <div>
               <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
@@ -490,11 +498,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             />
           </section>
 
-          <div className="border-t border-border" />
 
           {/* Seção: Detalhamento */}
-          <section className="space-y-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhamento</h3>
+          <section className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhamento</h3>
+            </div>
             {/* Subtasks section */}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Subtasks (opcional)</label>
