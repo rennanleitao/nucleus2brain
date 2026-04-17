@@ -326,23 +326,19 @@ export default function Tasks() {
   );
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5 animate-fade-in">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-title flex items-center gap-2">
-            <CheckSquare className="h-5 w-5 text-muted-foreground" /> Tasks
-          </h1>
-          <p className="text-small text-muted-foreground mt-1">{tasks.filter(t => t.status !== "completed").length} active tasks</p>
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 animate-fade-in">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={`Buscar em ${tasks.filter(t => t.status !== "completed").length} tasks ativas...`}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 text-small h-9"
+          />
         </div>
-        <div className="flex gap-2">
-          <VoiceTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
-          <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
-        </div>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search tasks..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 text-small" />
+        <VoiceTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
+        <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
       </div>
 
       <Tabs value={filter} onValueChange={setFilter}>
