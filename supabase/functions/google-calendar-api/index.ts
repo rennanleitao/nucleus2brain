@@ -73,7 +73,35 @@ Deno.serve(async (req) => {
   try {
     const userId = await getUserId(req);
     const url = new URL(req.url);
-    const action = url.searchParams.get("action");
+    let action = url.searchParams.get("action");
+
+    // Also support reading action + params from JSON body (e.g. supabase.functions.invoke)
+    let parsedBody: any = null;
+    const parseBody = async () => {
+      if (parsedBody !== null) return parsedBody;
+      try {
+        parsedBody = await req.json();
+      } catch {
+        parsedBody = {};
+      }
+      return parsedBody;
+    };
+
+    if (!action && req.method === "POST") {
+      const b = await parseBody();
+      action = b?.action ?? null;
+    }
+
+    // Helper to read a param from query string or JSON body
+    const getParam = async (key: string): Promise<string | null> => {
+      const fromQuery = url.searchParams.get(key);
+      if (fromQuery) return fromQuery;
+      if (req.method === "POST") {
+        const b = await parseBody();
+        return b?.[key] ?? null;
+      }
+      return null;
+    };
 
     // List all calendars
     if (action === "list_calendars") {
@@ -93,9 +121,9 @@ Deno.serve(async (req) => {
     // List events
     if (action === "list_events") {
       const token = await getValidToken(userId);
-      const calendarId = url.searchParams.get("calendar_id") || "primary";
-      const timeMin = url.searchParams.get("time_min") || new Date().toISOString();
-      const timeMax = url.searchParams.get("time_max");
+      const calendarId = (await getParam("calendar_id")) || "primary";
+      const timeMin = (await getParam("time_min")) || new Date().toISOString();
+      const timeMax = await getParam("time_max");
 
       const params = new URLSearchParams({
         timeMin,
@@ -120,7 +148,7 @@ Deno.serve(async (req) => {
     // Create event
     if (action === "create_event") {
       const token = await getValidToken(userId);
-      const body = await req.json();
+      const body = await parseBody();
       const calendarId = body.calendar_id || "primary";
 
       const res = await fetch(
@@ -151,7 +179,7 @@ Deno.serve(async (req) => {
     // Update event
     if (action === "update_event") {
       const token = await getValidToken(userId);
-      const body = await req.json();
+      const body = await parseBody();
       const calendarId = body.calendar_id || "primary";
       const eventId = body.event_id;
 
@@ -183,7 +211,7 @@ Deno.serve(async (req) => {
     // Delete event
     if (action === "delete_event") {
       const token = await getValidToken(userId);
-      const body = await req.json();
+      const body = await parseBody();
       const calendarId = body.calendar_id || "primary";
       const eventId = body.event_id;
 
