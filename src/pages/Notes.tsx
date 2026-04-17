@@ -73,7 +73,22 @@ export default function Notes() {
       setLinkedTasks(data || []);
     } catch { setLinkedTasks([]); }
   }, []);
-// ... keep existing code (other handlers between)
+
+  useEffect(() => {
+    const noteId = searchParams.get("note");
+    if (noteId && notes.length > 0 && !selectedNote) {
+      const note = notes.find(n => n.id === noteId);
+      if (note) {
+        selectNote(note);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [notes, searchParams]);
+
+  useEffect(() => {
+    if (selectedNote?.id) loadLinkedTasks(selectedNote.id);
+    else setLinkedTasks([]);
+  }, [selectedNote?.id, loadLinkedTasks]);
 
   // Autosave: debounce 2s after dirty changes
   const dirtyRef = useRef(dirty);
