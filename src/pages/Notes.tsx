@@ -61,32 +61,19 @@ export default function Notes() {
     }
   };
 
-  const loadLinkedTasks = useCallback(async (spaceId: string) => {
-    if (!spaceId) { setLinkedTasks([]); return; }
+  const loadLinkedTasks = useCallback(async (noteId: string) => {
+    if (!noteId) { setLinkedTasks([]); return; }
     try {
-      const tasks = await fetchTasksBySpace(spaceId);
-      setLinkedTasks(tasks);
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*, spaces(name)")
+        .eq("note_id", noteId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setLinkedTasks(data || []);
     } catch { setLinkedTasks([]); }
   }, []);
-
-  useEffect(() => { load(); }, []);
-
-  // Auto-select note from query param
-  useEffect(() => {
-    const noteId = searchParams.get("note");
-    if (noteId && notes.length > 0 && !selectedNote) {
-      const note = notes.find(n => n.id === noteId);
-      if (note) {
-        selectNote(note);
-        setSearchParams({}, { replace: true });
-      }
-    }
-  }, [notes, searchParams]);
-
-  useEffect(() => {
-    if (editSpaceId) loadLinkedTasks(editSpaceId);
-    else setLinkedTasks([]);
-  }, [editSpaceId, loadLinkedTasks]);
+// ... keep existing code (other handlers between)
 
   // Autosave: debounce 2s after dirty changes
   const dirtyRef = useRef(dirty);
