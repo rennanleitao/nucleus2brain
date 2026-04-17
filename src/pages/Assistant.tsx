@@ -184,47 +184,47 @@ export default function Assistant() {
         <p className="text-micro text-muted-foreground">Crie tasks, priorize, planeje — com ajuda de IA</p>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        {messages.map(msg => (
-          <div key={msg.id} className={`flex gap-3 animate-fade-in ${msg.role === "user" ? "justify-end" : ""}`}>
-            {msg.role === "assistant" && (
-              <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+          {messages.map(msg => (
+            <div key={msg.id} className={`flex gap-3 animate-fade-in ${msg.role === "user" ? "justify-end" : ""}`}>
+              {msg.role === "assistant" && (
+                <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Bot className="h-3.5 w-3.5 text-primary-foreground" />
+                </div>
+              )}
+              <div className={`${
+                msg.role === "user"
+                  ? "max-w-[75%] rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground text-[14px] leading-relaxed"
+                  : "flex-1 min-w-0 text-[14.5px] leading-[1.65] text-foreground"
+              }`}>
+                {msg.role === "assistant" ? (
+                  <div className="ai-prose">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : msg.content}
+              </div>
+              {msg.role === "user" && (
+                <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          ))}
+          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+            <div className="flex gap-3 animate-fade-in">
+              <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Bot className="h-3.5 w-3.5 text-primary-foreground" />
               </div>
-            )}
-            <div className={`max-w-[75%] rounded-xl px-4 py-2.5 text-small leading-relaxed ${
-              msg.role === "user"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border"
-            }`}>
-              {msg.role === "assistant" ? (
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                </div>
-              ) : msg.content}
-            </div>
-            {msg.role === "user" && (
-              <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                <User className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-        ))}
-        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-          <div className="flex gap-3 animate-fade-in">
-            <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-              <Bot className="h-3.5 w-3.5 text-primary-foreground" />
-            </div>
-            <div className="bg-card border border-border rounded-xl px-4 py-2.5">
-              <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.2s]" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.4s]" />
+              <div className="flex items-center gap-1 pt-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:0.2s]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:0.4s]" />
               </div>
             </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
+          )}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       <form onSubmit={sendMessage} className="p-4 border-t border-border">
