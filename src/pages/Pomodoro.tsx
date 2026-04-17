@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { usePomodoro, FocusSoundMode } from "@/hooks/usePomodoroStore";
-import { fetchTasks, updateTask } from "@/lib/api";
+import { fetchTasks, updateTask, fetchSpaces } from "@/lib/api";
 import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Repeat, Bell, BellOff, Headphones, ChevronDown, ChevronRight, Square } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
+import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -24,15 +26,23 @@ function getBrtToday() {
 export default function Pomodoro() {
   const pomo = usePomodoro();
   const [tasks, setTasks] = useState<any[]>([]);
+  const [spaces, setSpaces] = useState<any[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string>("none");
   const [showTodayTasks, setShowTodayTasks] = useState(true);
+  const [completionTask, setCompletionTask] = useState<any | null>(null);
+  const [followUpTask, setFollowUpTask] = useState<any | null>(null);
 
   const today = getBrtToday();
 
-  useEffect(() => {
+  const loadTasks = () => {
     fetchTasks().then(t => {
       setTasks(t.filter((tk: any) => tk.status !== "completed" && tk.status !== "cancelled"));
     }).catch(() => {});
+  };
+
+  useEffect(() => {
+    loadTasks();
+    fetchSpaces().then(setSpaces).catch(() => {});
   }, []);
 
   const todayTasks = useMemo(() => {
@@ -218,7 +228,7 @@ export default function Pomodoro() {
                           await updateTask(t.id, { status: "completed", completed_at: new Date().toISOString() } as any);
                           setTasks(prev => prev.filter(x => x.id !== t.id));
                           if (pomo.taskId === t.id && pomo.phase === "focus") pomo.reset();
-                          toast.success(`Concluída: ${t.title} ✓`);
+                          setCompletionTask(t);
                         } catch {
                           toast.error("Erro ao concluir tarefa");
                         }
@@ -335,6 +345,25 @@ export default function Pomodoro() {
           </span>
         </div>
       </div>
+
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { const t = completionTask; setCompletionTask(null); setFollowUpTask(t); loadTasks(); }}
+        />
+      )}
+
+      {followUpTask && (
+        <FollowUpDialog
+          completedTask={followUpTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!followUpTask}
+          onOpenChange={(open) => !open && setFollowUpTask(null)}
+          onCreated={loadTasks}
+        />
+      )}
     </div>
   );
 }
