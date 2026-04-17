@@ -236,10 +236,10 @@ export default function SpaceDetail() {
 
       {/* Summary badges */}
       <div className="flex gap-2 flex-wrap">
-        <Badge variant="secondary" className="gap-1"><CheckSquare className="h-3 w-3" /> {tasks.filter(t => t.status !== "completed").length} tarefas ativas</Badge>
-        <Badge variant="secondary" className="gap-1"><FileText className="h-3 w-3" /> {notes.length} notas</Badge>
-        <Badge variant="secondary" className="gap-1"><Link2 className="h-3 w-3" /> {links.length} links</Badge>
-        <Badge variant="secondary" className="gap-1"><Paperclip className="h-3 w-3" /> {attachments.length} anexos</Badge>
+        <Badge variant="secondary">{tasks.filter(t => t.status !== "completed").length} tarefas ativas</Badge>
+        <Badge variant="secondary">{notes.length} notas</Badge>
+        <Badge variant="secondary">{links.length} links</Badge>
+        <Badge variant="secondary">{attachments.length} anexos</Badge>
       </div>
 
       {/* Tabs */}
@@ -255,9 +255,7 @@ export default function SpaceDetail() {
         <TabsContent value="tasks" className="space-y-3">
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-small font-semibold flex items-center gap-1.5">
-                <CheckSquare className="h-4 w-4 text-muted-foreground" /> Tasks
-              </h3>
+              <h3 className="text-small font-semibold">Tasks</h3>
               <CreateTaskDialog spaces={[{ id: space.id, name: space.name }]} onCreated={load} />
             </div>
             {tasks.length > 0 ? (
@@ -370,7 +368,6 @@ export default function SpaceDetail() {
                       onClick={() => openNoteEditor(note)}
                       className="flex items-center gap-3 w-full px-4 py-3 rounded-lg border border-border bg-card hover:shadow-sm transition-all text-left animate-fade-in touch-manipulation active:scale-[0.99] group"
                     >
-                      <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <h3 className="text-small font-medium truncate">{note.title}</h3>
                         <p className="text-micro text-muted-foreground truncate mt-0.5">{stripHtml(note.content || "Sem conteúdo")}</p>
@@ -424,7 +421,6 @@ export default function SpaceDetail() {
             <div className="space-y-2">
               {links.map(link => (
                 <div key={link.id} className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-                  <Link2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <a href={link.url} target="_blank" rel="noopener noreferrer"
                       className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
@@ -460,7 +456,6 @@ export default function SpaceDetail() {
             <div className="space-y-2">
               {attachments.map(att => (
                 <div key={att.id} className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-                  <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <a href={getAttachmentUrl(att.file_path)} target="_blank" rel="noopener noreferrer"
                       className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
