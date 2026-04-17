@@ -98,7 +98,7 @@ export default function History() {
               <div className="space-y-1.5">
                 {items.map((t: any) => (
                   <div key={t.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-                    <div className={`h-2 w-2 rounded-full flex-shrink-0 ${t.status === "completed" ? "bg-[hsl(var(--status-completed))]" : "bg-[hsl(var(--status-cancelled))]"}`} />
+                    <div className={`h-2 w-2 rounded-full flex-shrink-0 ${t.status === "completed" ? "bg-[oklch(var(--status-completed))]" : "bg-[oklch(var(--status-cancelled))]"}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-small text-foreground line-through opacity-70">{t.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -115,7 +115,7 @@ export default function History() {
                         )}
                       </div>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] ${t.status === "completed" ? "text-[hsl(var(--status-completed))]" : "text-[hsl(var(--status-cancelled))]"}`}>
+                    <Badge variant="outline" className={`text-[10px] ${t.status === "completed" ? "text-[oklch(var(--status-completed))]" : "text-[oklch(var(--status-cancelled))]"}`}>
                       {t.status === "completed" ? "Concluído" : "Cancelado"}
                     </Badge>
                   </div>
