@@ -312,64 +312,89 @@ export default function Notes() {
               </div>
             </div>
 
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text" placeholder="Buscar notas..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-primary"
-              />
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="text" placeholder="Buscar notas..." value={search} onChange={e => setSearch(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-primary"
+                />
+              </div>
+              {allTags.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant={filterTag ? "default" : "ghost"}
+                      className="h-8 w-8 flex-shrink-0"
+                      title={filterTag ? `Filtrando: #${filterTag}` : "Filtrar por tag"}
+                    >
+                      <Tag className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto w-56">
+                    {filterTag && (
+                      <DropdownMenuItem onClick={() => setFilterTag(null)} className="text-xs gap-2">
+                        <X className="h-3 w-3" /> Limpar filtro
+                      </DropdownMenuItem>
+                    )}
+                    {allTags.map(tag => (
+                      <DropdownMenuItem
+                        key={tag}
+                        onClick={() => setFilterTag(tag)}
+                        className={`text-xs ${filterTag === tag ? "bg-accent" : ""}`}
+                      >
+                        #{tag}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
-            {allTags.length > 0 && (
-              <div className="flex gap-1 flex-wrap">
-                {filterTag && (
-                  <Badge variant="default" className="text-[10px] cursor-pointer gap-1" onClick={() => setFilterTag(null)}>
-                    #{filterTag} <X className="h-2.5 w-2.5" />
-                  </Badge>
-                )}
-                {!filterTag && allTags.slice(0, 8).map(tag => (
-                  <Badge key={tag} variant="outline" className="text-[10px] cursor-pointer hover:bg-accent" onClick={() => setFilterTag(tag)}>
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
+            {filterTag && (
+              <Badge variant="default" className="text-[10px] cursor-pointer gap-1 w-fit" onClick={() => setFilterTag(null)}>
+                #{filterTag} <X className="h-2.5 w-2.5" />
+              </Badge>
             )}
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="p-2 space-y-0.5">
+            <div className="divide-y divide-border/60">
               {filteredNotes.map(note => {
                 const isSelected = selectedNote?.id === note.id;
                 return (
                   <button
                     key={note.id}
                     onClick={() => selectNote(note)}
-                    className={`w-full text-left p-3 sm:p-3 rounded-lg transition-colors touch-manipulation active:scale-[0.98] ${
+                    className={`w-full text-left px-3 py-3 transition-colors touch-manipulation active:scale-[0.99] ${
                       isSelected
                         ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent/50"
+                        : "hover:bg-accent/40"
                     }`}
                   >
                     <p className={`text-small font-semibold truncate ${isSelected ? "text-accent-foreground" : "text-foreground"}`}>
                       {note.title}
                     </p>
                     <p
-                      className={`text-[11px] line-clamp-3 mt-1 whitespace-pre-line leading-relaxed ${
+                      className={`text-[11px] line-clamp-2 mt-1 whitespace-pre-line leading-relaxed ${
                         isSelected ? "text-accent-foreground/80" : "text-muted-foreground"
                       }`}
                     >
                       {stripHtml(note.content || "") || "Sem conteúdo"}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {note.spaces?.name && (
-                        <span className={`text-[10px] ${isSelected ? "text-accent-foreground/70" : "text-muted-foreground"}`}>
-                          {note.spaces.name}
-                        </span>
-                      )}
-                      {(note.tags || []).slice(0, 3).map((tag: string) => (
-                        <Badge key={tag} variant="secondary" className="text-[9px] px-1 py-0">#{tag}</Badge>
-                      ))}
-                    </div>
+                    {(note.spaces?.name || (note.tags || []).length > 0) && (
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        {note.spaces?.name && (
+                          <span className={`text-[10px] ${isSelected ? "text-accent-foreground/70" : "text-muted-foreground"}`}>
+                            {note.spaces.name}
+                          </span>
+                        )}
+                        {(note.tags || []).slice(0, 2).map((tag: string) => (
+                          <Badge key={tag} variant="secondary" className="text-[9px] px-1 py-0">#{tag}</Badge>
+                        ))}
+                      </div>
+                    )}
                   </button>
                 );
               })}
