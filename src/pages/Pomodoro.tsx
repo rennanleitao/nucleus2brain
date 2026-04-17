@@ -210,11 +210,28 @@ export default function Pomodoro() {
                       : "border-border bg-card hover:bg-muted/50"
                   }`}
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-small font-medium truncate">{t.title}</p>
-                    {t.estimated_minutes && (
-                      <p className="text-micro text-muted-foreground">{t.estimated_minutes} min estimado</p>
-                    )}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Checkbox
+                      checked={false}
+                      onCheckedChange={async () => {
+                        try {
+                          await updateTask(t.id, { status: "completed", completed_at: new Date().toISOString() } as any);
+                          setTasks(prev => prev.filter(x => x.id !== t.id));
+                          if (pomo.taskId === t.id && pomo.phase === "focus") pomo.reset();
+                          toast.success(`Concluída: ${t.title} ✓`);
+                        } catch {
+                          toast.error("Erro ao concluir tarefa");
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-small font-medium truncate">{t.title}</p>
+                      {t.estimated_minutes && (
+                        <p className="text-micro text-muted-foreground">{t.estimated_minutes} min estimado</p>
+                      )}
+                    </div>
                   </div>
                   <button
                     className="ml-2 flex-shrink-0 text-muted-foreground hover:text-primary transition-colors p-1"
