@@ -8,8 +8,9 @@ import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
-  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical,
+  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical, ListTodo,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
@@ -396,6 +397,60 @@ export default function Notes() {
                       onClick={() => setShareOpen(true)}>
                       <Share2 className="h-4 w-4" />
                     </Button>
+                    {linkedTasks.length > 0 && (
+                      <Sheet>
+                        <SheetTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary relative" title="Tasks do Space">
+                            <ListTodo className="h-4 w-4" />
+                            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold flex items-center justify-center">
+                              {linkedTasks.length}
+                            </span>
+                          </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+                          <SheetHeader className="px-4 py-3 border-b border-border">
+                            <SheetTitle className="flex items-center gap-2 text-base">
+                              <CheckSquare className="h-4 w-4 text-primary" />
+                              Tasks do Space ({linkedTasks.length})
+                            </SheetTitle>
+                          </SheetHeader>
+                          <ScrollArea className="flex-1">
+                            <div className="p-3 space-y-1">
+                              {linkedTasks.map(task => (
+                                <button
+                                  key={task.id}
+                                  onClick={() => setEditingTask(task)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-accent/50 transition-colors group border border-transparent hover:border-border"
+                                >
+                                  <div className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                                    task.status === "completed" ? "bg-primary border-primary" : "border-muted-foreground/40"
+                                  }`}>
+                                    {task.status === "completed" && (
+                                      <svg className="h-2.5 w-2.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <span className={`text-xs flex-1 truncate ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
+                                    {task.title}
+                                  </span>
+                                  {task.due_date && (
+                                    <span className={`text-[10px] flex-shrink-0 ${
+                                      task.due_date < new Date().toISOString().split("T")[0] ? "text-destructive" : "text-muted-foreground"
+                                    }`}>
+                                      {new Date(task.due_date + "T00:00:00").toLocaleDateString("pt-BR")}
+                                    </span>
+                                  )}
+                                  {task.priority === "high" && (
+                                    <span className="text-[10px] text-destructive font-medium flex-shrink-0">Alta</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </SheetContent>
+                      </Sheet>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground">
@@ -496,55 +551,7 @@ export default function Notes() {
                 {/* AI Chat */}
                 <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
 
-                {/* Linked Tasks Panel */}
-                {linkedTasks.length > 0 && (
-                  <div className="border-t border-border bg-muted/20">
-                    <button
-                      onClick={() => setTasksExpanded(!tasksExpanded)}
-                      className="w-full flex items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <CheckSquare className="h-3.5 w-3.5" />
-                        Tasks do Space ({linkedTasks.length})
-                      </span>
-                      {tasksExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-                    </button>
-                    {tasksExpanded && (
-                      <div className="px-3 pb-3 space-y-1">
-                        {linkedTasks.map(task => (
-                          <button
-                            key={task.id}
-                            onClick={() => setEditingTask(task)}
-                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-accent/50 transition-colors group"
-                          >
-                            <div className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                              task.status === "completed" ? "bg-primary border-primary" : "border-muted-foreground/40"
-                            }`}>
-                              {task.status === "completed" && (
-                                <svg className="h-2.5 w-2.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                            <span className={`text-xs flex-1 truncate ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
-                              {task.title}
-                            </span>
-                            {task.due_date && (
-                              <span className={`text-[10px] flex-shrink-0 ${
-                                task.due_date < new Date().toISOString().split("T")[0] ? "text-destructive" : "text-muted-foreground"
-                              }`}>
-                                {new Date(task.due_date + "T00:00:00").toLocaleDateString("pt-BR")}
-                              </span>
-                            )}
-                            {task.priority === "high" && (
-                              <span className="text-[10px] text-destructive font-medium flex-shrink-0">Alta</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Linked Tasks Panel moved to a side sheet (icon in header) */}
               </div>
 
               {editingTask && (
