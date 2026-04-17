@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
-  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical, ListTodo,
+  FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical, ListTodo, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
@@ -46,6 +46,7 @@ export default function Notes() {
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [moveMode, setMoveMode] = useState<"move" | "replicate">("move");
+  const [listCollapsed, setListCollapsed] = useState(false);
   const autosaveEnabled = true;
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -279,7 +280,7 @@ export default function Notes() {
   }
 
   // On mobile, show either list or editor
-  const showList = !isMobile || !selectedNote;
+  const showList = isMobile ? !selectedNote : !listCollapsed;
   const showEditor = !isMobile || !!selectedNote;
 
   return (
@@ -293,9 +294,22 @@ export default function Notes() {
                 <FileText className="h-4 w-4 text-muted-foreground" /> Notas
                 <Badge variant="secondary" className="text-[10px] ml-1">{notes.length}</Badge>
               </h2>
-              <Button size="icon" variant="ghost" className="h-10 w-10 touch-manipulation" onClick={handleCreateNote}>
-                <Plus className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button size="icon" variant="ghost" className="h-10 w-10 touch-manipulation" onClick={handleCreateNote}>
+                  <Plus className="h-5 w-5" />
+                </Button>
+                {!isMobile && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    onClick={() => setListCollapsed(true)}
+                    title="Ocultar lista"
+                  >
+                    <PanelLeftClose className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="relative">
@@ -379,6 +393,17 @@ export default function Notes() {
                    {isMobile && (
                      <Button size="icon" variant="ghost" className="h-10 w-10 flex-shrink-0 touch-manipulation" onClick={handleBack}>
                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                  )}
+                  {!isMobile && listCollapsed && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                      onClick={() => setListCollapsed(false)}
+                      title="Mostrar lista de notas"
+                    >
+                      <PanelLeftOpen className="h-4 w-4" />
                     </Button>
                   )}
                   <input
@@ -604,7 +629,18 @@ export default function Notes() {
               )}
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center relative">
+              {!isMobile && listCollapsed && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute top-3 left-3 h-9 w-9 text-muted-foreground hover:text-foreground"
+                  onClick={() => setListCollapsed(false)}
+                  title="Mostrar lista de notas"
+                >
+                  <PanelLeftOpen className="h-4 w-4" />
+                </Button>
+              )}
               <div className="text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-small text-muted-foreground mb-3">Selecione uma nota ou crie uma nova</p>
