@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { usePomodoro, FocusSoundMode } from "@/hooks/usePomodoroStore";
-import { fetchTasks } from "@/lib/api";
+import { fetchTasks, updateTask } from "@/lib/api";
 import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Repeat, Bell, BellOff, Headphones, ChevronDown, ChevronRight, Square } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
