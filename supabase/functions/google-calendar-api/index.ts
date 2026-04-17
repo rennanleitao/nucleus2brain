@@ -73,7 +73,35 @@ Deno.serve(async (req) => {
   try {
     const userId = await getUserId(req);
     const url = new URL(req.url);
-    const action = url.searchParams.get("action");
+    let action = url.searchParams.get("action");
+
+    // Also support reading action + params from JSON body (e.g. supabase.functions.invoke)
+    let parsedBody: any = null;
+    const parseBody = async () => {
+      if (parsedBody !== null) return parsedBody;
+      try {
+        parsedBody = await req.json();
+      } catch {
+        parsedBody = {};
+      }
+      return parsedBody;
+    };
+
+    if (!action && req.method === "POST") {
+      const b = await parseBody();
+      action = b?.action ?? null;
+    }
+
+    // Helper to read a param from query string or JSON body
+    const getParam = async (key: string): Promise<string | null> => {
+      const fromQuery = url.searchParams.get(key);
+      if (fromQuery) return fromQuery;
+      if (req.method === "POST") {
+        const b = await parseBody();
+        return b?.[key] ?? null;
+      }
+      return null;
+    };
 
     // List all calendars
     if (action === "list_calendars") {
