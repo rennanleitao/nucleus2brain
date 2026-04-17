@@ -480,7 +480,7 @@ html, body {
 /* AI Assistant prose — clean, minimal, well-spaced */
 .ai-prose {
   font-family: var(--font-sans);
-  color: hsl(var(--foreground));
+  color: oklch(var(--foreground));
   font-size: 14.5px;
   line-height: 1.65;
   letter-spacing: -0.005em;
@@ -490,7 +490,7 @@ html, body {
 .ai-prose h1, .ai-prose h2, .ai-prose h3, .ai-prose h4 {
   font-weight: 600;
   letter-spacing: -0.015em;
-  color: hsl(var(--foreground));
+  color: oklch(var(--foreground));
   line-height: 1.3;
 }
 .ai-prose h1 { font-size: 1.15rem; margin-top: 1.25rem; }
@@ -503,11 +503,11 @@ html, body {
 .ai-prose ul { list-style: disc; }
 .ai-prose ol { list-style: decimal; }
 .ai-prose li { margin: 0.25rem 0; padding-left: 0.15rem; }
-.ai-prose li::marker { color: hsl(var(--muted-foreground) / 0.6); }
-.ai-prose strong { font-weight: 600; color: hsl(var(--foreground)); }
+.ai-prose li::marker { color: oklch(var(--muted-foreground) / 0.6); }
+.ai-prose strong { font-weight: 600; color: oklch(var(--foreground)); }
 .ai-prose em { font-style: italic; }
 .ai-prose a {
-  color: hsl(var(--primary));
+  color: oklch(var(--primary));
   text-decoration: underline;
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
@@ -515,14 +515,14 @@ html, body {
 .ai-prose code {
   font-family: var(--font-mono);
   font-size: 0.85em;
-  background: hsl(var(--muted));
+  background: oklch(var(--muted));
   padding: 1px 5px;
   border-radius: 4px;
-  color: hsl(var(--foreground));
+  color: oklch(var(--foreground));
 }
 .ai-prose pre {
-  background: hsl(var(--muted));
-  border: 1px solid hsl(var(--border));
+  background: oklch(var(--muted));
+  border: 1px solid oklch(var(--border));
   border-radius: 0.5rem;
   padding: 0.75rem 0.875rem;
   overflow-x: auto;
@@ -536,14 +536,14 @@ html, body {
   font-size: inherit;
 }
 .ai-prose blockquote {
-  border-left: 2px solid hsl(var(--border));
+  border-left: 2px solid oklch(var(--border));
   padding-left: 0.875rem;
-  color: hsl(var(--muted-foreground));
+  color: oklch(var(--muted-foreground));
   font-style: normal;
 }
 .ai-prose hr {
   border: 0;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid oklch(var(--border));
   margin: 1rem 0;
 }
 .ai-prose table {
@@ -552,8 +552,8 @@ html, body {
   font-size: 13.5px;
 }
 .ai-prose th, .ai-prose td {
-  border: 1px solid hsl(var(--border));
+  border: 1px solid oklch(var(--border));
   padding: 6px 10px;
   text-align: left;
 }
-.ai-prose th { background: hsl(var(--muted)); font-weight: 600; }
+.ai-prose th { background: oklch(var(--muted)); font-weight: 600; }
