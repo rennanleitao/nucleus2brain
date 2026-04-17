@@ -297,18 +297,19 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
             {task.notes?.title && task.note_id && (
               <button
                 onClick={(e) => { e.stopPropagation(); window.location.href = `/notes?note=${task.note_id}`; }}
-                className="text-micro text-primary/70 hover:text-primary flex items-center gap-0.5 hover:underline transition-colors"
-                title="Ir para a nota de origem"
+                title="Criada a partir desta nota — clique para abrir"
               >
-                <FileText className="h-3 w-3" />
-                {task.notes.title}
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors gap-0.5">
+                  <FileText className="h-2.5 w-2.5" />
+                  da nota: {task.notes.title}
+                </Badge>
               </button>
             )}
             {task.notes?.title && !task.note_id && (
-              <span className="text-micro text-muted-foreground flex items-center gap-0.5">
-                <FileText className="h-3 w-3" />
-                {task.notes.title}
-              </span>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-muted-foreground/30 text-muted-foreground gap-0.5">
+                <FileText className="h-2.5 w-2.5" />
+                da nota: {task.notes.title}
+              </Badge>
             )}
             {task.due_date && task.due_date === getBrtToday() && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
