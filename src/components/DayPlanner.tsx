@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -49,6 +49,10 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
+  const [view, setView] = useState<"list" | "kanban">("list");
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
 
   const today = getBrtToday();
   const tomorrow = getBrtTomorrow();
@@ -69,7 +73,7 @@ export function DayPlanner({
     const todayTaskIds = new Set(todayTasks.map(t => t.id));
     const result: { subtask: any; parentTask: any }[] = [];
     for (const task of tasks) {
-      if (todayTaskIds.has(task.id)) continue; // parent already shown in today
+      if (todayTaskIds.has(task.id)) continue;
       const subs = subtasksMap[task.id] || [];
       for (const sub of subs) {
         if (sub.status !== "completed" && sub.due_date === today) {
@@ -98,21 +102,68 @@ export function DayPlanner({
       .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
   }, [tasks, tomorrow]);
 
-  const handleReorder = async (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= todayTasks.length) return;
-    const reordered = [...todayTasks];
-    const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, moved);
-
+  // Persist new ordering after drag
+  const persistOrder = async (reordered: any[]) => {
     const updatedTasks = tasks.map(t => {
       const idx = reordered.findIndex(r => r.id === t.id);
       if (idx !== -1) return { ...t, day_order: idx + 1 };
       return t;
     });
     setTasks(updatedTasks);
-
     try {
       await Promise.all(reordered.map((t, idx) => updateTask(t.id, { day_order: idx + 1 } as any)));
+    } catch (err: any) {
+      toast.error(err.message);
+      onReload();
+    }
+  };
+
+  const handleReorder = async (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= todayTasks.length) return;
+    const reordered = [...todayTasks];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    persistOrder(reordered);
+  };
+
+  // ===== Drag-and-drop (list reorder) =====
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  };
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverId !== id) setDragOverId(id);
+  };
+  const handleDragLeave = () => setDragOverId(null);
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = draggedId || e.dataTransfer.getData("text/plain");
+    setDraggedId(null);
+    setDragOverId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const fromIdx = todayTasks.findIndex(t => t.id === sourceId);
+    const toIdx = todayTasks.findIndex(t => t.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    handleReorder(fromIdx, toIdx);
+  };
+  const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); setDragOverStatus(null); };
+
+  // ===== Drag-and-drop (kanban: change status) =====
+  const handleStatusDrop = async (e: React.DragEvent, newStatus: string) => {
+    e.preventDefault();
+    const sourceId = draggedId || e.dataTransfer.getData("text/plain");
+    setDraggedId(null);
+    setDragOverStatus(null);
+    if (!sourceId) return;
+    const task = todayTasks.find(t => t.id === sourceId);
+    if (!task || task.status === newStatus) return;
+    setTasks(prev => prev.map(t => t.id === sourceId ? { ...t, status: newStatus } : t));
+    try {
+      await updateTask(sourceId, { status: newStatus } as any);
+      toast.success("Status atualizado");
     } catch (err: any) {
       toast.error(err.message);
       onReload();
@@ -173,6 +224,22 @@ export function DayPlanner({
     );
   };
 
+  // Kanban columns: by status for today's tasks
+  const kanbanColumns = useMemo(() => {
+    const cols: Record<string, any[]> = { todo: [], in_progress: [], waiting: [] };
+    for (const t of todayTasks) {
+      const k = (t.status as string) in cols ? t.status : "todo";
+      cols[k].push(t);
+    }
+    return cols;
+  }, [todayTasks]);
+
+  const kanbanMeta = [
+    { key: "todo", label: "A fazer", icon: Circle, color: "text-muted-foreground", border: "border-border", bg: "bg-muted/30" },
+    { key: "in_progress", label: "Em progresso", icon: PlayCircle, color: "text-primary", border: "border-primary/30", bg: "bg-primary/5" },
+    { key: "waiting", label: "Aguardando", icon: PauseCircle, color: "text-amber-600", border: "border-amber-500/30", bg: "bg-amber-500/5" },
+  ];
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -184,88 +251,197 @@ export function DayPlanner({
             {todayTasks.length + todayOrphanSubtasks.length} item{(todayTasks.length + todayOrphanSubtasks.length) !== 1 ? "s" : ""}
           </span>
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => navigate("/pomodoro")}
-                className="flex items-center gap-1.5 text-small font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-lg px-2.5 py-1.5 transition-colors"
-              >
-                <Timer className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent><p className="text-xs">Abrir Pomodoro</p></TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center border border-border rounded-md overflow-hidden">
+            <button
+              onClick={() => setView("list")}
+              className={`p-1.5 transition-colors ${view === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Lista"
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setView("kanban")}
+              className={`p-1.5 transition-colors ${view === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Kanban"
+            >
+              <Columns3 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => navigate("/pomodoro")}
+                  className="flex items-center gap-1.5 text-small font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-lg px-2.5 py-1.5 transition-colors"
+                >
+                  <Timer className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent><p className="text-xs">Abrir Pomodoro</p></TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
-      {/* Today tasks – reorderable */}
-      {(todayTasks.length > 0 || todayOrphanSubtasks.length > 0) ? (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-          <div className="space-y-2">
-            {todayTasks.map((t, idx) => (
-              <div key={t.id} onClick={() => onSelect(t)} className="cursor-pointer">
-                <TaskCard
-                  task={t}
-                  subtasks={subtasksMap[t.id] || []}
-                  reminder={remindersMap[t.id] || null}
-                  onToggle={() => onToggle(t.id)}
-                  onDelete={() => onDelete(t.id)}
-                  onToggleSubtask={onToggleSubtask}
-                  onAddSubtask={onAddSubtask}
-                  onDeleteSubtask={onDeleteSubtask}
-                  onPriorityChange={onPriorityChange}
-                  onReschedule={onReschedule}
-                  onRescheduleSubtask={onRescheduleSubtask}
-                  onDuplicate={onDuplicate}
-                  orderNumber={idx + 1}
-                  onMoveUp={() => handleReorder(idx, idx - 1)}
-                  onMoveDown={() => handleReorder(idx, idx + 1)}
-                  isFirst={idx === 0}
-                  isLast={idx === todayTasks.length - 1}
-                />
-              </div>
-            ))}
-
-            {/* Orphan subtasks for today */}
-            {todayOrphanSubtasks.map(({ subtask, parentTask }) => (
-              <div
-                key={`sub-${subtask.id}`}
-                className="rounded-lg border border-border bg-card p-3 flex items-center gap-3 cursor-pointer hover:shadow-card transition-all"
-                onClick={() => onSelect(parentTask)}
-              >
-                <button
-                  onClick={(e) => { e.stopPropagation(); onToggleSubtask(subtask.id); }}
-                  className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
-                >
-                  {subtask.status === "completed" ? (
-                    <CalendarCheck className="h-4 w-4" />
-                  ) : (
-                    <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />
+      {/* LIST VIEW */}
+      {view === "list" && (
+        (todayTasks.length > 0 || todayOrphanSubtasks.length > 0) ? (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <div className="space-y-2">
+              {todayTasks.map((t, idx) => (
+                <div
+                  key={t.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, t.id)}
+                  onDragOver={(e) => handleDragOver(e, t.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, t.id)}
+                  onDragEnd={handleDragEnd}
+                  onClick={() => onSelect(t)}
+                  className={cn(
+                    "cursor-pointer relative group/drag transition-all rounded-lg",
+                    draggedId === t.id && "opacity-40",
+                    dragOverId === t.id && draggedId !== t.id && "ring-2 ring-primary ring-offset-1",
                   )}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <p className="text-small font-medium leading-tight">{subtask.title}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <Link2 className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-micro text-muted-foreground truncate">
-                      Subtask de: {parentTask.title}
-                    </span>
+                >
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5 opacity-0 group-hover/drag:opacity-100 transition-opacity pointer-events-none hidden sm:block">
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <TaskCard
+                    task={t}
+                    subtasks={subtasksMap[t.id] || []}
+                    reminder={remindersMap[t.id] || null}
+                    onToggle={() => onToggle(t.id)}
+                    onDelete={() => onDelete(t.id)}
+                    onToggleSubtask={onToggleSubtask}
+                    onAddSubtask={onAddSubtask}
+                    onDeleteSubtask={onDeleteSubtask}
+                    onPriorityChange={onPriorityChange}
+                    onReschedule={onReschedule}
+                    onRescheduleSubtask={onRescheduleSubtask}
+                    onDuplicate={onDuplicate}
+                    orderNumber={idx + 1}
+                    onMoveUp={() => handleReorder(idx, idx - 1)}
+                    onMoveDown={() => handleReorder(idx, idx + 1)}
+                    isFirst={idx === 0}
+                    isLast={idx === todayTasks.length - 1}
+                  />
+                </div>
+              ))}
+
+              {/* Orphan subtasks for today */}
+              {todayOrphanSubtasks.map(({ subtask, parentTask }) => (
+                <div
+                  key={`sub-${subtask.id}`}
+                  className="rounded-lg border border-border bg-card p-3 flex items-center gap-3 cursor-pointer hover:shadow-card transition-all"
+                  onClick={() => onSelect(parentTask)}
+                >
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onToggleSubtask(subtask.id); }}
+                    className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {subtask.status === "completed" ? (
+                      <CalendarCheck className="h-4 w-4" />
+                    ) : (
+                      <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />
+                    )}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-small font-medium leading-tight">{subtask.title}</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Link2 className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-micro text-muted-foreground truncate">
+                        Subtask de: {parentTask.title}
+                      </span>
+                    </div>
+                  </div>
+                  <div onClick={e => e.stopPropagation()}>
+                    <SubtaskRescheduleInline subtaskId={subtask.id} currentDate={subtask.due_date} onReschedule={onRescheduleSubtask} />
                   </div>
                 </div>
-                <div onClick={e => e.stopPropagation()}>
-                  <SubtaskRescheduleInline subtaskId={subtask.id} currentDate={subtask.due_date} onReschedule={onRescheduleSubtask} />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-10 rounded-xl border border-dashed border-border">
-          <CalendarCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-small text-muted-foreground">Nenhuma task para hoje</p>
-          <p className="text-micro text-muted-foreground mt-1">Agende tasks com data de hoje para planejar seu dia</p>
-        </div>
+        ) : (
+          <div className="text-center py-10 rounded-xl border border-dashed border-border">
+            <CalendarCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-small text-muted-foreground">Nenhuma task para hoje</p>
+            <p className="text-micro text-muted-foreground mt-1">Agende tasks com data de hoje para planejar seu dia</p>
+          </div>
+        )
+      )}
+
+      {/* KANBAN VIEW */}
+      {view === "kanban" && (
+        todayTasks.length > 0 ? (
+          <div className="flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 sm:-mx-6 sm:px-6">
+            {kanbanMeta.map(col => {
+              const colTasks = kanbanColumns[col.key] || [];
+              const isOver = dragOverStatus === col.key;
+              return (
+                <div
+                  key={col.key}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverStatus(col.key); }}
+                  onDragLeave={() => setDragOverStatus(null)}
+                  onDrop={(e) => handleStatusDrop(e, col.key)}
+                  className={cn(
+                    "flex-shrink-0 w-[280px] sm:w-[300px] rounded-xl border flex flex-col max-h-[calc(100vh-280px)] transition-all",
+                    col.border, col.bg,
+                    isOver && "ring-2 ring-primary ring-offset-1",
+                  )}
+                >
+                  <div className="flex items-center gap-2 p-3 border-b border-border/50">
+                    <col.icon className={`h-4 w-4 ${col.color}`} />
+                    <h3 className={`text-sm font-semibold ${col.color}`}>{col.label}</h3>
+                    <span className="text-micro text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded-md ml-auto">
+                      {colTasks.length}
+                    </span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                    {colTasks.map(t => (
+                      <div
+                        key={t.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, t.id)}
+                        onDragEnd={handleDragEnd}
+                        onClick={() => onSelect(t)}
+                        className={cn(
+                          "cursor-pointer transition-opacity",
+                          draggedId === t.id && "opacity-40",
+                        )}
+                      >
+                        <TaskCard
+                          task={t}
+                          subtasks={subtasksMap[t.id] || []}
+                          reminder={remindersMap[t.id] || null}
+                          onToggle={() => onToggle(t.id)}
+                          onDelete={() => onDelete(t.id)}
+                          onToggleSubtask={onToggleSubtask}
+                          onAddSubtask={onAddSubtask}
+                          onDeleteSubtask={onDeleteSubtask}
+                          onPriorityChange={onPriorityChange}
+                          onReschedule={onReschedule}
+                          onRescheduleSubtask={onRescheduleSubtask}
+                          onDuplicate={onDuplicate}
+                        />
+                      </div>
+                    ))}
+                    {colTasks.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-6">Arraste tasks para cá</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-10 rounded-xl border border-dashed border-border">
+            <CalendarCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-small text-muted-foreground">Nenhuma task para hoje</p>
+          </div>
+        )
       )}
 
       {/* Tomorrow */}
