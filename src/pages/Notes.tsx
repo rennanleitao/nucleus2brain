@@ -629,7 +629,18 @@ export default function Notes() {
               )}
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center relative">
+              {!isMobile && listCollapsed && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute top-3 left-3 h-9 w-9 text-muted-foreground hover:text-foreground"
+                  onClick={() => setListCollapsed(false)}
+                  title="Mostrar lista de notas"
+                >
+                  <PanelLeftOpen className="h-4 w-4" />
+                </Button>
+              )}
               <div className="text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-small text-muted-foreground mb-3">Selecione uma nota ou crie uma nova</p>
