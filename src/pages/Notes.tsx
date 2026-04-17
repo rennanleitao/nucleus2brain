@@ -360,17 +360,17 @@ export default function Notes() {
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="divide-y-2 divide-border">
+            <div className="p-2 space-y-1.5">
               {filteredNotes.map(note => {
                 const isSelected = selectedNote?.id === note.id;
                 return (
                   <button
                     key={note.id}
                     onClick={() => selectNote(note)}
-                    className={`w-full text-left px-3 py-3 transition-colors touch-manipulation active:scale-[0.99] ${
+                    className={`w-full text-left px-3 py-3 rounded-xl border transition-all touch-manipulation active:scale-[0.99] ${
                       isSelected
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent/40"
+                        ? "bg-accent text-accent-foreground border-accent shadow-sm"
+                        : "bg-background border-border/60 hover:border-border hover:shadow-sm"
                     }`}
                   >
                     <p className={`text-small font-semibold truncate ${isSelected ? "text-accent-foreground" : "text-foreground"}`}>
