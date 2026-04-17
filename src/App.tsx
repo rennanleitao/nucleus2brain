@@ -52,7 +52,8 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Assistant />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/spaces" element={<Spaces />} />
         <Route path="/spaces/:id" element={<SpaceDetail />} />
         <Route path="/tasks" element={<Tasks />} />
