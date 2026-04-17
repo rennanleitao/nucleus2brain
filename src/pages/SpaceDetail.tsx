@@ -234,14 +234,6 @@ export default function SpaceDetail() {
         onOpenChange={setShareOpen}
       />
 
-      {/* Summary badges */}
-      <div className="flex gap-2 flex-wrap">
-        <Badge variant="secondary">{tasks.filter(t => t.status !== "completed").length} tarefas ativas</Badge>
-        <Badge variant="secondary">{notes.length} notas</Badge>
-        <Badge variant="secondary">{links.length} links</Badge>
-        <Badge variant="secondary">{attachments.length} anexos</Badge>
-      </div>
-
       {/* Tabs */}
       <Tabs defaultValue="tasks" className="space-y-4">
         <TabsList className="bg-muted">
