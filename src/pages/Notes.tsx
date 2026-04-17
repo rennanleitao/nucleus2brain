@@ -395,6 +395,17 @@ export default function Notes() {
                        <ArrowLeft className="h-5 w-5" />
                     </Button>
                   )}
+                  {!isMobile && listCollapsed && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                      onClick={() => setListCollapsed(false)}
+                      title="Mostrar lista de notas"
+                    >
+                      <PanelLeftOpen className="h-4 w-4" />
+                    </Button>
+                  )}
                   <input
                     type="text" value={editTitle}
                     onChange={e => { setEditTitle(e.target.value); setDirty(true); }}
