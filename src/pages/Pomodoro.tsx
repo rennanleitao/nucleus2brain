@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { usePomodoro, FocusSoundMode } from "@/hooks/usePomodoroStore";
-import { fetchTasks, updateTask } from "@/lib/api";
+import { fetchTasks, updateTask, fetchSpaces } from "@/lib/api";
 import { Timer, Play, Pause, RotateCcw, Coffee, Zap, Repeat, Bell, BellOff, Headphones, ChevronDown, ChevronRight, Square } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
+import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
