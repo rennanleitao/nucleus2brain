@@ -360,7 +360,7 @@ export default function Notes() {
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="divide-y divide-border/60">
+            <div className="divide-y-2 divide-border">
               {filteredNotes.map(note => {
                 const isSelected = selectedNote?.id === note.id;
                 return (
