@@ -21,6 +21,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { usePomodoro } from "@/hooks/usePomodoroStore";
+import { useSidebarItems } from "@/hooks/useSidebarItems";
 import {
   Sidebar,
   SidebarContent,
@@ -35,17 +36,17 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const navItems = [
-  { title: "Personal Assistant", url: "/", icon: Bot },
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Spaces", url: "/spaces", icon: FolderOpen },
-  { title: "Notes", url: "/notes", icon: FileText },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare },
-  { title: "Materials", url: "/materials", icon: Paperclip },
-  { title: "Tags", url: "/tags", icon: Tag },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
-  { title: "Pomodoro", url: "/pomodoro", icon: Timer },
-];
+const navItemsAll = [
+  { key: "assistant", title: "Personal Assistant", url: "/", icon: Bot },
+  { key: "dashboard", title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { key: "spaces", title: "Spaces", url: "/spaces", icon: FolderOpen },
+  { key: "notes", title: "Notes", url: "/notes", icon: FileText },
+  { key: "tasks", title: "Tasks", url: "/tasks", icon: CheckSquare },
+  { key: "materials", title: "Materials", url: "/materials", icon: Paperclip },
+  { key: "tags", title: "Tags", url: "/tags", icon: Tag },
+  { key: "calendar", title: "Calendar", url: "/calendar", icon: Calendar },
+  { key: "pomodoro", title: "Pomodoro", url: "/pomodoro", icon: Timer },
+] as const;
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -115,6 +116,8 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const collapsed = state === "collapsed";
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
+  const { visible } = useSidebarItems();
+  const navItems = navItemsAll.filter((item) => visible.includes(item.key as any));
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send, LayoutGrid, RotateCcw } from "lucide-react";
+import { useSidebarItems } from "@/hooks/useSidebarItems";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -284,6 +285,7 @@ export default function SettingsPage() {
           <TabsTrigger value="whatsapp" className="text-xs"><MessageSquare className="h-3 w-3 mr-1" /> WhatsApp</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs"><Bell className="h-3 w-3 mr-1" /> Lembretes</TabsTrigger>
           <TabsTrigger value="import" className="text-xs"><Upload className="h-3 w-3 mr-1" /> Import</TabsTrigger>
+          <TabsTrigger value="sidebar" className="text-xs"><LayoutGrid className="h-3 w-3 mr-1" /> Sidebar</TabsTrigger>
           <TabsTrigger value="account" className="text-xs"><User className="h-3 w-3 mr-1" /> Conta</TabsTrigger>
         </TabsList>
 
@@ -770,6 +772,11 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
 
+        {/* SIDEBAR TAB */}
+        <TabsContent value="sidebar" className="space-y-4">
+          <SidebarItemsSettings />
+        </TabsContent>
+
         {/* ACCOUNT TAB */}
         <TabsContent value="account" className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
@@ -788,6 +795,42 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function SidebarItemsSettings() {
+  const { visible, toggle, reset, all } = useSidebarItems();
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Itens da sidebar</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Escolha quais atalhos aparecem no menu lateral. Pelo menos um item permanece visível.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={reset} className="text-xs">
+          <RotateCcw className="h-3 w-3 mr-1" /> Restaurar
+        </Button>
+      </div>
+      <div className="space-y-2">
+        {all.map((item) => {
+          const checked = visible.includes(item.key);
+          return (
+            <div
+              key={item.key}
+              className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{item.title}</span>
+                <span className="text-[11px] text-muted-foreground">{item.url}</span>
+              </div>
+              <Switch checked={checked} onCheckedChange={() => toggle(item.key)} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
