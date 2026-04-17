@@ -185,9 +185,6 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <PwaInstallButton collapsed={collapsed} />
-          </SidebarMenuItem>
-          <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut} className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer">
               <LogOut className="h-4 w-4" />
               {!collapsed && <span>Sign Out</span>}
