@@ -350,9 +350,11 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Criar Task</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-0">
+        <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
+          <DialogTitle>Criar Task</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
           {/* Seção: Conteúdo principal */}
           <section className="space-y-3">
             <div className="flex items-center gap-1.5">
