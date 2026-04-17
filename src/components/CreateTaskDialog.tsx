@@ -352,208 +352,228 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       )}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Criar Task</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="flex items-center gap-1.5">
-            <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") { setValidationState("idle"); setValidationResult(null); } }}
-              className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
-            <button type="button" onClick={handleAIAnalyze} disabled={!title.trim() || validationState === "validating"}
-              className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-40"
-              title="Analisar com IA">
-              {validationState === "validating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            </button>
-          </div>
-          <textarea placeholder="Descrição (opcional)" value={description} onChange={e => setDescription(e.target.value)}
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Prioridade</label>
-              <select value={priority} onChange={e => setPriority(e.target.value as any)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
-                <option value="low">Baixa</option>
-                <option value="medium">Média</option>
-                <option value="high">Alta</option>
-              </select>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Seção: Conteúdo principal */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-1.5">
+              <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") { setValidationState("idle"); setValidationResult(null); } }}
+                className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
+              <button type="button" onClick={handleAIAnalyze} disabled={!title.trim() || validationState === "validating"}
+                className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-40"
+                title="Analisar com IA">
+                {validationState === "validating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              </button>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Data limite</label>
-              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-              <div className="flex gap-1 mt-1">
-                <button type="button" onClick={() => setDueDate(todayStr)}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
-                  Hoje
-                </button>
-                <button type="button" onClick={() => setDueDate(tomorrowStr)}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
-                  Amanhã
-                </button>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
-              </p>
-            </div>
-          </div>
+            <textarea placeholder="Descrição (opcional)" value={description} onChange={e => setDescription(e.target.value)}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
+          </section>
 
-          {/* Tag selector */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-              <Tag className="h-3 w-3" /> Tag (opcional)
-            </label>
-            {tag ? (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">#{tag}</Badge>
-                <button type="button" onClick={() => setTag("")} className="text-muted-foreground hover:text-destructive">
-                  <X className="h-3 w-3" />
-                </button>
+          <div className="border-t border-border" />
+
+          {/* Seção: Agendamento */}
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Agendamento</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Prioridade</label>
+                <select value={priority} onChange={e => setPriority(e.target.value as any)}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
+                  <option value="low">Baixa</option>
+                  <option value="medium">Média</option>
+                  <option value="high">Alta</option>
+                </select>
               </div>
-            ) : (
-              <div className="relative">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Data limite</label>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                <div className="flex gap-1 mt-1">
+                  <button type="button" onClick={() => setDueDate(todayStr)}
+                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                    Hoje
+                  </button>
+                  <button type="button" onClick={() => setDueDate(tomorrowStr)}
+                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                    Amanhã
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
+                </p>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
+              <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+            </div>
+          </section>
+
+          <div className="border-t border-border" />
+
+          {/* Seção: Organização */}
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Organização</h3>
+            {/* Tag selector */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                <Tag className="h-3 w-3" /> Tag (opcional)
+              </label>
+              {tag ? (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">#{tag}</Badge>
+                  <button type="button" onClick={() => setTag("")} className="text-muted-foreground hover:text-destructive">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar ou criar tag..."
+                    value={tagInput}
+                    onChange={e => setTagInput(e.target.value)}
+                    onFocus={() => setShowTagPicker(true)}
+                    onBlur={() => setTimeout(() => setShowTagPicker(false), 150)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && tagInput.trim()) {
+                        e.preventDefault();
+                        setTag(tagInput.trim().replace(/^#/, ""));
+                        setTagInput("");
+                        setShowTagPicker(false);
+                      }
+                    }}
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  {showTagPicker && (
+                    <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                      {filteredTags.map(t => (
+                        <button key={t} type="button"
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => { setTag(t); setTagInput(""); setShowTagPicker(false); }}
+                          className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors">
+                          #{t}
+                        </button>
+                      ))}
+                      {tagInput.trim() && !allTags.some(t => t.toLowerCase() === tagInput.trim().toLowerCase().replace(/^#/, "")) && (
+                        <button type="button"
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => { setTag(tagInput.trim().replace(/^#/, "")); setTagInput(""); setShowTagPicker(false); }}
+                          className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors text-primary font-medium">
+                          <Plus className="h-3 w-3 inline mr-1" />Criar tag "#{tagInput.trim().replace(/^#/, "")}"
+                        </button>
+                      )}
+                      {filteredTags.length === 0 && !tagInput.trim() && (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">Nenhuma tag encontrada</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Space selector with inline creation */}
+            <SpaceCombobox
+              spaces={spaces}
+              spaceId={spaceId}
+              onSelect={setSpaceId}
+              showNewSpace={showNewSpace}
+              setShowNewSpace={setShowNewSpace}
+              newSpaceName={newSpaceName}
+              setNewSpaceName={setNewSpaceName}
+              newSpaceIcon={newSpaceIcon}
+              setNewSpaceIcon={setNewSpaceIcon}
+              creatingSpace={creatingSpace}
+              onCreateSpace={handleCreateSpace}
+            />
+          </section>
+
+          <div className="border-t border-border" />
+
+          {/* Seção: Detalhamento */}
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhamento</h3>
+            {/* Subtasks section */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Subtasks (opcional)</label>
+              {pendingSubtasks.length > 0 && (
+                <div className="space-y-1 mb-2 ml-2 border-l border-border pl-2">
+                  {pendingSubtasks.map((sub, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <span className="flex-1 truncate">{sub.title}</span>
+                      {sub.due_date && <span className="text-muted-foreground text-[10px]">{sub.due_date}</span>}
+                      <button type="button" onClick={() => handleRemovePendingSubtask(idx)} className="text-muted-foreground hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Buscar ou criar tag..."
-                  value={tagInput}
-                  onChange={e => setTagInput(e.target.value)}
-                  onFocus={() => setShowTagPicker(true)}
-                  onBlur={() => setTimeout(() => setShowTagPicker(false), 150)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && tagInput.trim()) {
-                      e.preventDefault();
-                      setTag(tagInput.trim().replace(/^#/, ""));
-                      setTagInput("");
-                      setShowTagPicker(false);
-                    }
-                  }}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="Título da subtask"
+                  value={subtaskTitle}
+                  onChange={e => setSubtaskTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingSubtask(); } }}
+                  className="flex-1 bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary"
                 />
-                {showTagPicker && (
-                  <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
-                    {filteredTags.map(t => (
-                      <button key={t} type="button"
-                        onMouseDown={e => e.preventDefault()}
-                        onClick={() => { setTag(t); setTagInput(""); setShowTagPicker(false); }}
-                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors">
-                        #{t}
-                      </button>
-                    ))}
-                    {tagInput.trim() && !allTags.some(t => t.toLowerCase() === tagInput.trim().toLowerCase().replace(/^#/, "")) && (
-                      <button type="button"
-                        onMouseDown={e => e.preventDefault()}
-                        onClick={() => { setTag(tagInput.trim().replace(/^#/, "")); setTagInput(""); setShowTagPicker(false); }}
-                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors text-primary font-medium">
-                        <Plus className="h-3 w-3 inline mr-1" />Criar tag "#{tagInput.trim().replace(/^#/, "")}"
-                      </button>
-                    )}
-                    {filteredTags.length === 0 && !tagInput.trim() && (
-                      <p className="px-3 py-2 text-xs text-muted-foreground">Nenhuma tag encontrada</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Subtasks section */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Subtasks (opcional)</label>
-            {pendingSubtasks.length > 0 && (
-              <div className="space-y-1 mb-2 ml-2 border-l border-border pl-2">
-                {pendingSubtasks.map((sub, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs">
-                    <span className="flex-1 truncate">{sub.title}</span>
-                    {sub.due_date && <span className="text-muted-foreground text-[10px]">{sub.due_date}</span>}
-                    <button type="button" onClick={() => handleRemovePendingSubtask(idx)} className="text-muted-foreground hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Título da subtask"
-                value={subtaskTitle}
-                onChange={e => setSubtaskTitle(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingSubtask(); } }}
-                className="flex-1 bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary"
-              />
-              <input
-                type="date"
-                value={subtaskDate}
-                onChange={e => setSubtaskDate(e.target.value)}
-                className="bg-background border border-border rounded px-1 py-1.5 text-[10px] outline-none focus:border-primary w-[110px]"
-              />
-              <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingSubtask} disabled={!subtaskTitle.trim()} className="h-7 px-2">
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Materials section */}
-          <div>
-            <button type="button" onClick={() => setShowMaterials(!showMaterials)}
-              className="text-xs text-muted-foreground mb-1 flex items-center gap-1 hover:text-foreground transition-colors">
-              <LinkIcon className="h-3 w-3" />
-              Materiais relacionados
-              <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
-              {pendingMaterials.length > 0 && <span className="text-[10px] text-primary">({pendingMaterials.length})</span>}
-            </button>
-            {showMaterials && (
-              <div className="border border-border rounded-lg p-3 space-y-2">
-                {pendingMaterials.length > 0 && (
-                  <div className="space-y-1">
-                    {pendingMaterials.map((mat, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
-                        <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{mat.title}</p>
-                          {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
-                          <p className="text-[10px] text-muted-foreground truncate">{mat.url}</p>
-                        </div>
-                        <button type="button" onClick={() => handleRemovePendingMaterial(idx)} className="text-muted-foreground hover:text-destructive shrink-0">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
-                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
-                <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
-                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
-                <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
-                  className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
-                <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
-                  disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
-                  <Plus className="h-3 w-3 mr-1" /> Adicionar material
+                <input
+                  type="date"
+                  value={subtaskDate}
+                  onChange={e => setSubtaskDate(e.target.value)}
+                  className="bg-background border border-border rounded px-1 py-1.5 text-[10px] outline-none focus:border-primary w-[110px]"
+                />
+                <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingSubtask} disabled={!subtaskTitle.trim()} className="h-7 px-2">
+                  <Plus className="h-3 w-3" />
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Estimated time */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
-            <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-          </div>
-
-          {/* Space selector with inline creation */}
-          <SpaceCombobox
-            spaces={spaces}
-            spaceId={spaceId}
-            onSelect={setSpaceId}
-            showNewSpace={showNewSpace}
-            setShowNewSpace={setShowNewSpace}
-            newSpaceName={newSpaceName}
-            setNewSpaceName={setNewSpaceName}
-            newSpaceIcon={newSpaceIcon}
-            setNewSpaceIcon={setNewSpaceIcon}
-            creatingSpace={creatingSpace}
-            onCreateSpace={handleCreateSpace}
-          />
+            {/* Materials section */}
+            <div>
+              <button type="button" onClick={() => setShowMaterials(!showMaterials)}
+                className="text-xs text-muted-foreground mb-1 flex items-center gap-1 hover:text-foreground transition-colors">
+                <LinkIcon className="h-3 w-3" />
+                Materiais relacionados
+                <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
+                {pendingMaterials.length > 0 && <span className="text-[10px] text-primary">({pendingMaterials.length})</span>}
+              </button>
+              {showMaterials && (
+                <div className="border border-border rounded-lg p-3 space-y-2">
+                  {pendingMaterials.length > 0 && (
+                    <div className="space-y-1">
+                      {pendingMaterials.map((mat, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
+                          <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{mat.title}</p>
+                            {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                            <p className="text-[10px] text-muted-foreground truncate">{mat.url}</p>
+                          </div>
+                          <button type="button" onClick={() => handleRemovePendingMaterial(idx)} className="text-muted-foreground hover:text-destructive shrink-0">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
+                    className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                  <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                    className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                  <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                    className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                  <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
+                    disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
+                    <Plus className="h-3 w-3 mr-1" /> Adicionar material
+                  </Button>
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* AI Validation feedback */}
           {validationState === "validating" && (
