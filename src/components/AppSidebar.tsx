@@ -36,7 +36,8 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Personal Assistant", url: "/", icon: Bot },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Spaces", url: "/spaces", icon: FolderOpen },
   { title: "Notes", url: "/notes", icon: FileText },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
@@ -44,7 +45,6 @@ const navItems = [
   { title: "Tags", url: "/tags", icon: Tag },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Pomodoro", url: "/pomodoro", icon: Timer },
-  { title: "Personal Assistant", url: "/assistant", icon: Bot },
 ];
 
 function formatTime(seconds: number) {
