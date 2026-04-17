@@ -280,7 +280,7 @@ export default function Notes() {
   }
 
   // On mobile, show either list or editor
-  const showList = !isMobile || !selectedNote;
+  const showList = isMobile ? !selectedNote : !listCollapsed;
   const showEditor = !isMobile || !!selectedNote;
 
   return (
@@ -294,9 +294,22 @@ export default function Notes() {
                 <FileText className="h-4 w-4 text-muted-foreground" /> Notas
                 <Badge variant="secondary" className="text-[10px] ml-1">{notes.length}</Badge>
               </h2>
-              <Button size="icon" variant="ghost" className="h-10 w-10 touch-manipulation" onClick={handleCreateNote}>
-                <Plus className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button size="icon" variant="ghost" className="h-10 w-10 touch-manipulation" onClick={handleCreateNote}>
+                  <Plus className="h-5 w-5" />
+                </Button>
+                {!isMobile && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    onClick={() => setListCollapsed(true)}
+                    title="Ocultar lista"
+                  >
+                    <PanelLeftClose className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="relative">
