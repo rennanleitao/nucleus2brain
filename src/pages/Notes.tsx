@@ -6,6 +6,7 @@ import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEdito
 import { NoteAIChat } from "@/components/NoteAIChat";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
+import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -400,6 +401,17 @@ export default function Notes() {
                       onClick={() => setShareOpen(true)}>
                       <Share2 className="h-4 w-4" />
                     </Button>
+                    <CreateTaskDialog
+                      spaces={spaces}
+                      defaultSpaceId={editSpaceId || undefined}
+                      defaultNoteId={selectedNote?.id || null}
+                      onCreated={() => { if (selectedNote?.id) loadLinkedTasks(selectedNote.id); }}
+                      trigger={
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary" title="Criar task vinculada">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                     {linkedTasks.length > 0 && (
                       <Sheet>
                         <SheetTrigger asChild>
