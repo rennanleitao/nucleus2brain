@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Calendar as CalIcon, ChevronLeft, ChevronRight, Loader2, Unplug, Settings2, Plus } from "lucide-react";
+import { Calendar as CalIcon, ChevronLeft, ChevronRight, Loader2, Unplug, Settings2, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +17,8 @@ import { MonthView } from "@/components/calendar/MonthView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { DayView } from "@/components/calendar/DayView";
 import { QuickCreatePopover } from "@/components/calendar/QuickCreatePopover";
+import { AISchedulePreviewDialog } from "@/components/AISchedulePreviewDialog";
+import { isSameDay } from "date-fns";
 import type { GoogleCalendar, GoogleEvent, CalendarTask, CalendarItem, CalendarView } from "@/components/calendar/types";
 
 export default function CalendarPage() {
@@ -31,6 +33,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAISchedule, setShowAISchedule] = useState(false);
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -160,7 +163,7 @@ export default function CalendarPage() {
       // Tasks (always fetched, even without google connected)
       const tasksReq = supabase
         .from("tasks")
-        .select("id, title, due_date, status, priority, space_id, estimated_minutes, spaces(name)")
+        .select("id, title, due_date, scheduled_time, status, priority, space_id, estimated_minutes, spaces(name)")
         .not("due_date", "is", null)
         .gte("due_date", format(range.start, "yyyy-MM-dd"))
         .lte("due_date", format(range.end, "yyyy-MM-dd"))
@@ -222,7 +225,8 @@ export default function CalendarPage() {
       .map((t) => {
         // due_date is a YYYY-MM-DD string — parse as local
         const [y, m, d] = (t.due_date as string).split("-").map(Number);
-        return { kind: "task", data: t, date: new Date(y, m - 1, d), time: null };
+        const time = t.scheduled_time ? (t.scheduled_time as string).slice(0, 5) : null;
+        return { kind: "task", data: t, date: new Date(y, m - 1, d), time };
       });
     return [...evItems, ...tkItems];
   }, [events, tasks]);
@@ -274,27 +278,33 @@ export default function CalendarPage() {
     toast.success("Evento criado!");
   };
 
-  // ----- Drag end → update task due_date -----
+  // ----- Drag end → update task due_date and/or scheduled_time -----
   const handleDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over) return;
     const id = String(active.id);
     if (!id.startsWith("task:")) return;
     const taskId = id.slice("task:".length);
-    const overData = over.data.current as { date?: Date; hour?: number } | undefined;
+    const overData = over.data.current as { date?: Date; hour?: number | null } | undefined;
     if (!overData?.date) return;
     const newDate = format(overData.date, "yyyy-MM-dd");
+    const newTime = overData.hour == null ? null : `${String(overData.hour).padStart(2, "0")}:00`;
     const task = tasks.find((t) => t.id === taskId);
-    if (!task || task.due_date === newDate) return;
+    if (!task) return;
+    const currentTime = task.scheduled_time ? (task.scheduled_time as string).slice(0, 5) : null;
+    if (task.due_date === newDate && currentTime === newTime) return;
 
     // Optimistic
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, due_date: newDate } : t)));
-    const { error } = await supabase.from("tasks").update({ due_date: newDate }).eq("id", taskId);
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, due_date: newDate, scheduled_time: newTime } : t)));
+    const { error } = await supabase
+      .from("tasks")
+      .update({ due_date: newDate, scheduled_time: newTime })
+      .eq("id", taskId);
     if (error) {
       toast.error("Erro ao mover task");
       loadData(); // revert
     } else {
-      toast.success("Task movida");
+      toast.success(newTime ? `Task agendada para ${newTime}` : "Task movida");
     }
   };
 
@@ -349,6 +359,12 @@ export default function CalendarPage() {
               <TabsTrigger value="day" className="text-xs px-3">Dia</TabsTrigger>
             </TabsList>
           </Tabs>
+
+          {view === "day" && (
+            <Button size="sm" variant="outline" onClick={() => setShowAISchedule(true)} className="h-8 gap-1">
+              <Sparkles className="h-3.5 w-3.5" /> Sugerir IA
+            </Button>
+          )}
 
           <QuickCreatePopover
             date={currentDate}
@@ -438,6 +454,32 @@ export default function CalendarPage() {
           />
         )}
       </DndContext>
+
+      <AISchedulePreviewDialog
+        open={showAISchedule}
+        onOpenChange={setShowAISchedule}
+        date={format(currentDate, "yyyy-MM-dd")}
+        tasks={tasks
+          .filter((t) => t.due_date === format(currentDate, "yyyy-MM-dd"))
+          .map((t) => ({
+            id: t.id,
+            title: t.title,
+            priority: t.priority as any,
+            estimated_minutes: t.estimated_minutes,
+            scheduled_time: (t as any).scheduled_time,
+          }))}
+        busy={events
+          .filter((e) => {
+            const dt = e.start?.dateTime;
+            return dt && isSameDay(new Date(dt), currentDate);
+          })
+          .map((e) => ({
+            summary: e.summary,
+            start: format(new Date(e.start!.dateTime!), "HH:mm"),
+            end: e.end?.dateTime ? format(new Date(e.end.dateTime), "HH:mm") : format(new Date(e.start!.dateTime!), "HH:mm"),
+          }))}
+        onApplied={loadData}
+      />
     </div>
   );
 }

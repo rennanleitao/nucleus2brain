@@ -20,6 +20,7 @@ export interface CalendarTask {
   id: string;
   title: string;
   due_date: string | null;
+  scheduled_time?: string | null;
   status: string;
   priority: string;
   space_id: string | null;

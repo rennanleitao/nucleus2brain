@@ -1,13 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
+import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { TimelineView } from "@/components/calendar/TimelineView";
+import { AISchedulePreviewDialog } from "@/components/AISchedulePreviewDialog";
+import { supabase } from "@/integrations/supabase/client";
+import type { CalendarItem, GoogleEvent } from "@/components/calendar/types";
+import { format, isSameDay } from "date-fns";
 
 function getBrtToday() {
   const now = new Date();
@@ -49,10 +55,13 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [view, setView] = useState<"list" | "kanban">("list");
+  const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
+  const [showAISchedule, setShowAISchedule] = useState(false);
+  const [todayEvents, setTodayEvents] = useState<GoogleEvent[]>([]);
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const today = getBrtToday();
   const tomorrow = getBrtTomorrow();
@@ -101,6 +110,80 @@ export function DayPlanner({
       .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date > tomorrow)
       .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
   }, [tasks, tomorrow]);
+
+  // Build CalendarItems for today's tasks (for TimelineView)
+  const todayItems: CalendarItem[] = useMemo(() => {
+    const [y, m, d] = today.split("-").map(Number);
+    const todayDate = new Date(y, m - 1, d);
+    const taskItems: CalendarItem[] = todayTasks.map((t) => ({
+      kind: "task",
+      data: {
+        id: t.id, title: t.title, due_date: t.due_date,
+        scheduled_time: t.scheduled_time, status: t.status,
+        priority: t.priority, space_id: t.space_id,
+        estimated_minutes: t.estimated_minutes,
+        spaces: t.spaces, hasReminder: !!remindersMap[t.id],
+      },
+      date: todayDate,
+      time: t.scheduled_time ? String(t.scheduled_time).slice(0, 5) : null,
+    }));
+    const eventItems: CalendarItem[] = todayEvents.map((e) => {
+      const dt = e.start?.dateTime || e.start?.date || "";
+      const date = new Date(dt);
+      const time = e.start?.dateTime ? format(date, "HH:mm") : null;
+      return { kind: "event", data: e, date, time };
+    });
+    return [...eventItems, ...taskItems];
+  }, [todayTasks, todayEvents, today, remindersMap]);
+
+  // Fetch today's Google events when timeline is open or AI dialog is opened
+  useEffect(() => {
+    if (view !== "timeline" && !showAISchedule) return;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const { data: sels } = await supabase.from("google_calendar_selections").select("calendar_id, enabled").eq("enabled", true);
+        if (!sels || sels.length === 0) { setTodayEvents([]); return; }
+        const [y, m, d] = today.split("-").map(Number);
+        const dayStart = new Date(y, m - 1, d, 0, 0, 0).toISOString();
+        const dayEnd = new Date(y, m - 1, d, 23, 59, 59).toISOString();
+        const all: GoogleEvent[] = [];
+        await Promise.all(sels.map(async (s: any) => {
+          const r = await fetch(`https://${projectId}.supabase.co/functions/v1/google-calendar-api?action=list_events&calendar_id=${encodeURIComponent(s.calendar_id)}&time_min=${dayStart}&time_max=${dayEnd}`,
+            { headers: { Authorization: `Bearer ${session.access_token}`, apikey } });
+          const data = await r.json();
+          if (Array.isArray(data)) data.forEach((e: GoogleEvent) => all.push(e));
+        }));
+        setTodayEvents(all);
+      } catch { /* ignore — calendar opcional */ }
+    })();
+  }, [view, showAISchedule, today]);
+
+  // Drag end on timeline → set scheduled_time
+  const handleTimelineDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over) return;
+    const id = String(active.id);
+    if (!id.startsWith("task:")) return;
+    const taskId = id.slice("task:".length);
+    const overData = over.data.current as { date?: Date; hour?: number | null } | undefined;
+    if (!overData) return;
+    const newTime = overData.hour == null ? null : `${String(overData.hour).padStart(2, "0")}:00`;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const currentTime = task.scheduled_time ? String(task.scheduled_time).slice(0, 5) : null;
+    if (currentTime === newTime) return;
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, scheduled_time: newTime } : t));
+    try {
+      await updateTask(taskId, { scheduled_time: newTime } as any);
+      toast.success(newTime ? `Agendada às ${newTime}` : "Horário removido");
+    } catch (err: any) {
+      toast.error(err.message); onReload();
+    }
+  };
 
   // Persist new ordering after drag
   const persistOrder = async (reordered: any[]) => {
@@ -268,7 +351,21 @@ export function DayPlanner({
             >
               <Columns3 className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={() => setView("timeline")}
+              className={`p-1.5 transition-colors ${view === "timeline" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Timeline"
+            >
+              <Clock className="h-3.5 w-3.5" />
+            </button>
           </div>
+          <button
+            onClick={() => setShowAISchedule(true)}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-md px-2 py-1.5 transition-colors"
+            title="Sugerir ordem com IA"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </button>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -443,6 +540,36 @@ export function DayPlanner({
           </div>
         )
       )}
+
+      {/* TIMELINE VIEW */}
+      {view === "timeline" && (
+        <DndContext sensors={dndSensors} onDragEnd={handleTimelineDragEnd}>
+          <TimelineView
+            date={(() => { const [y, m, d] = today.split("-").map(Number); return new Date(y, m - 1, d); })()}
+            items={todayItems}
+            onItemClick={(it) => { if (it.kind === "task") { const t = tasks.find(x => x.id === it.data.id); if (t) onSelect(t); } }}
+            compact
+          />
+        </DndContext>
+      )}
+
+      <AISchedulePreviewDialog
+        open={showAISchedule}
+        onOpenChange={setShowAISchedule}
+        date={today}
+        tasks={todayTasks.map((t) => ({
+          id: t.id, title: t.title, priority: t.priority,
+          estimated_minutes: t.estimated_minutes, scheduled_time: t.scheduled_time,
+        }))}
+        busy={todayEvents
+          .filter((e) => e.start?.dateTime)
+          .map((e) => ({
+            summary: e.summary,
+            start: format(new Date(e.start!.dateTime!), "HH:mm"),
+            end: e.end?.dateTime ? format(new Date(e.end.dateTime), "HH:mm") : format(new Date(e.start!.dateTime!), "HH:mm"),
+          }))}
+        onApplied={onReload}
+      />
 
       {/* Tomorrow */}
       {renderToggleSection(
