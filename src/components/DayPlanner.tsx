@@ -489,7 +489,7 @@ export function DayPlanner({
 
       {/* KANBAN VIEW */}
       {view === "kanban" && (
-        todayTasks.length > 0 ? (
+        dayTasks.length > 0 ? (
           <div className="flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 sm:-mx-6 sm:px-6">
             {kanbanMeta.map(col => {
               const colTasks = kanbanColumns[col.key] || [];
