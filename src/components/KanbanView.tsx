@@ -137,6 +137,8 @@ export function KanbanView({
                     onAddSubtask={onAddSubtask}
                     onDeleteSubtask={onDeleteSubtask}
                     onPriorityChange={onPriorityChange}
+                    compact={cardCompact ? cardCompact(t.id) : false}
+                    onToggleCompact={allCompact && onToggleCardCompact ? onToggleCardCompact : undefined}
                   />
                 </div>
               ))}
