@@ -529,6 +529,8 @@ export function DayPlanner({
                           onReschedule={onReschedule}
                           onRescheduleSubtask={onRescheduleSubtask}
                           onDuplicate={onDuplicate}
+                          compact={cardCompact(t.id)}
+                          onToggleCompact={allCompact ? toggleCardCompact : undefined}
                         />
                       </div>
                     ))}
