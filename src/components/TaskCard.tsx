@@ -250,7 +250,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
     <div ref={ref} className={cn(
       "group rounded-lg border transition-all animate-fade-in hover:shadow-card",
       isOverdue
-        ? "border-red-200 bg-red-50/60 hover:bg-red-50"
+        ? "border-overdue-border bg-overdue hover:bg-overdue-hover"
         : "border-border bg-card",
       isCompleted && "opacity-60"
     )}>
