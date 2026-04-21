@@ -1,6 +1,6 @@
 import { forwardRef, useState, useEffect } from "react";
 import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy } from "lucide-react";
-import { TaskTimer } from "@/components/TaskTimer";
+
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -423,7 +423,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
             </button>
           )}
 
-          {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
+          {/* TaskTimer removido do card — disponível ao abrir o cartão */}
           <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
           {onToggleCompact && (
             <button
