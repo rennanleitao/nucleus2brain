@@ -1,7 +1,10 @@
 // Suggests a chronological order/time for the day's tasks using Lovable AI.
 // Considers: existing Google Calendar events for the day, task priority, estimated_minutes,
 // and an optional working window.
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 interface TaskInput {
   id: string;
