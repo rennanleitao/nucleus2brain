@@ -6,6 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// BRT (America/Sao_Paulo) — canonical app timezone.
+function getBrtToday(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -113,7 +121,7 @@ Available actions:
 - "delete": Delete a task. Extract the task title or partial match.
 - "help": Show available commands.
 
-For dates, today is ${new Date().toISOString().split('T')[0]}. Interpret relative dates like "amanhã", "próxima segunda", etc.`;
+For dates, today (Brasília time) is ${getBrtToday()}. Interpret relative dates like "amanhã", "próxima segunda", etc.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -187,10 +195,10 @@ For dates, today is ${new Date().toISOString().split('T')[0]}. Interpret relativ
           .limit(15);
 
         if (cmd.filter === "today") {
-          const today = new Date().toISOString().split("T")[0];
+          const today = getBrtToday();
           query = query.eq("due_date", today);
         } else if (cmd.filter === "overdue") {
-          const today = new Date().toISOString().split("T")[0];
+          const today = getBrtToday();
           query = query.lt("due_date", today);
         }
 

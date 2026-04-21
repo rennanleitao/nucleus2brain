@@ -3,6 +3,7 @@ import { Zap, Loader2 } from "lucide-react";
 import { createTask } from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { getBrtToday, getBrtTomorrow, addDaysBrt } from "@/lib/timezone";
 
 export function QuickCapture() {
   const [value, setValue] = useState("");
@@ -74,25 +75,21 @@ function parseQuickInput(input: string): { title: string; priority: "low" | "med
   let priority: "low" | "medium" | "high" = "medium";
   let dueDate: string | undefined;
 
-  const today = new Date();
-
   // Detect priority keywords
   if (/\b(urgent|urgente|importante|critical|alta)\b/i.test(input)) {
     priority = "high";
     title = title.replace(/\b(urgent|urgente|importante|critical|alta)\b/gi, "").trim();
   }
 
-  // Detect date keywords
+  // Detect date keywords (BRT)
   if (/\b(today|hoje)\b/i.test(input)) {
-    dueDate = today.toISOString().split("T")[0];
+    dueDate = getBrtToday();
     title = title.replace(/\b(today|hoje)\b/gi, "").trim();
   } else if (/\b(tomorrow|amanhã|amanha)\b/i.test(input)) {
-    const tmrw = new Date(today.getTime() + 86400000);
-    dueDate = tmrw.toISOString().split("T")[0];
+    dueDate = getBrtTomorrow();
     title = title.replace(/\b(tomorrow|amanhã|amanha)\b/gi, "").trim();
   } else if (/\b(next week|semana que vem|próxima semana|proxima semana)\b/i.test(input)) {
-    const nextWeek = new Date(today.getTime() + 7 * 86400000);
-    dueDate = nextWeek.toISOString().split("T")[0];
+    dueDate = addDaysBrt(getBrtToday(), 7);
     title = title.replace(/\b(next week|semana que vem|próxima semana|proxima semana)\b/gi, "").trim();
   }
 

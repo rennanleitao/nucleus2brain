@@ -7,6 +7,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// BRT (America/Sao_Paulo) — canonical app timezone.
+function getBrtToday(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -42,7 +50,7 @@ Rules:
 - Detect priority keywords: urgent/critical/alta = high, normal/média = medium, baixa/low = low
 - Detect date keywords: hoje/today, amanhã/tomorrow, próxima semana/next week
 - Default priority is "medium"
-- Dates should be in YYYY-MM-DD format based on today: ${new Date().toISOString().split("T")[0]}
+- Dates should be in YYYY-MM-DD format based on today (Brasília time): ${getBrtToday()}
 
 Return JSON:
 {

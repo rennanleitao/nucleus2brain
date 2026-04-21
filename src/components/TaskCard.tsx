@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { fetchTaskMaterials } from "@/lib/api";
+import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
 
 type TaskStatus = "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
 type TaskPriority = "low" | "medium" | "high";
@@ -94,19 +95,6 @@ function PriorityDots({ priority, onClick }: { priority: TaskPriority; onClick?:
       ))}
     </button>
   );
-}
-
-function getBrtToday() {
-  const now = new Date();
-  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  return brt.toISOString().split("T")[0];
-}
-
-function getBrtTomorrow() {
-  const now = new Date();
-  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  brt.setDate(brt.getDate() + 1);
-  return brt.toISOString().split("T")[0];
 }
 
 function formatDate(dateStr: string) {

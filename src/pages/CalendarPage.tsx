@@ -268,8 +268,8 @@ export default function CalendarPage() {
           summary: payload.summary,
           description: payload.description,
           location: payload.location,
-          start: { dateTime: startDT, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-          end: { dateTime: endDT, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+          start: { dateTime: startDT, timeZone: "America/Sao_Paulo" },
+          end: { dateTime: endDT, timeZone: "America/Sao_Paulo" },
         }),
       }
     );

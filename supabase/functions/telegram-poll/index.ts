@@ -3,6 +3,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
+// BRT (America/Sao_Paulo) — canonical app timezone.
+function getBrtToday(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+}
+
 serve(async () => {
   const startTime = Date.now();
   const MAX_RUNTIME_MS = 55_000;
@@ -182,7 +190,7 @@ async function handleTodayCommand(supabase: any, token: string, chatId: number) 
   const link = await getUserLink(supabase, chatId);
   if (!link) { await sendTelegram(token, chatId, "⚠️ Conta não vinculada."); return; }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getBrtToday();
   const { data: tasks } = await supabase
     .from("tasks")
     .select("title, priority, status")
@@ -334,7 +342,7 @@ async function handleFreeText(supabase: any, token: string, chatId: number, text
       task: r.tasks?.title,
       time: r.reminder_time,
     })),
-    today: new Date().toISOString().split("T")[0],
+    today: getBrtToday(),
   };
 
   try {

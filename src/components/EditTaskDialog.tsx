@@ -7,19 +7,7 @@ import { toast } from "sonner";
 import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink, Sparkles, Loader2, AlertTriangle, Check } from "lucide-react";
 import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
-
-function getBrtToday() {
-  const now = new Date();
-  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  return brt.toISOString().split("T")[0];
-}
-
-function getBrtTomorrow() {
-  const now = new Date();
-  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  brt.setDate(brt.getDate() + 1);
-  return brt.toISOString().split("T")[0];
-}
+import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
 
 function SpaceLetterAvatar({ name }: { name: string }) {
   return (

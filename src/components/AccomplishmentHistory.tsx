@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, CheckCircle2, Circle, Trash2, History, Calendar, BarChart3 } from "lucide-react";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { getBrtToday } from "@/lib/timezone";
 
 interface Task {
   id: string;
@@ -22,7 +23,7 @@ export function AccomplishmentHistory({ tasks, onSelectTask, onDeleteTask }: Pro
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useState<"days" | "week" | "month">("days");
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getBrtToday();
 
   const historyData = useMemo(() => {
     const completedTasks = tasks.filter(t => t.status === "completed" && t.completed_at);

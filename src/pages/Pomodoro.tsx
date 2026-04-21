@@ -10,17 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getBrtToday } from "@/lib/timezone";
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-}
-
-function getBrtToday() {
-  const now = new Date();
-  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  return brt.toISOString().split("T")[0];
 }
 
 export default function Pomodoro() {

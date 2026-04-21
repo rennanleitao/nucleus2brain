@@ -14,19 +14,7 @@ import { AISchedulePreviewDialog } from "@/components/AISchedulePreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import type { CalendarItem, GoogleEvent } from "@/components/calendar/types";
 import { format, isSameDay } from "date-fns";
-
-function getBrtToday() {
-  const now = new Date();
-  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  return brt.toISOString().split("T")[0];
-}
-
-function getBrtTomorrow() {
-  const now = new Date();
-  const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  brt.setDate(brt.getDate() + 1);
-  return brt.toISOString().split("T")[0];
-}
+import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
 
 interface DayPlannerProps {
   tasks: any[];
