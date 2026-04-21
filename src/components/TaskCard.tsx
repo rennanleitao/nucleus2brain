@@ -153,6 +153,15 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
   const StatusIcon = statusIcons[task.status];
   const isOverdue = !!(task.due_date && task.due_date < getBrtToday() && !isCompleted);
+  const overdueDays = (() => {
+    if (!isOverdue || !task.due_date) return 0;
+    const today = getBrtToday();
+    const [ty, tm, td] = today.split("-").map(Number);
+    const [dy, dm, dd] = task.due_date.split("-").map(Number);
+    const todayMs = Date.UTC(ty, tm - 1, td);
+    const dueMs = Date.UTC(dy, dm - 1, dd);
+    return Math.max(1, Math.round((todayMs - dueMs) / 86400000));
+  })();
   const hasSubtasks = subtasks.length > 0;
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
   const reminderTriggered = !!(reminder && new Date(reminder.reminder_time) <= new Date() && !reminder.sent);
