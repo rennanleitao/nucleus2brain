@@ -96,13 +96,14 @@ export function DayPlanner({
   }, [tasks, tomorrow]);
 
   const overdueTasks = useMemo(() => {
+    // Least overdue (most recent past date) first → most overdue (oldest) last.
     return tasks
       .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date < today)
-      .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
+      .sort((a, b) => (b.due_date || "").localeCompare(a.due_date || ""));
   }, [tasks, today]);
 
-  // Combined list: overdue (most overdue first) + today's tasks. Overdue persists in the day view.
-  const dayTasks = useMemo(() => [...overdueTasks, ...todayTasks], [overdueTasks, todayTasks]);
+  // Combined list: today's tasks first, then overdue (least → most overdue).
+  const dayTasks = useMemo(() => [...todayTasks, ...overdueTasks], [todayTasks, overdueTasks]);
 
   // Limit date for "next 7 days" window (exclusive of tomorrow, inclusive of today+7).
   const next7End = useMemo(() => {
