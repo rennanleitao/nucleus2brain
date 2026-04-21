@@ -1,6 +1,6 @@
 // Suggests a chronological order/time for the day's tasks using Lovable AI.
 // Considers: existing Google Calendar events for the day, task priority, estimated_minutes,
-// and an optional working window.
+// optional working window, and per-task triage hints (type/urgency/complexity).
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -12,6 +12,12 @@ interface TaskInput {
   priority: "low" | "medium" | "high";
   estimated_minutes?: number | null;
   scheduled_time?: string | null;
+  // Optional triage answers from the user (per task).
+  triage?: {
+    type?: string;       // e.g. "Ligação rápida", "E-mail", "Trabalho focado"…
+    urgency?: string;    // "Urgente hoje" | "Pode esperar" | "Deadline rígido"
+    complexity?: string; // "Simples" | "Média" | "Complexa"
+  };
 }
 
 interface BusyEvent {
@@ -46,13 +52,15 @@ Deno.serve(async (req) => {
     const workEnd = body.workEnd || "18:00";
 
     const sysPrompt = `Você é um assistente de produtividade que organiza o dia do usuário.
-Receberá: a data, uma lista de tasks (com prioridade e tempo estimado), eventos já marcados (busy), e a janela de trabalho.
+Receberá: a data, lista de tasks (com prioridade, tempo estimado e respostas de triagem opcionais), eventos já marcados (busy), e a janela de trabalho.
 Sua tarefa: sugerir um horário (HH:MM) para CADA task, encaixando-as nos espaços livres entre os eventos, dentro da janela de trabalho.
 
 Regras importantes:
 - NUNCA sobrepor com eventos busy.
-- Tasks com prioridade "high" vêm primeiro / em horários de pico.
-- Respeitar o tempo estimado (estimated_minutes). Se não houver, assumir 30min.
+- Tasks com triage.urgency = "Urgente hoje" ou "Deadline rígido" vêm primeiro / em horários de pico.
+- Tasks com triage.type = "Ligação rápida" ou "E-mail simples" são curtas — agrupe-as em blocos de baixa energia (após almoço, fim do dia).
+- Tasks com triage.complexity = "Complexa" ou triage.type = "Trabalho focado" preferem horários de manhã (energia alta) e blocos longos.
+- Respeitar o tempo estimado (estimated_minutes). Se não houver, inferir a partir do triage.type ou assumir 30min.
 - Deixar buffer de 5-10min entre tasks quando possível.
 - Se uma task não couber no dia, marcá-la com time=null e justificar em "reason".
 - Responder SOMENTE via tool call.`;
@@ -92,9 +100,10 @@ Regras importantes:
                       properties: {
                         task_id: { type: "string" },
                         time: { type: ["string", "null"], description: "HH:MM 24h or null if not scheduled" },
+                        duration_minutes: { type: "number", description: "Suggested duration in minutes (multiple of 5, min 5)" },
                         reason: { type: "string", description: "Short reason (max 80 chars)" },
                       },
-                      required: ["task_id", "time", "reason"],
+                      required: ["task_id", "time", "duration_minutes", "reason"],
                       additionalProperties: false,
                     },
                   },
