@@ -596,12 +596,7 @@ export function DayPlanner({
         tomorrowTasks, showTomorrow, setShowTomorrow,
       )}
 
-      {/* Overdue */}
-      {renderToggleSection(
-        "Atrasadas", <AlertTriangle className="h-3.5 w-3.5 text-destructive" />,
-        overdueTasks, showOverdue, setShowOverdue,
-        "border-destructive/20", "bg-destructive/5",
-      )}
+      {/* Overdue tasks now appear inline in the day list above */}
 
       {/* Future */}
       {renderToggleSection(
