@@ -164,6 +164,24 @@ export async function purgeExpiredDeletedTasks() {
   if (error) throw error;
 }
 
+// Fetch tasks soft-deleted within the last 24h (still restorable).
+export async function fetchDeletedTasks() {
+  purgeExpiredDeletedTasks().catch(() => {});
+  const { data, error } = await (supabase as any)
+    .from("tasks")
+    .select("*, spaces(name), notes(title)")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+// Permanently delete a task immediately (skip the 24h grace period).
+export async function permanentlyDeleteTask(id: string) {
+  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---- SUBTASKS ----
 export async function fetchSubtasks(taskId: string) {
   const { data, error } = await supabase

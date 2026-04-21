@@ -1,12 +1,12 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchTasks, fetchSpaces, updateTask, deleteTask, restoreTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders, duplicateTask } from "@/lib/api";
+import { fetchTasks, fetchSpaces, updateTask, deleteTask, restoreTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders, duplicateTask, fetchDeletedTasks, permanentlyDeleteTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2 } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +24,7 @@ const dateGroupFilters = [
   { value: "week", label: "This Week" },
   { value: "month", label: "This Month" },
   { value: "done", label: "Done" },
+  { value: "deleted", label: "Deleted" },
 ];
 
 export default function Tasks() {
@@ -39,6 +40,8 @@ export default function Tasks() {
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deletedTasks, setDeletedTasks] = useState<any[]>([]);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [followUpTask, setFollowUpTask] = useState<any | null>(null);
   const [completionTask, setCompletionTask] = useState<any | null>(null);
@@ -78,6 +81,53 @@ export default function Tasks() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const loadDeleted = async () => {
+    setLoadingDeleted(true);
+    try {
+      const d = await fetchDeletedTasks();
+      setDeletedTasks(d);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoadingDeleted(false);
+    }
+  };
+
+  useEffect(() => {
+    if (filter === "deleted") loadDeleted();
+  }, [filter]);
+
+  const handleRestoreFromDeleted = async (id: string) => {
+    try {
+      await restoreTask(id);
+      setDeletedTasks(prev => prev.filter(t => t.id !== id));
+      toast.success("Tarefa restaurada");
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handlePermanentDelete = async (id: string) => {
+    try {
+      await permanentlyDeleteTask(id);
+      setDeletedTasks(prev => prev.filter(t => t.id !== id));
+      toast.success("Tarefa removida permanentemente");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const remainingTime = (deletedAt: string) => {
+    const expires = new Date(deletedAt).getTime() + 24 * 60 * 60 * 1000;
+    const ms = expires - Date.now();
+    if (ms <= 0) return "expirando";
+    const h = Math.floor(ms / (1000 * 60 * 60));
+    const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    if (h > 0) return `${h}h ${m}m restantes`;
+    return `${m}m restantes`;
+  };
 
   const filtered = useMemo(() => {
     let result = tasks;
@@ -378,7 +428,7 @@ export default function Tasks() {
         </TabsList>
       </Tabs>
 
-      {filter !== "planner" && (
+      {filter !== "planner" && filter !== "deleted" && (
         <div className="flex items-center gap-2 flex-wrap">
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
           <div className="flex items-center border border-border rounded-md overflow-hidden">
@@ -429,7 +479,52 @@ export default function Tasks() {
         </div>
       )}
 
-      {filter === "planner" ? (
+      {filter === "deleted" ? (
+        <div className="space-y-2">
+          {loadingDeleted ? (
+            <p className="text-small text-muted-foreground text-center py-8">Carregando...</p>
+          ) : deletedTasks.length === 0 ? (
+            <div className="text-center py-12">
+              <Trash2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-small text-muted-foreground">Nenhuma tarefa deletada</p>
+              <p className="text-micro text-muted-foreground mt-1">Itens deletados ficam aqui por 24h antes de sumirem</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-micro text-muted-foreground mb-2">
+                {deletedTasks.length} tarefa(s) deletada(s) · removidas permanentemente após 24h
+              </p>
+              {deletedTasks.map(t => (
+                <div key={t.id} className="rounded-lg border border-border bg-card p-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-small font-medium truncate">{t.title}</p>
+                    <p className="text-micro text-muted-foreground">
+                      {t.spaces?.name && <span>{t.spaces.name} · </span>}
+                      {remainingTime(t.deleted_at)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRestoreFromDeleted(t.id)}
+                    className="flex items-center gap-1 px-2.5 h-8 text-micro rounded-md border border-border hover:bg-muted transition-colors"
+                    title="Restaurar"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Restaurar</span>
+                  </button>
+                  <button
+                    onClick={() => handlePermanentDelete(t.id)}
+                    className="flex items-center gap-1 px-2.5 h-8 text-micro rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                    title="Excluir permanentemente"
+                  >
+                    <Trash className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Excluir</span>
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      ) : filter === "planner" ? (
         <DayPlanner
           tasks={tasks}
           setTasks={setTasks}
