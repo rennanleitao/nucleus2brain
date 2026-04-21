@@ -360,6 +360,12 @@ export default function CalendarPage() {
             </TabsList>
           </Tabs>
 
+          {view === "day" && (
+            <Button size="sm" variant="outline" onClick={() => setShowAISchedule(true)} className="h-8 gap-1">
+              <Sparkles className="h-3.5 w-3.5" /> Sugerir IA
+            </Button>
+          )}
+
           <QuickCreatePopover
             date={currentDate}
             onCreateEvent={createEventApi}
