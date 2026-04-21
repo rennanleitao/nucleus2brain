@@ -454,6 +454,32 @@ export default function CalendarPage() {
           />
         )}
       </DndContext>
+
+      <AISchedulePreviewDialog
+        open={showAISchedule}
+        onOpenChange={setShowAISchedule}
+        date={format(currentDate, "yyyy-MM-dd")}
+        tasks={tasks
+          .filter((t) => t.due_date === format(currentDate, "yyyy-MM-dd"))
+          .map((t) => ({
+            id: t.id,
+            title: t.title,
+            priority: t.priority as any,
+            estimated_minutes: t.estimated_minutes,
+            scheduled_time: (t as any).scheduled_time,
+          }))}
+        busy={events
+          .filter((e) => {
+            const dt = e.start?.dateTime;
+            return dt && isSameDay(new Date(dt), currentDate);
+          })
+          .map((e) => ({
+            summary: e.summary,
+            start: format(new Date(e.start!.dateTime!), "HH:mm"),
+            end: e.end?.dateTime ? format(new Date(e.end.dateTime), "HH:mm") : format(new Date(e.start!.dateTime!), "HH:mm"),
+          }))}
+        onApplied={loadData}
+      />
     </div>
   );
 }
