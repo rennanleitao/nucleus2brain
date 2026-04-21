@@ -77,13 +77,6 @@ function PriorityDots({ priority, onClick }: { priority: TaskPriority; onClick?:
   const count = priorityDots[priority];
   // Dot index → priority level. 1 dot = baixa, 2 = média, 3 = alta.
   const dotPriority: TaskPriority[] = ["low", "medium", "high"];
-  // Color scales with selected level (low → muted, medium → foreground, high → destructive).
-  const activeColorByLevel: Record<TaskPriority, string> = {
-    low: "bg-muted-foreground/60",
-    medium: "bg-foreground/70",
-    high: "bg-destructive",
-  };
-  const activeColor = activeColorByLevel[priority];
   return (
     <div
       className="flex items-center gap-1"
@@ -104,7 +97,7 @@ function PriorityDots({ priority, onClick }: { priority: TaskPriority; onClick?:
             }}
             className={cn(
               "block h-[9px] w-[9px] rounded-full transition-all",
-              isActive ? activeColor : "bg-border",
+              isActive ? "bg-primary" : "bg-primary/15",
               onClick && "hover:scale-125 hover:ring-2 hover:ring-primary/30 cursor-pointer",
             )}
             title={onClick ? `Definir prioridade: ${priorityLabels[level]}` : undefined}
