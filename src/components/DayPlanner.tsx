@@ -111,6 +111,80 @@ export function DayPlanner({
       .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
   }, [tasks, tomorrow]);
 
+  // Build CalendarItems for today's tasks (for TimelineView)
+  const todayItems: CalendarItem[] = useMemo(() => {
+    const [y, m, d] = today.split("-").map(Number);
+    const todayDate = new Date(y, m - 1, d);
+    const taskItems: CalendarItem[] = todayTasks.map((t) => ({
+      kind: "task",
+      data: {
+        id: t.id, title: t.title, due_date: t.due_date,
+        scheduled_time: t.scheduled_time, status: t.status,
+        priority: t.priority, space_id: t.space_id,
+        estimated_minutes: t.estimated_minutes,
+        spaces: t.spaces, hasReminder: !!remindersMap[t.id],
+      },
+      date: todayDate,
+      time: t.scheduled_time ? String(t.scheduled_time).slice(0, 5) : null,
+    }));
+    const eventItems: CalendarItem[] = todayEvents.map((e) => {
+      const dt = e.start?.dateTime || e.start?.date || "";
+      const date = new Date(dt);
+      const time = e.start?.dateTime ? format(date, "HH:mm") : null;
+      return { kind: "event", data: e, date, time };
+    });
+    return [...eventItems, ...taskItems];
+  }, [todayTasks, todayEvents, today, remindersMap]);
+
+  // Fetch today's Google events when timeline is open or AI dialog is opened
+  useEffect(() => {
+    if (view !== "timeline" && !showAISchedule) return;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const { data: sels } = await supabase.from("google_calendar_selections").select("calendar_id, enabled").eq("enabled", true);
+        if (!sels || sels.length === 0) { setTodayEvents([]); return; }
+        const [y, m, d] = today.split("-").map(Number);
+        const dayStart = new Date(y, m - 1, d, 0, 0, 0).toISOString();
+        const dayEnd = new Date(y, m - 1, d, 23, 59, 59).toISOString();
+        const all: GoogleEvent[] = [];
+        await Promise.all(sels.map(async (s: any) => {
+          const r = await fetch(`https://${projectId}.supabase.co/functions/v1/google-calendar-api?action=list_events&calendar_id=${encodeURIComponent(s.calendar_id)}&time_min=${dayStart}&time_max=${dayEnd}`,
+            { headers: { Authorization: `Bearer ${session.access_token}`, apikey } });
+          const data = await r.json();
+          if (Array.isArray(data)) data.forEach((e: GoogleEvent) => all.push(e));
+        }));
+        setTodayEvents(all);
+      } catch { /* ignore — calendar opcional */ }
+    })();
+  }, [view, showAISchedule, today]);
+
+  // Drag end on timeline → set scheduled_time
+  const handleTimelineDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over) return;
+    const id = String(active.id);
+    if (!id.startsWith("task:")) return;
+    const taskId = id.slice("task:".length);
+    const overData = over.data.current as { date?: Date; hour?: number | null } | undefined;
+    if (!overData) return;
+    const newTime = overData.hour == null ? null : `${String(overData.hour).padStart(2, "0")}:00`;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    const currentTime = task.scheduled_time ? String(task.scheduled_time).slice(0, 5) : null;
+    if (currentTime === newTime) return;
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, scheduled_time: newTime } : t));
+    try {
+      await updateTask(taskId, { scheduled_time: newTime } as any);
+      toast.success(newTime ? `Agendada às ${newTime}` : "Horário removido");
+    } catch (err: any) {
+      toast.error(err.message); onReload();
+    }
+  };
+
   // Persist new ordering after drag
   const persistOrder = async (reordered: any[]) => {
     const updatedTasks = tasks.map(t => {
