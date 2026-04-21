@@ -195,6 +195,10 @@ export function QuickCreatePopover({ date, defaultTime, trigger, onCreated, onCr
                 {spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground">Horário (opcional)</Label>
+              <Input type="time" value={taskTime} onChange={(e) => setTaskTime(e.target.value)} className="h-8 text-xs" />
+            </div>
             <Button onClick={handleCreateTask} disabled={loading} size="sm" className="w-full gradient-primary text-primary-foreground">
               {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Plus className="h-3 w-3 mr-1" />Criar task</>}
             </Button>
