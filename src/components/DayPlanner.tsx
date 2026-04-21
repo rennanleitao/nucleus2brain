@@ -610,9 +610,15 @@ export function DayPlanner({
         tomorrowTasks, showTomorrow, setShowTomorrow,
       )}
 
+      {/* Next 7 days */}
+      {renderToggleSection(
+        "Próximos 7 dias", <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />,
+        next7Tasks, showNext7, setShowNext7,
+      )}
+
       {/* Overdue tasks now appear inline in the day list above */}
 
-      {/* Future */}
+      {/* Future (>7 days) */}
       {renderToggleSection(
         "Atividades futuras", <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />,
         futureTasks, showFuture, setShowFuture,
