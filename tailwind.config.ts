@@ -77,6 +77,11 @@ export default {
           completed: "oklch(var(--status-completed))",
           cancelled: "oklch(var(--status-cancelled))",
         },
+        overdue: {
+          DEFAULT: "oklch(var(--overdue-bg))",
+          hover: "oklch(var(--overdue-bg-hover))",
+          border: "oklch(var(--overdue-border))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
