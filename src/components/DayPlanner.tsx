@@ -308,15 +308,15 @@ export function DayPlanner({
     );
   };
 
-  // Kanban columns: by status for today's tasks
+  // Kanban columns: by status for today + overdue tasks
   const kanbanColumns = useMemo(() => {
     const cols: Record<string, any[]> = { todo: [], in_progress: [], waiting: [] };
-    for (const t of todayTasks) {
+    for (const t of dayTasks) {
       const k = (t.status as string) in cols ? t.status : "todo";
       cols[k].push(t);
     }
     return cols;
-  }, [todayTasks]);
+  }, [dayTasks]);
 
   const kanbanMeta = [
     { key: "todo", label: "A fazer", icon: Circle, color: "text-muted-foreground", border: "border-border", bg: "bg-muted/30" },
