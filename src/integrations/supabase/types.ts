@@ -741,6 +741,7 @@ export type Database = {
           completion_note: string | null
           created_at: string
           day_order: number | null
+          deleted_at: string | null
           description: string | null
           due_date: string | null
           estimated_minutes: number | null
@@ -759,6 +760,7 @@ export type Database = {
           completion_note?: string | null
           created_at?: string
           day_order?: number | null
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           estimated_minutes?: number | null
@@ -777,6 +779,7 @@ export type Database = {
           completion_note?: string | null
           created_at?: string
           day_order?: number | null
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           estimated_minutes?: number | null
@@ -955,6 +958,7 @@ export type Database = {
         Args: { _space_id: string; _user_id: string }
         Returns: boolean
       }
+      purge_old_deleted_tasks: { Args: never; Returns: undefined }
     }
     Enums: {
       space_role: "owner" | "editor" | "viewer"
