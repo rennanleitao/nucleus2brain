@@ -1,12 +1,12 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchTasks, fetchSpaces, updateTask, deleteTask, restoreTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders, duplicateTask } from "@/lib/api";
+import { fetchTasks, fetchSpaces, updateTask, deleteTask, restoreTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders, duplicateTask, fetchDeletedTasks, permanentlyDeleteTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2 } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +24,7 @@ const dateGroupFilters = [
   { value: "week", label: "This Week" },
   { value: "month", label: "This Month" },
   { value: "done", label: "Done" },
+  { value: "deleted", label: "Deleted" },
 ];
 
 export default function Tasks() {
