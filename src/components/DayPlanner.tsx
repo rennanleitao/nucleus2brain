@@ -351,7 +351,21 @@ export function DayPlanner({
             >
               <Columns3 className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={() => setView("timeline")}
+              className={`p-1.5 transition-colors ${view === "timeline" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Timeline"
+            >
+              <Clock className="h-3.5 w-3.5" />
+            </button>
           </div>
+          <button
+            onClick={() => setShowAISchedule(true)}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-md px-2 py-1.5 transition-colors"
+            title="Sugerir ordem com IA"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </button>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
