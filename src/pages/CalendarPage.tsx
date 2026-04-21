@@ -160,7 +160,7 @@ export default function CalendarPage() {
       // Tasks (always fetched, even without google connected)
       const tasksReq = supabase
         .from("tasks")
-        .select("id, title, due_date, status, priority, space_id, estimated_minutes, spaces(name)")
+        .select("id, title, due_date, scheduled_time, status, priority, space_id, estimated_minutes, spaces(name)")
         .not("due_date", "is", null)
         .gte("due_date", format(range.start, "yyyy-MM-dd"))
         .lte("due_date", format(range.end, "yyyy-MM-dd"))
@@ -222,7 +222,8 @@ export default function CalendarPage() {
       .map((t) => {
         // due_date is a YYYY-MM-DD string — parse as local
         const [y, m, d] = (t.due_date as string).split("-").map(Number);
-        return { kind: "task", data: t, date: new Date(y, m - 1, d), time: null };
+        const time = t.scheduled_time ? (t.scheduled_time as string).slice(0, 5) : null;
+        return { kind: "task", data: t, date: new Date(y, m - 1, d), time };
       });
     return [...evItems, ...tkItems];
   }, [events, tasks]);
@@ -274,27 +275,33 @@ export default function CalendarPage() {
     toast.success("Evento criado!");
   };
 
-  // ----- Drag end → update task due_date -----
+  // ----- Drag end → update task due_date and/or scheduled_time -----
   const handleDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over) return;
     const id = String(active.id);
     if (!id.startsWith("task:")) return;
     const taskId = id.slice("task:".length);
-    const overData = over.data.current as { date?: Date; hour?: number } | undefined;
+    const overData = over.data.current as { date?: Date; hour?: number | null } | undefined;
     if (!overData?.date) return;
     const newDate = format(overData.date, "yyyy-MM-dd");
+    const newTime = overData.hour == null ? null : `${String(overData.hour).padStart(2, "0")}:00`;
     const task = tasks.find((t) => t.id === taskId);
-    if (!task || task.due_date === newDate) return;
+    if (!task) return;
+    const currentTime = task.scheduled_time ? (task.scheduled_time as string).slice(0, 5) : null;
+    if (task.due_date === newDate && currentTime === newTime) return;
 
     // Optimistic
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, due_date: newDate } : t)));
-    const { error } = await supabase.from("tasks").update({ due_date: newDate }).eq("id", taskId);
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, due_date: newDate, scheduled_time: newTime } : t)));
+    const { error } = await supabase
+      .from("tasks")
+      .update({ due_date: newDate, scheduled_time: newTime })
+      .eq("id", taskId);
     if (error) {
       toast.error("Erro ao mover task");
       loadData(); // revert
     } else {
-      toast.success("Task movida");
+      toast.success(newTime ? `Task agendada para ${newTime}` : "Task movida");
     }
   };
 
