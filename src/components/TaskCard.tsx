@@ -153,6 +153,15 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
   const StatusIcon = statusIcons[task.status];
   const isOverdue = !!(task.due_date && task.due_date < getBrtToday() && !isCompleted);
+  const overdueDays = (() => {
+    if (!isOverdue || !task.due_date) return 0;
+    const today = getBrtToday();
+    const [ty, tm, td] = today.split("-").map(Number);
+    const [dy, dm, dd] = task.due_date.split("-").map(Number);
+    const todayMs = Date.UTC(ty, tm - 1, td);
+    const dueMs = Date.UTC(dy, dm - 1, dd);
+    return Math.max(1, Math.round((todayMs - dueMs) / 86400000));
+  })();
   const hasSubtasks = subtasks.length > 0;
   const completedSubtasks = subtasks.filter(s => s.status === "completed").length;
   const reminderTriggered = !!(reminder && new Date(reminder.reminder_time) <= new Date() && !reminder.sent);
@@ -236,7 +245,11 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const descriptionPreview = task.description?.replace(/<[^>]*>/g, "").trim();
 
   return (
-    <div ref={ref} className={`group rounded-lg border border-border bg-card hover:shadow-card transition-all animate-fade-in ${isCompleted ? "opacity-60" : ""}`}>
+    <div ref={ref} className={cn(
+      "group rounded-lg border transition-all animate-fade-in hover:shadow-card",
+      isOverdue ? "border-destructive/40 bg-destructive/10" : "border-border bg-card",
+      isCompleted && "opacity-60"
+    )}>
       <div className="flex items-start gap-3 p-3 sm:p-3">
         {orderNumber != null && (
           <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-[1px]" onClick={e => e.stopPropagation()}>
@@ -305,6 +318,11 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
               <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-destructive font-semibold" : task.due_date === getBrtToday() ? "text-primary font-medium" : "text-muted-foreground"}`}>
                 <CalendarDays className="h-3 w-3" />
                 {formatDate(task.due_date)}
+                {isOverdue && (
+                  <span className="ml-1 px-1.5 py-0 rounded-full bg-destructive/15 text-destructive text-[10px] font-bold">
+                    {overdueDays}d atrasada
+                  </span>
+                )}
               </span>
             )}
             {!compact && reminder && !isCompleted && (
