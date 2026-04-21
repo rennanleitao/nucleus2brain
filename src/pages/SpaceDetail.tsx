@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   fetchSpace, fetchTasksBySpace, fetchNotesBySpace, fetchLinksBySpace,
   fetchAttachments, uploadAttachment, deleteAttachment, getAttachmentUrl,
-  createTask, createNote, createLink, deleteLink, updateTask, updateNote, deleteTask, deleteNote,
+  createTask, createNote, createLink, deleteLink, updateTask, updateNote, deleteTask, restoreTask, deleteNote,
 } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
