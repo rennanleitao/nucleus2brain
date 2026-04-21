@@ -497,6 +497,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       )}
 
       {/* Materials - always visible like subtasks */}
+      {!compact && (
       <Collapsible open={materialsOpen} onOpenChange={setMaterialsOpen}>
         <div className="px-3 pb-2 flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <CollapsibleTrigger className="flex items-center gap-1 text-micro text-muted-foreground hover:text-foreground transition-colors">
@@ -552,6 +553,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
         </CollapsibleContent>
       </Collapsible>
+      )}
     </div>
   );
 });
