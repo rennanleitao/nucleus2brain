@@ -328,6 +328,8 @@ export default function Tasks() {
             onRescheduleSubtask={handleRescheduleSubtask}
             hideSpace={hideSpace}
             onDuplicate={handleDuplicate}
+            compact={cardCompact(t.id)}
+            onToggleCompact={allCompact ? toggleCardCompact : undefined}
           />
         </div>
       ))}
