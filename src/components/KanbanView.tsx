@@ -15,6 +15,9 @@ interface KanbanViewProps {
   onDeleteSubtask: (id: string) => void;
   onPriorityChange: (id: string, priority: "low" | "medium" | "high") => void;
   onSelect: (task: any) => void;
+  cardCompact?: (id: string) => boolean;
+  onToggleCardCompact?: (id: string) => void;
+  allCompact?: boolean;
 }
 
 export function KanbanView({
@@ -28,6 +31,9 @@ export function KanbanView({
   onDeleteSubtask,
   onPriorityChange,
   onSelect,
+  cardCompact,
+  onToggleCardCompact,
+  allCompact,
 }: KanbanViewProps) {
   const columns = useMemo(() => {
     const today = getBrtToday();
@@ -131,6 +137,8 @@ export function KanbanView({
                     onAddSubtask={onAddSubtask}
                     onDeleteSubtask={onDeleteSubtask}
                     onPriorityChange={onPriorityChange}
+                    compact={cardCompact ? cardCompact(t.id) : false}
+                    onToggleCompact={allCompact && onToggleCardCompact ? onToggleCardCompact : undefined}
                   />
                 </div>
               ))}
