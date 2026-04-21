@@ -101,6 +101,9 @@ export function DayPlanner({
       .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
   }, [tasks, today]);
 
+  // Combined list: overdue (most overdue first) + today's tasks. Overdue persists in the day view.
+  const dayTasks = useMemo(() => [...overdueTasks, ...todayTasks], [overdueTasks, todayTasks]);
+
   const futureTasks = useMemo(() => {
     return tasks
       .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date > tomorrow)
