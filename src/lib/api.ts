@@ -86,9 +86,12 @@ type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 
 // ---- TASKS ----
 export async function fetchTasks() {
+  // Background purge of items soft-deleted for >24h (best-effort, non-blocking)
+  purgeExpiredDeletedTasks().catch(() => {});
   const { data, error } = await supabase
     .from("tasks")
     .select("*, spaces(name), notes(title)")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
@@ -132,8 +135,32 @@ export async function updateTask(id: string, updates: TaskUpdate) {
   return data;
 }
 
+// Soft delete — marks deleted_at; row is purged after 24h.
 export async function deleteTask(id: string) {
-  const { error } = await supabase.from("tasks").delete().eq("id", id);
+  const { error } = await (supabase as any)
+    .from("tasks")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Restore a soft-deleted task within the 24h window.
+export async function restoreTask(id: string) {
+  const { error } = await (supabase as any)
+    .from("tasks")
+    .update({ deleted_at: null })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// Permanently remove tasks soft-deleted more than 24h ago (client-side cleanup).
+export async function purgeExpiredDeletedTasks() {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await (supabase as any)
+    .from("tasks")
+    .delete()
+    .not("deleted_at", "is", null)
+    .lt("deleted_at", cutoff);
   if (error) throw error;
 }
 
