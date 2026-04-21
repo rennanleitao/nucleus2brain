@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
-import { fetchTasks, updateTask, fetchSpaces, createTask, deleteTask } from "@/lib/api";
+import { fetchTasks, updateTask, fetchSpaces, createTask, deleteTask, restoreTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
