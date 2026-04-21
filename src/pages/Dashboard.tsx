@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
-import { fetchTasks, updateTask, fetchSpaces, createTask, deleteTask } from "@/lib/api";
+import { fetchTasks, updateTask, fetchSpaces, createTask, deleteTask, restoreTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
@@ -197,10 +197,27 @@ export default function Dashboard() {
 
   const handleDeleteTask = async () => {
     if (!taskToDelete) return;
+    const id = taskToDelete;
+    const removed = tasks.find(t => t.id === id);
+    setTaskToDelete(null);
     try {
-      await deleteTask(taskToDelete);
-      toast.success("Task excluída");
-      setTaskToDelete(null);
+      await deleteTask(id);
+      toast.success("Tarefa excluída", {
+        description: removed?.title ? `"${removed.title}" será removida em 24h` : "Será removida em 24h",
+        duration: 8000,
+        action: {
+          label: "Desfazer",
+          onClick: async () => {
+            try {
+              await restoreTask(id);
+              toast.success("Tarefa restaurada");
+              load();
+            } catch (err: any) {
+              toast.error(err.message);
+            }
+          },
+        },
+      });
       load();
     } catch (err: any) {
       toast.error(err.message);
