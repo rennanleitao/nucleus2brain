@@ -52,6 +52,8 @@ interface TaskCardProps {
   onMoveDown?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
+  compact?: boolean;
+  onToggleCompact?: (id: string) => void;
 }
 
 const statusIcons: Record<TaskStatus, React.ElementType> = {
