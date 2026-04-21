@@ -240,7 +240,7 @@ export function DayPlanner({
     setDraggedId(null);
     setDragOverStatus(null);
     if (!sourceId) return;
-    const task = todayTasks.find(t => t.id === sourceId);
+    const task = dayTasks.find(t => t.id === sourceId);
     if (!task || task.status === newStatus) return;
     setTasks(prev => prev.map(t => t.id === sourceId ? { ...t, status: newStatus } : t));
     try {
