@@ -1,13 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
+import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { TimelineView } from "@/components/calendar/TimelineView";
+import { AISchedulePreviewDialog } from "@/components/AISchedulePreviewDialog";
+import { supabase } from "@/integrations/supabase/client";
+import type { CalendarItem, GoogleEvent } from "@/components/calendar/types";
+import { format, isSameDay } from "date-fns";
 
 function getBrtToday() {
   const now = new Date();
@@ -49,10 +55,13 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [view, setView] = useState<"list" | "kanban">("list");
+  const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
+  const [showAISchedule, setShowAISchedule] = useState(false);
+  const [todayEvents, setTodayEvents] = useState<GoogleEvent[]>([]);
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const today = getBrtToday();
   const tomorrow = getBrtTomorrow();
