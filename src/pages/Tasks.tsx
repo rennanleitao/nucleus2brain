@@ -252,12 +252,30 @@ export default function Tasks() {
   };
 
   const handleDelete = async (id: string) => {
+    const removed = tasks.find(t => t.id === id);
+    // Optimistic UI removal
+    setTasks(prev => prev.filter(t => t.id !== id));
     try {
       await deleteTask(id);
-      toast.success("Task deleted");
-      load();
+      toast.success("Tarefa excluída", {
+        description: removed?.title ? `"${removed.title}" será removida em 24h` : "Será removida em 24h",
+        duration: 8000,
+        action: {
+          label: "Desfazer",
+          onClick: async () => {
+            try {
+              await restoreTask(id);
+              toast.success("Tarefa restaurada");
+              load();
+            } catch (err: any) {
+              toast.error(err.message);
+            }
+          },
+        },
+      });
     } catch (err: any) {
       toast.error(err.message);
+      load();
     }
   };
 
