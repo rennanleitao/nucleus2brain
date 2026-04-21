@@ -45,7 +45,7 @@ export async function fetchSpace(id: string) {
 }
 
 export async function fetchTasksBySpace(spaceId: string) {
-  const { data, error } = await supabase.from("tasks").select("*, spaces(name), notes(title)").eq("space_id", spaceId).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("tasks").select("*, spaces(name), notes(title)").eq("space_id", spaceId).is("deleted_at", null).order("created_at", { ascending: false });
   if (error) throw error;
   return data;
 }
