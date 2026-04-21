@@ -253,27 +253,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       isCompleted && "opacity-60"
     )}>
       <div className="flex items-start gap-3 p-3 sm:p-3">
-        {orderNumber != null && (
-          <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-[1px]" onClick={e => e.stopPropagation()}>
-            <button
-              onClick={onMoveUp}
-              disabled={isFirst}
-              className={`p-0 h-3.5 w-5 flex items-center justify-center rounded transition-colors ${isFirst ? "text-muted-foreground/30 cursor-default" : "text-muted-foreground hover:text-primary hover:bg-muted"}`}
-            >
-              <ChevronUp className="h-3 w-3" />
-            </button>
-            <span className="text-[10px] font-bold text-primary leading-none min-w-[18px] text-center bg-primary/10 rounded px-1 py-0.5">
-              {orderNumber}
-            </span>
-            <button
-              onClick={onMoveDown}
-              disabled={isLast}
-              className={`p-0 h-3.5 w-5 flex items-center justify-center rounded transition-colors ${isLast ? "text-muted-foreground/30 cursor-default" : "text-muted-foreground hover:text-primary hover:bg-muted"}`}
-            >
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </div>
-        )}
+        {/* Botões de reordenar removidos — drag and drop já cobre essa função */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggle?.(task.id); }}
           className={`flex-shrink-0 transition-colors w-5 h-5 sm:w-4 sm:h-4 mt-[2px] touch-manipulation ${isCompleted ? "text-muted-foreground" : "text-muted-foreground hover:text-primary"}`}
