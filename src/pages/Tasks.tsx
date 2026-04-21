@@ -40,6 +40,8 @@ export default function Tasks() {
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deletedTasks, setDeletedTasks] = useState<any[]>([]);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [followUpTask, setFollowUpTask] = useState<any | null>(null);
   const [completionTask, setCompletionTask] = useState<any | null>(null);
@@ -79,6 +81,53 @@ export default function Tasks() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const loadDeleted = async () => {
+    setLoadingDeleted(true);
+    try {
+      const d = await fetchDeletedTasks();
+      setDeletedTasks(d);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoadingDeleted(false);
+    }
+  };
+
+  useEffect(() => {
+    if (filter === "deleted") loadDeleted();
+  }, [filter]);
+
+  const handleRestoreFromDeleted = async (id: string) => {
+    try {
+      await restoreTask(id);
+      setDeletedTasks(prev => prev.filter(t => t.id !== id));
+      toast.success("Tarefa restaurada");
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handlePermanentDelete = async (id: string) => {
+    try {
+      await permanentlyDeleteTask(id);
+      setDeletedTasks(prev => prev.filter(t => t.id !== id));
+      toast.success("Tarefa removida permanentemente");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const remainingTime = (deletedAt: string) => {
+    const expires = new Date(deletedAt).getTime() + 24 * 60 * 60 * 1000;
+    const ms = expires - Date.now();
+    if (ms <= 0) return "expirando";
+    const h = Math.floor(ms / (1000 * 60 * 60));
+    const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    if (h > 0) return `${h}h ${m}m restantes`;
+    return `${m}m restantes`;
+  };
 
   const filtered = useMemo(() => {
     let result = tasks;
