@@ -332,7 +332,7 @@ export function DayPlanner({
           <CalendarCheck className="h-4 w-4 text-primary" />
           <h2 className="text-h2">Planejamento do Dia</h2>
           <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
-            {todayTasks.length + todayOrphanSubtasks.length} item{(todayTasks.length + todayOrphanSubtasks.length) !== 1 ? "s" : ""}
+            {dayTasks.length + todayOrphanSubtasks.length} item{(dayTasks.length + todayOrphanSubtasks.length) !== 1 ? "s" : ""}
           </span>
         </div>
         <div className="flex items-center gap-2">
