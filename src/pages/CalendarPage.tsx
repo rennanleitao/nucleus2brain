@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Calendar as CalIcon, ChevronLeft, ChevronRight, Loader2, Unplug, Settings2, Plus } from "lucide-react";
+import { Calendar as CalIcon, ChevronLeft, ChevronRight, Loader2, Unplug, Settings2, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +17,8 @@ import { MonthView } from "@/components/calendar/MonthView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { DayView } from "@/components/calendar/DayView";
 import { QuickCreatePopover } from "@/components/calendar/QuickCreatePopover";
+import { AISchedulePreviewDialog } from "@/components/AISchedulePreviewDialog";
+import { isSameDay } from "date-fns";
 import type { GoogleCalendar, GoogleEvent, CalendarTask, CalendarItem, CalendarView } from "@/components/calendar/types";
 
 export default function CalendarPage() {
@@ -31,6 +33,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAISchedule, setShowAISchedule] = useState(false);
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
