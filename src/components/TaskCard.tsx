@@ -423,7 +423,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
             </button>
           )}
 
-          {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
+          {/* TaskTimer removido do card — disponível ao abrir o cartão */}
           <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
           {onToggleCompact && (
             <button
