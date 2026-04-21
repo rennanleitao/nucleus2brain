@@ -41,7 +41,7 @@ export function DayPlanner({
 }: DayPlannerProps) {
   const navigate = useNavigate();
   const [showTomorrow, setShowTomorrow] = useState(false);
-  
+  const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
   const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
   const [draggedId, setDraggedId] = useState<string | null>(null);
