@@ -147,7 +147,7 @@ function SubtaskReschedulePopover({ subtaskId, currentDate, onReschedule }: { su
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onDuplicate, hideSpace,
-  orderNumber, onMoveUp, onMoveDown, isFirst, isLast
+  orderNumber, onMoveUp, onMoveDown, isFirst, isLast, compact = false, onToggleCompact
 }, ref) => {
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
