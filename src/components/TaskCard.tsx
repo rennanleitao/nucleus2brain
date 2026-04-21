@@ -245,7 +245,11 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const descriptionPreview = task.description?.replace(/<[^>]*>/g, "").trim();
 
   return (
-    <div ref={ref} className={`group rounded-lg border border-border bg-card hover:shadow-card transition-all animate-fade-in ${isCompleted ? "opacity-60" : ""}`}>
+    <div ref={ref} className={cn(
+      "group rounded-lg border transition-all animate-fade-in hover:shadow-card",
+      isOverdue ? "border-destructive/40 bg-destructive/10" : "border-border bg-card",
+      isCompleted && "opacity-60"
+    )}>
       <div className="flex items-start gap-3 p-3 sm:p-3">
         {orderNumber != null && (
           <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-[1px]" onClick={e => e.stopPropagation()}>
