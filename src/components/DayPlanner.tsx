@@ -429,6 +429,8 @@ export function DayPlanner({
                     onMoveDown={() => handleReorder(idx, idx + 1)}
                     isFirst={idx === 0}
                     isLast={idx === todayTasks.length - 1}
+                    compact={cardCompact(t.id)}
+                    onToggleCompact={allCompact ? toggleCardCompact : undefined}
                   />
                 </div>
               ))}
