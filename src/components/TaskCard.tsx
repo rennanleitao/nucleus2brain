@@ -400,6 +400,15 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
 
           {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
           <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
+          {onToggleCompact && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleCompact(task.id); }}
+              className="text-muted-foreground hover:text-primary transition-colors p-1"
+              title={compact ? "Expandir detalhes" : "Recolher detalhes"}
+            >
+              {compact ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+            </button>
+          )}
         </div>
 
         {onDelete && (
