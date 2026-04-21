@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -49,6 +49,14 @@ export function DayPlanner({
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
   const [showAISchedule, setShowAISchedule] = useState(false);
   const [todayEvents, setTodayEvents] = useState<GoogleEvent[]>([]);
+  const [allCompact, setAllCompact] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const cardCompact = (id: string) => allCompact && !expandedCards[id];
+  const toggleCardCompact = (id: string) => setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+  const handleToggleAllCompact = () => {
+    setAllCompact(prev => !prev);
+    setExpandedCards({});
+  };
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const today = getBrtToday();
@@ -256,6 +264,8 @@ export function DayPlanner({
         onReschedule={onReschedule}
         onRescheduleSubtask={onRescheduleSubtask}
         onDuplicate={onDuplicate}
+        compact={cardCompact(t.id)}
+        onToggleCompact={allCompact ? toggleCardCompact : undefined}
       />
     </div>
   );
@@ -354,6 +364,13 @@ export function DayPlanner({
           >
             <Sparkles className="h-3.5 w-3.5" />
           </button>
+          <button
+            onClick={handleToggleAllCompact}
+            className={`flex items-center gap-1 text-xs font-medium border rounded-md px-2 py-1.5 transition-colors ${allCompact ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground hover:text-primary border-border hover:border-primary/30"}`}
+            title={allCompact ? "Expandir todas" : "Recolher todas"}
+          >
+            {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+          </button>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -412,6 +429,8 @@ export function DayPlanner({
                     onMoveDown={() => handleReorder(idx, idx + 1)}
                     isFirst={idx === 0}
                     isLast={idx === todayTasks.length - 1}
+                    compact={cardCompact(t.id)}
+                    onToggleCompact={allCompact ? toggleCardCompact : undefined}
                   />
                 </div>
               ))}
@@ -510,6 +529,8 @@ export function DayPlanner({
                           onReschedule={onReschedule}
                           onRescheduleSubtask={onRescheduleSubtask}
                           onDuplicate={onDuplicate}
+                          compact={cardCompact(t.id)}
+                          onToggleCompact={allCompact ? toggleCardCompact : undefined}
                         />
                       </div>
                     ))}
