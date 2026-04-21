@@ -94,8 +94,27 @@ export default function SpaceDetail() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    try { await deleteTask(taskId); toast.success("Task excluída"); load(); }
-    catch (err: any) { toast.error(err.message); }
+    const removed = tasks.find((t: any) => t.id === taskId);
+    try {
+      await deleteTask(taskId);
+      toast.success("Tarefa excluída", {
+        description: removed?.title ? `"${removed.title}" será removida em 24h` : "Será removida em 24h",
+        duration: 8000,
+        action: {
+          label: "Desfazer",
+          onClick: async () => {
+            try {
+              await restoreTask(taskId);
+              toast.success("Tarefa restaurada");
+              load();
+            } catch (err: any) {
+              toast.error(err.message);
+            }
+          },
+        },
+      });
+      load();
+    } catch (err: any) { toast.error(err.message); }
   };
 
   const handleDeleteNote = async (noteId: string) => {
