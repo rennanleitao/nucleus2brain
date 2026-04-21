@@ -428,7 +428,7 @@ export default function Tasks() {
         </TabsList>
       </Tabs>
 
-      {filter !== "planner" && (
+      {filter !== "planner" && filter !== "deleted" && (
         <div className="flex items-center gap-2 flex-wrap">
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
           <div className="flex items-center border border-border rounded-md overflow-hidden">
@@ -479,7 +479,52 @@ export default function Tasks() {
         </div>
       )}
 
-      {filter === "planner" ? (
+      {filter === "deleted" ? (
+        <div className="space-y-2">
+          {loadingDeleted ? (
+            <p className="text-small text-muted-foreground text-center py-8">Carregando...</p>
+          ) : deletedTasks.length === 0 ? (
+            <div className="text-center py-12">
+              <Trash2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-small text-muted-foreground">Nenhuma tarefa deletada</p>
+              <p className="text-micro text-muted-foreground mt-1">Itens deletados ficam aqui por 24h antes de sumirem</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-micro text-muted-foreground mb-2">
+                {deletedTasks.length} tarefa(s) deletada(s) · removidas permanentemente após 24h
+              </p>
+              {deletedTasks.map(t => (
+                <div key={t.id} className="rounded-lg border border-border bg-card p-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-small font-medium truncate">{t.title}</p>
+                    <p className="text-micro text-muted-foreground">
+                      {t.spaces?.name && <span>{t.spaces.name} · </span>}
+                      {remainingTime(t.deleted_at)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRestoreFromDeleted(t.id)}
+                    className="flex items-center gap-1 px-2.5 h-8 text-micro rounded-md border border-border hover:bg-muted transition-colors"
+                    title="Restaurar"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Restaurar</span>
+                  </button>
+                  <button
+                    onClick={() => handlePermanentDelete(t.id)}
+                    className="flex items-center gap-1 px-2.5 h-8 text-micro rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                    title="Excluir permanentemente"
+                  >
+                    <Trash className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Excluir</span>
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      ) : filter === "planner" ? (
         <DayPlanner
           tasks={tasks}
           setTasks={setTasks}
