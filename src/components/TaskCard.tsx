@@ -52,6 +52,8 @@ interface TaskCardProps {
   onMoveDown?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
+  compact?: boolean;
+  onToggleCompact?: (id: string) => void;
 }
 
 const statusIcons: Record<TaskStatus, React.ElementType> = {
@@ -145,7 +147,7 @@ function SubtaskReschedulePopover({ subtaskId, currentDate, onReschedule }: { su
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onDuplicate, hideSpace,
-  orderNumber, onMoveUp, onMoveDown, isFirst, isLast
+  orderNumber, onMoveUp, onMoveDown, isFirst, isLast, compact = false, onToggleCompact
 }, ref) => {
   const isCompleted = task.status === "completed";
   const ToggleIcon = isCompleted ? CheckCircle2 : Circle;
@@ -268,21 +270,21 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           <p className={`text-small font-medium leading-tight ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
             {task.title}
           </p>
-          {descriptionPreview && (
+          {!compact && descriptionPreview && (
             <p className="text-micro text-muted-foreground mt-0.5 line-clamp-2">{descriptionPreview}</p>
           )}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            {!hideSpace && task.spaces?.name && (
+            {!compact && !hideSpace && task.spaces?.name && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-accent/40 bg-accent/15 text-foreground">
                 📁 {task.spaces.name}
               </Badge>
             )}
-            {task.tag && (
+            {!compact && task.tag && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
                 <Tag className="h-2.5 w-2.5 mr-0.5" />#{task.tag}
               </Badge>
             )}
-            {task.notes?.title && task.note_id && (
+            {!compact && task.notes?.title && task.note_id && (
               <button
                 onClick={(e) => { e.stopPropagation(); window.location.href = `/notes?note=${task.note_id}`; }}
                 title="Criada a partir desta nota — clique para abrir"
@@ -293,24 +295,19 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 </Badge>
               </button>
             )}
-            {task.notes?.title && !task.note_id && (
+            {!compact && task.notes?.title && !task.note_id && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-muted-foreground/30 text-muted-foreground gap-0.5">
                 <FileText className="h-2.5 w-2.5" />
                 da nota: {task.notes.title}
               </Badge>
             )}
-            {task.due_date && task.due_date === getBrtToday() && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                Hoje
-              </Badge>
-            )}
             {task.due_date && (
-              <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+              <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-destructive font-semibold" : task.due_date === getBrtToday() ? "text-primary font-medium" : "text-muted-foreground"}`}>
                 <CalendarDays className="h-3 w-3" />
                 {formatDate(task.due_date)}
               </span>
             )}
-            {reminder && !isCompleted && (
+            {!compact && reminder && !isCompleted && (
               <span className="text-micro flex items-center gap-1 text-muted-foreground">
                 {reminderTriggered && (
                   <span className="relative flex h-2 w-2">
@@ -322,12 +319,12 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 {new Date(reminder.reminder_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
-            {hasSubtasks && (
+            {!compact && hasSubtasks && (
               <span className="text-micro text-muted-foreground">
                 {completedSubtasks}/{subtasks.length} subtasks
               </span>
             )}
-            {task.estimated_minutes && (
+            {!compact && task.estimated_minutes && (
               <span className="text-micro text-muted-foreground flex items-center gap-0.5">
                 <Timer className="h-2.5 w-2.5" />
                 {task.estimated_minutes}m est.
@@ -403,6 +400,15 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
 
           {!isCompleted && <TaskTimer taskId={task.id} taskTitle={task.title} compact={true} />}
           <PriorityDots priority={task.priority} onClick={onPriorityChange ? (p) => onPriorityChange(task.id, p) : undefined} />
+          {onToggleCompact && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleCompact(task.id); }}
+              className="text-muted-foreground hover:text-primary transition-colors p-1"
+              title={compact ? "Expandir detalhes" : "Recolher detalhes"}
+            >
+              {compact ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+            </button>
+          )}
         </div>
 
         {onDelete && (
@@ -414,7 +420,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       </div>
 
       {/* Subtasks collapsible */}
-      {(hasSubtasks || onAddSubtask) && (
+      {!compact && (hasSubtasks || onAddSubtask) && (
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <div className="px-3 pb-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <CollapsibleTrigger className="flex items-center gap-1 text-micro text-muted-foreground hover:text-foreground transition-colors">
@@ -491,6 +497,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       )}
 
       {/* Materials - always visible like subtasks */}
+      {!compact && (
       <Collapsible open={materialsOpen} onOpenChange={setMaterialsOpen}>
         <div className="px-3 pb-2 flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <CollapsibleTrigger className="flex items-center gap-1 text-micro text-muted-foreground hover:text-foreground transition-colors">
@@ -546,6 +553,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
         </CollapsibleContent>
       </Collapsible>
+      )}
     </div>
   );
 });

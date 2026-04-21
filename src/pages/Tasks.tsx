@@ -6,7 +6,7 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,6 +44,15 @@ export default function Tasks() {
   const [completionTask, setCompletionTask] = useState<any | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (key: string) => setCollapsedGroups(prev => ({ ...prev, [key]: !prev[key] }));
+  const [allCompact, setAllCompact] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  // Card is compact when global compact mode is on AND user hasn't individually expanded it
+  const cardCompact = (id: string) => allCompact && !expandedCards[id];
+  const toggleCardCompact = (id: string) => setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+  const handleToggleAllCompact = () => {
+    setAllCompact(prev => !prev);
+    setExpandedCards({});
+  };
 
   const load = async () => {
     try {
@@ -319,6 +328,8 @@ export default function Tasks() {
             onRescheduleSubtask={handleRescheduleSubtask}
             hideSpace={hideSpace}
             onDuplicate={handleDuplicate}
+            compact={cardCompact(t.id)}
+            onToggleCompact={allCompact ? toggleCardCompact : undefined}
           />
         </div>
       ))}
@@ -387,6 +398,14 @@ export default function Tasks() {
                   <SelectItem value="date">By Date</SelectItem>
                 </SelectContent>
               </Select>
+              <button
+                onClick={handleToggleAllCompact}
+                className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors touch-manipulation ${allCompact ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
+                title={allCompact ? "Expandir todas" : "Recolher todas"}
+              >
+                {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{allCompact ? "Expandir" : "Recolher"}</span>
+              </button>
             </>
           )}
         </div>
