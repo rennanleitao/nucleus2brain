@@ -364,6 +364,13 @@ export function DayPlanner({
           >
             <Sparkles className="h-3.5 w-3.5" />
           </button>
+          <button
+            onClick={handleToggleAllCompact}
+            className={`flex items-center gap-1 text-xs font-medium border rounded-md px-2 py-1.5 transition-colors ${allCompact ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground hover:text-primary border-border hover:border-primary/30"}`}
+            title={allCompact ? "Expandir todas" : "Recolher todas"}
+          >
+            {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+          </button>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
