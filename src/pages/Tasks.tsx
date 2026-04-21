@@ -398,6 +398,14 @@ export default function Tasks() {
                   <SelectItem value="date">By Date</SelectItem>
                 </SelectContent>
               </Select>
+              <button
+                onClick={handleToggleAllCompact}
+                className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors touch-manipulation ${allCompact ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
+                title={allCompact ? "Expandir todas" : "Recolher todas"}
+              >
+                {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{allCompact ? "Expandir" : "Recolher"}</span>
+              </button>
             </>
           )}
         </div>
