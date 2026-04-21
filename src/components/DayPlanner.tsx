@@ -392,51 +392,58 @@ export function DayPlanner({
 
       {/* LIST VIEW */}
       {view === "list" && (
-        (todayTasks.length > 0 || todayOrphanSubtasks.length > 0) ? (
+        (dayTasks.length > 0 || todayOrphanSubtasks.length > 0) ? (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
             <div className="space-y-2">
-              {todayTasks.map((t, idx) => (
-                <div
-                  key={t.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, t.id)}
-                  onDragOver={(e) => handleDragOver(e, t.id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, t.id)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => onSelect(t)}
-                  className={cn(
-                    "cursor-pointer relative group/drag transition-all rounded-lg",
-                    draggedId === t.id && "opacity-40",
-                    dragOverId === t.id && draggedId !== t.id && "ring-2 ring-primary ring-offset-1",
-                  )}
-                >
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5 opacity-0 group-hover/drag:opacity-100 transition-opacity pointer-events-none hidden sm:block">
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+              {dayTasks.map((t) => {
+                const isOverdueItem = !!(t.due_date && t.due_date < today);
+                const todayIdx = isOverdueItem ? -1 : todayTasks.findIndex(x => x.id === t.id);
+                const draggable = !isOverdueItem;
+                return (
+                  <div
+                    key={t.id}
+                    draggable={draggable}
+                    onDragStart={draggable ? (e) => handleDragStart(e, t.id) : undefined}
+                    onDragOver={draggable ? (e) => handleDragOver(e, t.id) : undefined}
+                    onDragLeave={draggable ? handleDragLeave : undefined}
+                    onDrop={draggable ? (e) => handleDrop(e, t.id) : undefined}
+                    onDragEnd={draggable ? handleDragEnd : undefined}
+                    onClick={() => onSelect(t)}
+                    className={cn(
+                      "cursor-pointer relative group/drag transition-all rounded-lg",
+                      draggedId === t.id && "opacity-40",
+                      dragOverId === t.id && draggedId !== t.id && "ring-2 ring-primary ring-offset-1",
+                    )}
+                  >
+                    {draggable && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5 opacity-0 group-hover/drag:opacity-100 transition-opacity pointer-events-none hidden sm:block">
+                        <GripVertical className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <TaskCard
+                      task={t}
+                      subtasks={subtasksMap[t.id] || []}
+                      reminder={remindersMap[t.id] || null}
+                      onToggle={() => onToggle(t.id)}
+                      onDelete={() => onDelete(t.id)}
+                      onToggleSubtask={onToggleSubtask}
+                      onAddSubtask={onAddSubtask}
+                      onDeleteSubtask={onDeleteSubtask}
+                      onPriorityChange={onPriorityChange}
+                      onReschedule={onReschedule}
+                      onRescheduleSubtask={onRescheduleSubtask}
+                      onDuplicate={onDuplicate}
+                      orderNumber={isOverdueItem ? undefined : todayIdx + 1}
+                      onMoveUp={isOverdueItem ? undefined : () => handleReorder(todayIdx, todayIdx - 1)}
+                      onMoveDown={isOverdueItem ? undefined : () => handleReorder(todayIdx, todayIdx + 1)}
+                      isFirst={isOverdueItem ? undefined : todayIdx === 0}
+                      isLast={isOverdueItem ? undefined : todayIdx === todayTasks.length - 1}
+                      compact={cardCompact(t.id)}
+                      onToggleCompact={allCompact ? toggleCardCompact : undefined}
+                    />
                   </div>
-                  <TaskCard
-                    task={t}
-                    subtasks={subtasksMap[t.id] || []}
-                    reminder={remindersMap[t.id] || null}
-                    onToggle={() => onToggle(t.id)}
-                    onDelete={() => onDelete(t.id)}
-                    onToggleSubtask={onToggleSubtask}
-                    onAddSubtask={onAddSubtask}
-                    onDeleteSubtask={onDeleteSubtask}
-                    onPriorityChange={onPriorityChange}
-                    onReschedule={onReschedule}
-                    onRescheduleSubtask={onRescheduleSubtask}
-                    onDuplicate={onDuplicate}
-                    orderNumber={idx + 1}
-                    onMoveUp={() => handleReorder(idx, idx - 1)}
-                    onMoveDown={() => handleReorder(idx, idx + 1)}
-                    isFirst={idx === 0}
-                    isLast={idx === todayTasks.length - 1}
-                    compact={cardCompact(t.id)}
-                    onToggleCompact={allCompact ? toggleCardCompact : undefined}
-                  />
-                </div>
-              ))}
+                );
+              })}
 
               {/* Orphan subtasks for today */}
               {todayOrphanSubtasks.map(({ subtask, parentTask }) => (
