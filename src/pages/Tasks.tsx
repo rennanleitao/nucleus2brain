@@ -441,6 +441,9 @@ export default function Tasks() {
           onDeleteSubtask={handleDeleteSubtask}
           onPriorityChange={handlePriorityChange}
           onSelect={setEditingTask}
+          cardCompact={cardCompact}
+          onToggleCardCompact={toggleCardCompact}
+          allCompact={allCompact}
         />
       ) : (
       <>
