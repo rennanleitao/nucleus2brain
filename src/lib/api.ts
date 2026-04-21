@@ -315,7 +315,7 @@ export async function fetchAllTags(): Promise<string[]> {
   const [notes, snippets, tasks] = await Promise.all([
     supabase.from("notes").select("tags"),
     supabase.from("tagged_snippets").select("tag"),
-    supabase.from("tasks").select("tag"),
+    supabase.from("tasks").select("tag").is("deleted_at", null),
   ]);
   const tagSet = new Set<string>();
   (notes.data || []).forEach((n: any) => (n.tags || []).forEach((t: string) => tagSet.add(t)));
