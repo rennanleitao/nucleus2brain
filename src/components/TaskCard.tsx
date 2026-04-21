@@ -318,6 +318,11 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
               <span className={`text-micro flex items-center gap-1 ${isOverdue ? "text-destructive font-semibold" : task.due_date === getBrtToday() ? "text-primary font-medium" : "text-muted-foreground"}`}>
                 <CalendarDays className="h-3 w-3" />
                 {formatDate(task.due_date)}
+                {isOverdue && (
+                  <span className="ml-1 px-1.5 py-0 rounded-full bg-destructive/15 text-destructive text-[10px] font-bold">
+                    {overdueDays}d atrasada
+                  </span>
+                )}
               </span>
             )}
             {!compact && reminder && !isCompleted && (
