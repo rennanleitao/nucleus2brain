@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchNotes, fetchTaggedSnippets, deleteTaggedSnippet, fetchTasks, renameTag, deleteTag, fetchAllTags } from "@/lib/api";
+import { getBrtToday } from "@/lib/timezone";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -329,7 +330,7 @@ export default function Tags() {
                             {task.priority === "high" && <Badge variant="destructive" className="text-[10px]">Alta</Badge>}
                           </div>
                           {task.due_date && (
-                            <p className={`text-xs ml-6 ${task.due_date < new Date().toISOString().split("T")[0] ? "text-destructive" : "text-muted-foreground"}`}>
+                            <p className={`text-xs ml-6 ${task.due_date < getBrtToday() ? "text-destructive" : "text-muted-foreground"}`}>
                               {new Date(task.due_date + "T00:00:00").toLocaleDateString("pt-BR")}
                             </p>
                           )}

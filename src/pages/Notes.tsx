@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
+import { getBrtToday } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { NoteAIChat } from "@/components/NoteAIChat";
@@ -505,7 +506,7 @@ export default function Notes() {
                                   </span>
                                   {task.due_date && (
                                     <span className={`text-[10px] flex-shrink-0 ${
-                                      task.due_date < new Date().toISOString().split("T")[0] ? "text-destructive" : "text-muted-foreground"
+                                      task.due_date < getBrtToday() ? "text-destructive" : "text-muted-foreground"
                                     }`}>
                                       {new Date(task.due_date + "T00:00:00").toLocaleDateString("pt-BR")}
                                     </span>

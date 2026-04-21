@@ -5,6 +5,7 @@ import { fetchTasks, fetchSpaces, createTask } from "@/lib/api";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
+import { getBrtToday } from "@/lib/timezone";
 
 interface Message {
   id: string;
@@ -47,7 +48,7 @@ export default function Assistant() {
           due_date: t.due_date, space: t.spaces?.name,
         })),
         spaces: spaces.map((s: any) => ({ id: s.id, name: s.name })),
-        today: new Date().toISOString().split("T")[0],
+        today: getBrtToday(),
       };
 
       // Add calendar context
