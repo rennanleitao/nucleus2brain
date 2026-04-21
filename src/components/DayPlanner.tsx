@@ -41,7 +41,7 @@ export function DayPlanner({
 }: DayPlannerProps) {
   const navigate = useNavigate();
   const [showTomorrow, setShowTomorrow] = useState(false);
-  const [showOverdue, setShowOverdue] = useState(false);
+  const [showOverdue, setShowOverdue] = useState(false); // kept for compat (unused)
   const [showFuture, setShowFuture] = useState(false);
   const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
   const [draggedId, setDraggedId] = useState<string | null>(null);
