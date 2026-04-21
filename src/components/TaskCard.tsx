@@ -75,27 +75,44 @@ const priorityCycle: TaskPriority[] = ["low", "medium", "high"];
 
 function PriorityDots({ priority, onClick }: { priority: TaskPriority; onClick?: (newPriority: TaskPriority) => void }) {
   const count = priorityDots[priority];
-  const handleClick = (e: React.MouseEvent) => {
-    if (!onClick) return;
-    e.stopPropagation();
-    const idx = priorityCycle.indexOf(priority);
-    const next = priorityCycle[(idx + 1) % priorityCycle.length];
-    onClick(next);
+  // Dot index → priority level. 1 dot = baixa, 2 = média, 3 = alta.
+  const dotPriority: TaskPriority[] = ["low", "medium", "high"];
+  // Color scales with selected level (low → muted, medium → foreground, high → destructive).
+  const activeColorByLevel: Record<TaskPriority, string> = {
+    low: "bg-muted-foreground/60",
+    medium: "bg-foreground/70",
+    high: "bg-destructive",
   };
+  const activeColor = activeColorByLevel[priority];
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={`flex items-center gap-[3px] ${onClick ? "cursor-pointer hover:opacity-70 transition-opacity" : ""}`}
-      title={`Prioridade: ${priorityLabels[priority]}${onClick ? " (clique para alterar)" : ""}`}
+    <div
+      className="flex items-center gap-1"
+      title={`Prioridade: ${priorityLabels[priority]}`}
+      onClick={(e) => e.stopPropagation()}
     >
-      {[1, 2, 3].map(i => (
-        <span
-          key={i}
-          className={`block h-[5px] w-[5px] rounded-full ${i <= count ? "bg-foreground/50" : "bg-border"}`}
-        />
-      ))}
-    </button>
+      {[0, 1, 2].map((i) => {
+        const level = dotPriority[i];
+        const isActive = i < count;
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={(e) => {
+              if (!onClick) return;
+              e.stopPropagation();
+              onClick(level);
+            }}
+            className={cn(
+              "block h-[9px] w-[9px] rounded-full transition-all",
+              isActive ? activeColor : "bg-border",
+              onClick && "hover:scale-125 hover:ring-2 hover:ring-primary/30 cursor-pointer",
+            )}
+            title={onClick ? `Definir prioridade: ${priorityLabels[level]}` : undefined}
+            aria-label={`Definir prioridade ${priorityLabels[level]}`}
+          />
+        );
+      })}
+    </div>
   );
 }
 
