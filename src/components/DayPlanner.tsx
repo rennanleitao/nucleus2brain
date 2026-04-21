@@ -41,7 +41,7 @@ export function DayPlanner({
 }: DayPlannerProps) {
   const navigate = useNavigate();
   const [showTomorrow, setShowTomorrow] = useState(false);
-  
+  const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
   const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -104,11 +104,25 @@ export function DayPlanner({
   // Combined list: overdue (most overdue first) + today's tasks. Overdue persists in the day view.
   const dayTasks = useMemo(() => [...overdueTasks, ...todayTasks], [overdueTasks, todayTasks]);
 
+  // Limit date for "next 7 days" window (exclusive of tomorrow, inclusive of today+7).
+  const next7End = useMemo(() => {
+    const [y, m, d] = today.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + 7);
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+  }, [today]);
+
+  const next7Tasks = useMemo(() => {
+    return tasks
+      .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date > tomorrow && t.due_date <= next7End)
+      .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
+  }, [tasks, tomorrow, next7End]);
+
   const futureTasks = useMemo(() => {
     return tasks
-      .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date > tomorrow)
+      .filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date > next7End)
       .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
-  }, [tasks, tomorrow]);
+  }, [tasks, next7End]);
 
   // Build CalendarItems for today's tasks (for TimelineView)
   const todayItems: CalendarItem[] = useMemo(() => {
@@ -596,9 +610,15 @@ export function DayPlanner({
         tomorrowTasks, showTomorrow, setShowTomorrow,
       )}
 
+      {/* Next 7 days */}
+      {renderToggleSection(
+        "Próximos 7 dias", <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />,
+        next7Tasks, showNext7, setShowNext7,
+      )}
+
       {/* Overdue tasks now appear inline in the day list above */}
 
-      {/* Future */}
+      {/* Future (>7 days) */}
       {renderToggleSection(
         "Atividades futuras", <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />,
         futureTasks, showFuture, setShowFuture,
