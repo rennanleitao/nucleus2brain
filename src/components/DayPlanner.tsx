@@ -541,6 +541,36 @@ export function DayPlanner({
         )
       )}
 
+      {/* TIMELINE VIEW */}
+      {view === "timeline" && (
+        <DndContext sensors={dndSensors} onDragEnd={handleTimelineDragEnd}>
+          <TimelineView
+            date={(() => { const [y, m, d] = today.split("-").map(Number); return new Date(y, m - 1, d); })()}
+            items={todayItems}
+            onItemClick={(it) => { if (it.kind === "task") { const t = tasks.find(x => x.id === it.data.id); if (t) onSelect(t); } }}
+            compact
+          />
+        </DndContext>
+      )}
+
+      <AISchedulePreviewDialog
+        open={showAISchedule}
+        onOpenChange={setShowAISchedule}
+        date={today}
+        tasks={todayTasks.map((t) => ({
+          id: t.id, title: t.title, priority: t.priority,
+          estimated_minutes: t.estimated_minutes, scheduled_time: t.scheduled_time,
+        }))}
+        busy={todayEvents
+          .filter((e) => e.start?.dateTime)
+          .map((e) => ({
+            summary: e.summary,
+            start: format(new Date(e.start!.dateTime!), "HH:mm"),
+            end: e.end?.dateTime ? format(new Date(e.end.dateTime), "HH:mm") : format(new Date(e.start!.dateTime!), "HH:mm"),
+          }))}
+        onApplied={onReload}
+      />
+
       {/* Tomorrow */}
       {renderToggleSection(
         "Amanhã", <CalendarPlus className="h-3.5 w-3.5 text-muted-foreground" />,
