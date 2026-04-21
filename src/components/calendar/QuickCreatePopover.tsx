@@ -36,6 +36,7 @@ export function QuickCreatePopover({ date, defaultTime, trigger, onCreated, onCr
   const [taskTitle, setTaskTitle] = useState("");
   const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">("medium");
   const [taskSpaceId, setTaskSpaceId] = useState<string>("");
+  const [taskTime, setTaskTime] = useState<string>(defaultTime || "");
   const [spaces, setSpaces] = useState<{ id: string; name: string }[]>([]);
 
   // Reminder state
@@ -61,6 +62,7 @@ export function QuickCreatePopover({ date, defaultTime, trigger, onCreated, onCr
     if (defaultTime) {
       setEvStart(defaultTime);
       setRemTime(defaultTime);
+      setTaskTime(defaultTime);
       // auto end = start + 1h
       const [h, m] = defaultTime.split(":").map(Number);
       const endH = (h + 1) % 24;
@@ -70,7 +72,7 @@ export function QuickCreatePopover({ date, defaultTime, trigger, onCreated, onCr
 
   const reset = () => {
     setEvTitle(""); setEvLocation("");
-    setTaskTitle(""); setTaskPriority("medium"); setTaskSpaceId("");
+    setTaskTitle(""); setTaskPriority("medium"); setTaskSpaceId(""); setTaskTime(defaultTime || "");
     setRemTitle(""); setRemTaskId("");
   };
 
@@ -104,6 +106,7 @@ export function QuickCreatePopover({ date, defaultTime, trigger, onCreated, onCr
         priority: taskPriority,
         status: "in_progress" as any,
         due_date: dateStr,
+        scheduled_time: taskTime || null,
         space_id: taskSpaceId || null,
       } as any);
       toast.success("Task criada!");

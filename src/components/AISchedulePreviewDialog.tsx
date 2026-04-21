@@ -139,8 +139,8 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy,
                           </>
                         ) : (
                           <>
-                            <AlertCircle className="h-3 w-3 text-amber-500" />
-                            <span className="text-[10px] text-amber-600">—</span>
+                            <AlertCircle className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">—</span>
                           </>
                         )}
                       </div>
