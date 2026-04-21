@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { TaskCard } from "@/components/TaskCard";
 import { CheckSquare, AlertTriangle, Inbox, CalendarDays } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getBrtToday, addDaysBrt } from "@/lib/timezone";
 
 interface KanbanViewProps {
   tasks: any[];
@@ -29,12 +30,8 @@ export function KanbanView({
   onSelect,
 }: KanbanViewProps) {
   const columns = useMemo(() => {
-    const now = new Date();
-    const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-    const today = brt.toISOString().split("T")[0];
-    const end = new Date(brt);
-    end.setDate(end.getDate() + 7);
-    const endStr = end.toISOString().split("T")[0];
+    const today = getBrtToday();
+    const endStr = addDaysBrt(today, 7);
 
     const active = tasks.filter(t => t.status !== "completed" && t.status !== "cancelled");
 
