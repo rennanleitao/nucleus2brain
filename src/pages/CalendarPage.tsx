@@ -18,6 +18,9 @@ import { WeekView } from "@/components/calendar/WeekView";
 import { DayView } from "@/components/calendar/DayView";
 import { QuickCreatePopover } from "@/components/calendar/QuickCreatePopover";
 import { AISchedulePreviewDialog } from "@/components/AISchedulePreviewDialog";
+import { EditTaskDialog } from "@/components/EditTaskDialog";
+import { EditEventDialog } from "@/components/calendar/EditEventDialog";
+import { fetchSpaces } from "@/lib/api";
 import { isSameDay } from "date-fns";
 import type { GoogleCalendar, GoogleEvent, CalendarTask, CalendarItem, CalendarView } from "@/components/calendar/types";
 
@@ -34,6 +37,32 @@ export default function CalendarPage() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAISchedule, setShowAISchedule] = useState(false);
+  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [editingEvent, setEditingEvent] = useState<GoogleEvent | null>(null);
+  const [spacesList, setSpacesList] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetchSpaces().then((s) => setSpacesList(s as any)).catch(() => {});
+  }, []);
+
+  const handleItemClick = useCallback(async (item: CalendarItem) => {
+    if (item.kind === "event") {
+      setEditingEvent(item.data);
+      return;
+    }
+    // Task — fetch full record so EditTaskDialog has all fields
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("id", item.data.id)
+      .maybeSingle();
+    if (error || !data) {
+      toast.error("Erro ao abrir tarefa");
+      return;
+    }
+    setEditingTask(data);
+  }, []);
+
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
