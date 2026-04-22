@@ -44,11 +44,11 @@ function SpaceCombobox({ spaces, spaceId, onSelect, showNewSpace, setShowNewSpac
 
   return (
     <div>
-      <label className="text-xs text-muted-foreground mb-1 block">Space</label>
+      <label className="field-label">Space</label>
       <div className="flex gap-2">
         <div className="relative flex-1">
           <button type="button" onClick={() => setIsOpen(!isOpen)}
-            className="w-full flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-foreground/30 transition-colors text-left">
+            className="field-input flex items-center gap-2 text-left">
             {selected ? (<><SpaceLetterAvatar name={selected.name} /><span className="truncate">{selected.name}</span></>) : (
               <span className="text-muted-foreground">Sem space</span>
             )}
@@ -87,7 +87,7 @@ function SpaceCombobox({ spaces, spaceId, onSelect, showNewSpace, setShowNewSpac
           <p className="text-xs font-medium text-foreground">Novo Space</p>
           <SpaceIconPicker value={newSpaceIcon} onChange={setNewSpaceIcon} />
           <input type="text" placeholder="Nome do space" value={newSpaceName} onChange={e => setNewSpaceName(e.target.value)}
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+            className="field-input" />
           <div className="flex gap-2">
             <Button type="button" size="sm" variant="ghost" onClick={() => setShowNewSpace(false)} className="flex-1">Cancelar</Button>
             <Button type="button" size="sm" disabled={creatingSpace || !newSpaceName.trim()} onClick={onCreateSpace}
@@ -367,7 +367,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
             <div className="flex items-center gap-1.5">
               <input type="text" placeholder="Título da task" value={title} onChange={e => { setTitle(e.target.value); if (validationState !== "idle") { setValidationState("idle"); setValidationResult(null); } }}
-                className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
+                className="field-input flex-1" required />
               <button type="button" onClick={handleAIAnalyze} disabled={!title.trim() || validationState === "validating"}
                 className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-40"
                 title="Analisar com IA">
@@ -375,7 +375,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
               </button>
             </div>
             <textarea placeholder="Descrição (opcional)" value={description} onChange={e => setDescription(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
+              className="field-input h-20 resize-none" />
           </section>
 
 
@@ -387,18 +387,18 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Prioridade</label>
+                <label className="field-label">Prioridade</label>
                 <select value={priority} onChange={e => setPriority(e.target.value as any)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
+                  className="field-input">
                   <option value="low">Baixa</option>
                   <option value="medium">Média</option>
                   <option value="high">Alta</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Data limite</label>
+                <label className="field-label">Data limite</label>
                 <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  className="field-input" />
                 <div className="flex gap-1 mt-1">
                   <button type="button" onClick={() => setDueDate(todayStr)}
                     className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
@@ -415,9 +415,9 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
               </div>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
+              <label className="field-label">Tempo estimado (minutos)</label>
               <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                className="field-input" />
             </div>
 
             {/* Recurrence (optional) */}
@@ -438,7 +438,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                   <select
                     value={recurrence}
                     onChange={e => setRecurrence(e.target.value as any)}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                    className="field-input"
                   >
                     <option value="daily">Todos os dias</option>
                     <option value="weekly">Toda semana</option>
@@ -463,7 +463,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
             {/* Tag selector */}
             <div>
-              <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+              <label className="field-label flex items-center gap-1.5">
                 <Tag className="h-3 w-3" /> Tag (opcional)
               </label>
               {tag ? (
@@ -490,7 +490,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                         setShowTagPicker(false);
                       }
                     }}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                    className="field-input"
                   />
                   {showTagPicker && (
                     <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
@@ -544,7 +544,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
             {/* Subtasks section */}
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Subtasks (opcional)</label>
+              <label className="field-label">Subtasks (opcional)</label>
               {pendingSubtasks.length > 0 && (
                 <div className="space-y-1 mb-2 ml-2 border-l border-border pl-2">
                   {pendingSubtasks.map((sub, idx) => (
@@ -565,13 +565,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                   value={subtaskTitle}
                   onChange={e => setSubtaskTitle(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingSubtask(); } }}
-                  className="flex-1 bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary"
+                  className="field-input-sm flex-1 text-xs py-1.5"
                 />
                 <input
                   type="date"
                   value={subtaskDate}
                   onChange={e => setSubtaskDate(e.target.value)}
-                  className="bg-background border border-border rounded px-1 py-1.5 text-[10px] outline-none focus:border-primary w-[110px]"
+                  className="field-input-sm w-[110px] text-[10px] py-1.5 px-2"
                 />
                 <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingSubtask} disabled={!subtaskTitle.trim()} className="h-7 px-2">
                   <Plus className="h-3 w-3" />
@@ -582,7 +582,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             {/* Materials section */}
             <div>
               <button type="button" onClick={() => setShowMaterials(!showMaterials)}
-                className="text-xs text-muted-foreground mb-1 flex items-center gap-1 hover:text-foreground transition-colors">
+                className="field-label flex items-center gap-1.5 hover:text-foreground transition-colors">
                 <LinkIcon className="h-3 w-3" />
                 Materiais relacionados
                 <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
@@ -608,13 +608,13 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                     </div>
                   )}
                   <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
-                    className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                    className="field-input-sm text-xs py-1.5" />
                   <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
-                    className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                    className="field-input-sm text-xs py-1.5" />
                   <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
-                    className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                    className="field-input-sm text-xs py-1.5" />
                   <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
                     disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
                     <Plus className="h-3 w-3 mr-1" /> Adicionar material
