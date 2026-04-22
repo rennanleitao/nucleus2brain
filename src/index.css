@@ -184,22 +184,22 @@
     @apply w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground
            shadow-sm outline-none transition-all
            placeholder:text-muted-foreground
-           hover:border-foreground/25
-           focus:border-primary focus:ring-2 focus:ring-primary/20
+           hover:border-foreground
+           focus:border-primary focus:ring-2 focus:ring-primary
            disabled:cursor-not-allowed disabled:opacity-60;
   }
   .field-input-sm {
     @apply w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground
            shadow-sm outline-none transition-all
            placeholder:text-muted-foreground
-           hover:border-foreground/25
-           focus:border-primary focus:ring-2 focus:ring-primary/20;
+           hover:border-foreground
+           focus:border-primary focus:ring-2 focus:ring-primary;
   }
   .field-label {
     @apply text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5 block;
   }
   .field-section {
-    @apply rounded-xl border border-border bg-card/60 p-3.5 space-y-3 shadow-sm;
+    @apply rounded-xl border border-border bg-card p-3.5 space-y-3 shadow-sm;
   }
 }
 
