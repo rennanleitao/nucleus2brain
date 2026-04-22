@@ -288,7 +288,7 @@ export default function Notes() {
     <div className="flex h-[calc(100vh-3.5rem)] animate-fade-in">
       {/* Sidebar - Note list */}
       {showList && (
-        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border flex flex-col bg-muted/60 flex-shrink-0`}>
+        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border flex flex-col bg-muted/40 flex-shrink-0`}>
           <div className="p-3 border-b border-border space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="text-small font-semibold flex items-center gap-1.5">
@@ -361,38 +361,44 @@ export default function Notes() {
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1.5">
+            <div className="p-3 space-y-2.5">
               {filteredNotes.map(note => {
                 const isSelected = selectedNote?.id === note.id;
                 return (
                   <button
                     key={note.id}
                     onClick={() => selectNote(note)}
-                    className={`w-full text-left px-3 py-3 rounded-xl border transition-all touch-manipulation active:scale-[0.99] ${
+                    className={`group w-full text-left rounded-xl border transition-all touch-manipulation active:scale-[0.995] overflow-hidden ${
                       isSelected
-                        ? "bg-accent text-accent-foreground border-accent shadow-sm"
-                        : "bg-background border-border/60 hover:border-border hover:shadow-sm"
+                        ? "bg-card border-foreground/20 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] ring-1 ring-foreground/5"
+                        : "bg-card border-border/70 hover:border-foreground/15 hover:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]"
                     }`}
                   >
-                    <p className={`text-small font-semibold truncate ${isSelected ? "text-accent-foreground" : "text-foreground"}`}>
-                      {note.title}
-                    </p>
-                    <p
-                      className={`text-[11px] line-clamp-2 mt-1 whitespace-pre-line leading-relaxed ${
-                        isSelected ? "text-accent-foreground/80" : "text-muted-foreground"
-                      }`}
-                    >
-                      {stripHtml(note.content || "") || "Sem conteúdo"}
-                    </p>
+                    <div className="px-3.5 pt-3 pb-2.5">
+                      <p className="text-[13.5px] font-semibold tracking-tight text-foreground truncate leading-tight">
+                        {note.title}
+                      </p>
+                      <p className="text-[11.5px] line-clamp-2 mt-1.5 whitespace-pre-line leading-[1.5] text-muted-foreground/90">
+                        {stripHtml(note.content || "") || "Sem conteúdo"}
+                      </p>
+                    </div>
                     {(note.spaces?.name || (note.tags || []).length > 0) && (
-                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 px-3.5 py-2 border-t border-border/50 bg-muted/30 flex-wrap">
                         {note.spaces?.name && (
-                          <span className={`text-[10px] ${isSelected ? "text-accent-foreground/70" : "text-muted-foreground"}`}>
+                          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                             {note.spaces.name}
                           </span>
                         )}
+                        {note.spaces?.name && (note.tags || []).length > 0 && (
+                          <span className="text-[10px] text-muted-foreground/40">·</span>
+                        )}
                         {(note.tags || []).slice(0, 2).map((tag: string) => (
-                          <Badge key={tag} variant="secondary" className="text-[9px] px-1 py-0">#{tag}</Badge>
+                          <span
+                            key={tag}
+                            className="text-[10px] font-medium text-muted-foreground/80 bg-background border border-border/60 rounded-md px-1.5 py-0.5"
+                          >
+                            #{tag}
+                          </span>
                         ))}
                       </div>
                     )}
