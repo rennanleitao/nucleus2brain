@@ -28,7 +28,7 @@ function SpaceComboboxEdit({ spaces, spaceId, onSelect }: { spaces: { id: string
   return (
     <div className="relative">
       <button type="button" onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-foreground/30 transition-colors text-left">
+        className="field-input flex items-center gap-2 text-left">
         {selected ? (<><SpaceLetterAvatar name={selected.name} /><span className="truncate">{selected.name}</span></>) : (
           <span className="text-muted-foreground">Sem space</span>
         )}
@@ -349,12 +349,12 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-muted/40">
         <DialogHeader><DialogTitle>Editar Task</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex items-center gap-1.5">
             <input type="text" placeholder="Título da task" value={title} onChange={e => setTitle(e.target.value)}
-              className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
+              className="field-input flex-1" required />
             <button type="button" onClick={handleAIAnalyze} disabled={!title.trim() || validationState === "validating"}
               className="shrink-0 h-9 w-9 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-40"
               title="Analisar com IA">
@@ -362,7 +362,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             </button>
           </div>
           <textarea placeholder="Descrição" value={description} onChange={e => setDescription(e.target.value)}
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
+            className="field-input h-20 resize-none" />
 
           {/* AI Validation feedback */}
           {validationState === "validating" && (
@@ -436,16 +436,16 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Prioridade</label>
+              <label className="field-label">Prioridade</label>
               <select value={priority} onChange={e => setPriority(e.target.value as any)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
+                className="field-input">
                 <option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option>
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Status</label>
+              <label className="field-label">Status</label>
               <select value={status} onChange={e => setStatus(e.target.value as any)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
+                className="field-input">
                 <option value="todo">A Fazer</option><option value="in_progress">Em Progresso</option>
                 <option value="waiting">Aguardando</option><option value="completed">Concluída</option>
                 <option value="cancelled">Cancelada</option>
@@ -454,20 +454,20 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Space</label>
+              <label className="field-label">Space</label>
               <SpaceComboboxEdit spaces={spaces} spaceId={spaceId} onSelect={setSpaceId} />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Data limite</label>
+              <label className="field-label">Data limite</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-              <div className="flex gap-1 mt-1">
+                className="field-input" />
+              <div className="flex gap-1.5 mt-1.5">
                 <button type="button" onClick={() => setDueDate(todayStr)}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                  className={`text-[10px] px-2.5 py-1 rounded-full border transition-all ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-card border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"}`}>
                   Hoje
                 </button>
                 <button type="button" onClick={() => setDueDate(tomorrowStr)}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                  className={`text-[10px] px-2.5 py-1 rounded-full border transition-all ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-card border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"}`}>
                   Amanhã
                 </button>
               </div>
@@ -475,7 +475,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           </div>
 
           {/* Recurrence (optional) */}
-          <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+          <div className="field-section">
             <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -487,12 +487,12 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
               Tarefa recorrente
             </label>
             {recurrenceEnabled && (
-              <div className="pl-6 space-y-1">
-                <label className="text-[10px] text-muted-foreground block">Frequência</label>
+              <div className="pl-6 space-y-1.5">
+                <label className="field-label !mb-0">Frequência</label>
                 <select
                   value={recurrence}
                   onChange={e => setRecurrence(e.target.value as any)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="field-input"
                 >
                   <option value="daily">Todos os dias</option>
                   <option value="weekly">Toda semana</option>
@@ -508,7 +508,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+            <label className="field-label flex items-center gap-1.5">
               <Tag className="h-3 w-3" /> Tag (opcional)
             </label>
             {tag ? (
@@ -535,7 +535,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
                       setShowTagPicker(false);
                     }
                   }}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="field-input"
                 />
                 {showTagPicker && filteredTags.length > 0 && (
                   <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
@@ -588,13 +588,13 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
                 value={newSubtaskTitle}
                 onChange={e => setNewSubtaskTitle(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddSubtask(); } }}
-                className="flex-1 bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary"
+                className="field-input-sm flex-1 text-xs py-1.5"
               />
               <input
                 type="date"
                 value={newSubtaskDate}
                 onChange={e => setNewSubtaskDate(e.target.value)}
-                className="bg-background border border-border rounded px-1 py-1.5 text-[10px] outline-none focus:border-primary w-[110px]"
+                className="field-input-sm w-[110px] text-[10px] py-1.5 px-2"
               />
               <Button type="button" variant="ghost" size="sm" onClick={handleAddSubtask} disabled={!newSubtaskTitle.trim()} className="h-7 px-2">
                 <Plus className="h-3 w-3" />
@@ -659,9 +659,9 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
 
           {/* Estimated time */}
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
+            <label className="field-label">Tempo estimado (minutos)</label>
             <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+              className="field-input" />
           </div>
 
           {/* Materials */}
@@ -691,12 +691,12 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
               </div>
             )}
             <input type="text" placeholder="Nome do material" value={newMatTitle} onChange={e => setNewMatTitle(e.target.value)}
-              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+              className="field-input-sm text-xs py-1.5" />
             <input type="url" placeholder="https://..." value={newMatUrl} onChange={e => setNewMatUrl(e.target.value)}
-              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+              className="field-input-sm text-xs py-1.5" />
             <input type="text" placeholder="Descrição curta (opcional)" value={newMatDesc} onChange={e => setNewMatDesc(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddMaterial(); } }}
-              className="w-full bg-background border border-border rounded px-2 py-1.5 text-xs outline-none focus:border-primary" />
+              className="field-input-sm text-xs py-1.5" />
             <Button type="button" variant="ghost" size="sm" onClick={handleAddMaterial}
               disabled={!newMatTitle.trim() || !newMatUrl.trim()} className="h-7 text-xs w-full">
               <Plus className="h-3 w-3 mr-1" /> Adicionar material
@@ -710,9 +710,9 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             </label>
             <div className="grid grid-cols-2 gap-2">
               <input type="date" value={reminderDate} onChange={e => setReminderDate(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary" />
+                className="field-input-sm text-xs py-1.5" />
               <input type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary" />
+                className="field-input-sm text-xs py-1.5" />
             </div>
             {existingReminder && (
               <button type="button" onClick={() => { setReminderDate(""); setReminderTime(""); }}
