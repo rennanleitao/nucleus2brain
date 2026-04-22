@@ -463,6 +463,7 @@ export default function CalendarPage() {
             onSelectDay={(d) => { setCurrentDate(d); setView("day"); }}
             onCreateEvent={createEventApi}
             onRefresh={loadData}
+            onItemClick={handleItemClick}
           />
         )}
         {view === "week" && (
@@ -472,6 +473,7 @@ export default function CalendarPage() {
             onSelectDay={(d) => { setCurrentDate(d); setView("day"); }}
             onCreateEvent={createEventApi}
             onRefresh={loadData}
+            onItemClick={handleItemClick}
           />
         )}
         {view === "day" && (
@@ -480,9 +482,28 @@ export default function CalendarPage() {
             items={items}
             onCreateEvent={createEventApi}
             onRefresh={loadData}
+            onItemClick={handleItemClick}
           />
         )}
       </DndContext>
+
+      {editingTask && (
+        <EditTaskDialog
+          task={editingTask}
+          spaces={spacesList}
+          open={!!editingTask}
+          onOpenChange={(o) => { if (!o) setEditingTask(null); }}
+          onUpdated={() => { loadData(); setEditingTask(null); }}
+        />
+      )}
+
+      <EditEventDialog
+        event={editingEvent}
+        open={!!editingEvent}
+        onOpenChange={(o) => { if (!o) setEditingEvent(null); }}
+        onChanged={loadData}
+      />
+
 
       <AISchedulePreviewDialog
         open={showAISchedule}
