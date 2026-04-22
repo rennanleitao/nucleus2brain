@@ -12,11 +12,11 @@ interface TaskInput {
   priority: "low" | "medium" | "high";
   estimated_minutes?: number | null;
   scheduled_time?: string | null;
-  // Optional triage answers from the user (per task).
+  // Optional triage answers from the user (per task) — 3 simple questions.
   triage?: {
-    type?: string;       // e.g. "Ligação rápida", "E-mail", "Trabalho focado"…
-    urgency?: string;    // "Urgente hoje" | "Pode esperar" | "Deadline rígido"
-    complexity?: string; // "Simples" | "Média" | "Complexa"
+    urgency?: string;    // "Sim, hoje" | "Pode esperar" | "Tem deadline"
+    autonomy?: string;   // "Só de mim" | "Depende de outros"
+    complexity?: string; // "Simples" | "Complexa"
   };
 }
 
@@ -55,12 +55,17 @@ Deno.serve(async (req) => {
 Receberá: a data, lista de tasks (com prioridade, tempo estimado e respostas de triagem opcionais), eventos já marcados (busy), e a janela de trabalho.
 Sua tarefa: sugerir um horário (HH:MM) para CADA task, encaixando-as nos espaços livres entre os eventos, dentro da janela de trabalho.
 
-Regras importantes:
+Triagem (3 perguntas simples por task):
+- triage.urgency: "Sim, hoje" (precisa concluir hoje), "Pode esperar", "Tem deadline" (urgência fixa).
+- triage.autonomy: "Só de mim" (executa sozinho), "Depende de outros" (precisa de terceiros).
+- triage.complexity: "Simples" (~20min) ou "Complexa" (~60min, exige foco).
+
+Regras de priorização:
+- "Sim, hoje" e "Tem deadline" entram primeiro / em horários de pico (manhã).
+- "Depende de outros" → agendar mais cedo no dia, dando tempo para resposta/follow-up.
+- "Complexa" → blocos longos pela manhã (energia alta). "Simples" → agrupar em blocos curtos pós-almoço ou fim do dia.
 - NUNCA sobrepor com eventos busy.
-- Tasks com triage.urgency = "Urgente hoje" ou "Deadline rígido" vêm primeiro / em horários de pico.
-- Tasks com triage.type = "Ligação rápida" ou "E-mail simples" são curtas — agrupe-as em blocos de baixa energia (após almoço, fim do dia).
-- Tasks com triage.complexity = "Complexa" ou triage.type = "Trabalho focado" preferem horários de manhã (energia alta) e blocos longos.
-- Respeitar o tempo estimado (estimated_minutes). Se não houver, inferir a partir do triage.type ou assumir 30min.
+- Respeitar estimated_minutes quando informado; senão usar 20min (simples) ou 60min (complexa) como fallback.
 - Deixar buffer de 5-10min entre tasks quando possível.
 - Se uma task não couber no dia, marcá-la com time=null e justificar em "reason".
 - Responder SOMENTE via tool call.`;
