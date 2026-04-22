@@ -611,6 +611,33 @@ export function DayPlanner({
         </DndContext>
       )}
 
+      {/* SPACE VIEW — agrupa tasks de hoje + atrasadas por space */}
+      {view === "space" && (
+        dayTasks.length > 0 ? (
+          <div className="space-y-4">
+            {spaceGroups.map((g) => (
+              <div key={g.id || "__none__"} className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border">
+                  <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground truncate">{g.name}</h3>
+                  <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                    {g.tasks.length}
+                  </span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {g.tasks.map(t => renderTaskCardInSection(t))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 rounded-xl border border-dashed border-border">
+            <FolderOpen className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-small text-muted-foreground">Nenhuma task para hoje</p>
+          </div>
+        )
+      )}
+
       <AISchedulePreviewDialog
         open={showAISchedule}
         onOpenChange={setShowAISchedule}
