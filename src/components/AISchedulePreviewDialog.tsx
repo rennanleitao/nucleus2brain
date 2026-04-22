@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Loader2, Clock, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Plus, Minus, GripVertical, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, Clock, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Plus, Minus, GripVertical, ArrowRight, AlertTriangle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { updateTask } from "@/lib/api";
@@ -37,6 +38,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   date: string;
   tasks: TaskLite[];
+  overdueTasks?: TaskLite[];
   busy: BusyEvent[];
   onApplied: () => void;
 }
@@ -65,23 +67,30 @@ const toHHMM = (mins: number) => {
 };
 const snap5 = (mins: number) => Math.round(mins / 5) * 5;
 
-export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy, onApplied }: Props) {
+export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, overdueTasks = [], busy, onApplied }: Props) {
   const [phase, setPhase] = useState<Phase>("config");
   const [applying, setApplying] = useState(false);
   const [workStart, setWorkStart] = useState("09:00");
   const [workEnd, setWorkEnd] = useState("18:00");
+  const [includeOverdue, setIncludeOverdue] = useState(true);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [summary, setSummary] = useState<string>("");
 
+  // Effective task list considering the include-overdue choice.
+  const effectiveTasks = useMemo(
+    () => (includeOverdue ? [...tasks, ...overdueTasks] : tasks),
+    [tasks, overdueTasks, includeOverdue]
+  );
+
   // Triage state: only ask for tasks without estimated_minutes.
   const tasksToTriage = useMemo(
-    () => tasks.filter((t) => !t.estimated_minutes),
-    [tasks]
+    () => effectiveTasks.filter((t) => !t.estimated_minutes),
+    [effectiveTasks]
   );
   const [triageIdx, setTriageIdx] = useState(0);
   const [triageAnswers, setTriageAnswers] = useState<Record<string, TriageAnswer>>({});
 
-  const taskMap = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
+  const taskMap = useMemo(() => new Map(effectiveTasks.map((t) => [t.id, t])), [effectiveTasks]);
 
   useEffect(() => {
     if (open) {
@@ -90,12 +99,13 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy,
       setSummary("");
       setTriageIdx(0);
       setTriageAnswers({});
+      setIncludeOverdue(true);
     }
   }, [open]);
 
   // ─── flow ──────────────────────────────────────────────────────
   const startTriage = () => {
-    if (tasks.length === 0) {
+    if (effectiveTasks.length === 0) {
       toast.error("Nenhuma task para organizar");
       return;
     }
@@ -122,7 +132,7 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy,
     setPhase("loading");
     try {
       // Inject estimated_minutes from triage type when missing.
-      const enrichedTasks = tasks.map((t) => {
+      const enrichedTasks = effectiveTasks.map((t) => {
         const ans = triageAnswers[t.id];
         let est = t.estimated_minutes ?? null;
         if (!est && ans?.type) {
