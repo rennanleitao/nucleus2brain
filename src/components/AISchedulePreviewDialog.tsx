@@ -28,9 +28,9 @@ interface Suggestion {
 }
 
 interface TriageAnswer {
-  type?: string;
-  urgency?: string;
-  complexity?: string;
+  urgency?: string;     // "Sim, hoje" | "Pode esperar" | "Tem deadline"
+  autonomy?: string;    // "Só de mim" | "Depende de outros"
+  complexity?: string;  // "Simples" | "Complexa"
 }
 
 interface Props {
@@ -43,16 +43,13 @@ interface Props {
   onApplied: () => void;
 }
 
-const TYPE_OPTIONS = [
-  { label: "Ligação rápida", mins: 10 },
-  { label: "E-mail simples", mins: 15 },
-  { label: "Tarefa rápida", mins: 15 },
-  { label: "Trabalho focado", mins: 60 },
-  { label: "Reunião", mins: 45 },
-  { label: "Outro", mins: 30 },
-];
-const URGENCY_OPTIONS = ["Urgente hoje", "Pode esperar", "Deadline rígido"];
-const COMPLEXITY_OPTIONS = ["Simples", "Média", "Complexa"];
+const URGENCY_OPTIONS = ["Sim, hoje", "Pode esperar", "Tem deadline"];
+const AUTONOMY_OPTIONS = ["Só de mim", "Depende de outros"];
+const COMPLEXITY_OPTIONS = ["Simples", "Complexa"];
+
+// Default duration when none informed: simple = 20min, complex = 60min.
+const DEFAULT_MINS = (complexity?: string) => (complexity === "Complexa" ? 60 : 20);
+
 
 type Phase = "config" | "triage" | "loading" | "preview";
 
@@ -131,14 +128,11 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, overd
   const fetchSuggestions = async () => {
     setPhase("loading");
     try {
-      // Inject estimated_minutes from triage type when missing.
+      // Inject estimated_minutes from triage complexity when missing.
       const enrichedTasks = effectiveTasks.map((t) => {
         const ans = triageAnswers[t.id];
         let est = t.estimated_minutes ?? null;
-        if (!est && ans?.type) {
-          const opt = TYPE_OPTIONS.find((o) => o.label === ans.type);
-          if (opt) est = opt.mins;
-        }
+        if (!est) est = DEFAULT_MINS(ans?.complexity);
         return { ...t, estimated_minutes: est, triage: ans };
       });
 
@@ -239,7 +233,7 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, overd
   // ─── render helpers ────────────────────────────────────────────
   const currentTriageTask = tasksToTriage[triageIdx];
   const currentAnswers = currentTriageTask ? triageAnswers[currentTriageTask.id] || {} : {};
-  const triageComplete = currentAnswers.type && currentAnswers.urgency && currentAnswers.complexity;
+  const triageComplete = !!(currentAnswers.urgency && currentAnswers.autonomy && currentAnswers.complexity);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -319,19 +313,19 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, overd
               </div>
 
               <TriageGroup
-                label="Que tipo de atividade é?"
-                options={TYPE_OPTIONS.map((o) => o.label)}
-                selected={currentAnswers.type}
-                onSelect={(v) => setAnswer(currentTriageTask.id, "type", v)}
-              />
-              <TriageGroup
-                label="Qual a urgência?"
+                label="Você precisa concluir hoje?"
                 options={URGENCY_OPTIONS}
                 selected={currentAnswers.urgency}
                 onSelect={(v) => setAnswer(currentTriageTask.id, "urgency", v)}
               />
               <TriageGroup
-                label="Qual a complexidade?"
+                label="Depende só de você?"
+                options={AUTONOMY_OPTIONS}
+                selected={currentAnswers.autonomy}
+                onSelect={(v) => setAnswer(currentTriageTask.id, "autonomy", v)}
+              />
+              <TriageGroup
+                label="É algo simples ou complexo?"
                 options={COMPLEXITY_OPTIONS}
                 selected={currentAnswers.complexity}
                 onSelect={(v) => setAnswer(currentTriageTask.id, "complexity", v)}
