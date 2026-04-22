@@ -581,12 +581,21 @@ export async function fetchTaskMaterials(taskId: string) {
   return data || [];
 }
 
-export async function createTaskMaterial(material: { task_id: string; title: string; url: string; description?: string | null }) {
+export async function createTaskMaterial(material: { task_id?: string | null; title: string; url: string; description?: string | null; space_id?: string | null; tag?: string | null }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+  const payload: any = {
+    title: material.title,
+    url: material.url,
+    description: material.description ?? null,
+    task_id: material.task_id ?? null,
+    space_id: material.space_id ?? null,
+    tag: material.tag ?? null,
+    user_id: user.id,
+  };
   const { data, error } = await (supabase as any)
     .from("task_materials")
-    .insert({ ...material, user_id: user.id })
+    .insert(payload)
     .select()
     .single();
   if (error) throw error;
