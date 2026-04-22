@@ -260,12 +260,39 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, overd
           {phase === "config" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                A IA vai analisar suas {tasks.length} tasks de hoje
-                {busy.length > 0 ? `, considerar ${busy.length} eventos do Google Calendar` : ""}
+                A IA vai analisar suas {tasks.length} task{tasks.length !== 1 ? "s" : ""} de hoje
+                {includeOverdue && overdueTasks.length > 0 ? ` + ${overdueTasks.length} atrasada${overdueTasks.length !== 1 ? "s" : ""}` : ""}
+                {busy.length > 0 ? `, considerar ${busy.length} evento(s) do Google Calendar` : ""}
                 {tasksToTriage.length > 0
                   ? `, e fazer ${tasksToTriage.length} pergunta(s) rápida(s) sobre tasks sem duração definida.`
                   : "."}
               </p>
+
+              {overdueTasks.length > 0 && (
+                <label
+                  htmlFor="include-overdue"
+                  className="flex items-start gap-2.5 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 cursor-pointer hover:bg-amber-500/10 transition-colors"
+                >
+                  <Checkbox
+                    id="include-overdue"
+                    checked={includeOverdue}
+                    onCheckedChange={(v) => setIncludeOverdue(!!v)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                      <span className="text-sm font-medium">
+                        Incluir {overdueTasks.length} task{overdueTasks.length !== 1 ? "s" : ""} atrasada{overdueTasks.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Permite que a IA reorganize sua semana encaixando o que ficou para trás no plano de hoje.
+                    </p>
+                  </div>
+                </label>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Início do dia</Label>
@@ -276,7 +303,7 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, overd
                   <Input type="time" value={workEnd} onChange={(e) => setWorkEnd(e.target.value)} className="h-9" />
                 </div>
               </div>
-              <Button onClick={startTriage} disabled={tasks.length === 0} className="w-full">
+              <Button onClick={startTriage} disabled={effectiveTasks.length === 0} className="w-full">
                 <Sparkles className="h-4 w-4 mr-2" />
                 {tasksToTriage.length > 0 ? "Começar triagem" : "Gerar sugestão"}
               </Button>
