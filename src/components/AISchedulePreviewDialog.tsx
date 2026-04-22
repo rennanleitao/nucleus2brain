@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Loader2, Clock, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Plus, Minus, GripVertical, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2, Clock, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Plus, Minus, GripVertical, ArrowRight, AlertTriangle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { updateTask } from "@/lib/api";
@@ -37,6 +38,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   date: string;
   tasks: TaskLite[];
+  overdueTasks?: TaskLite[];
   busy: BusyEvent[];
   onApplied: () => void;
 }
@@ -65,23 +67,30 @@ const toHHMM = (mins: number) => {
 };
 const snap5 = (mins: number) => Math.round(mins / 5) * 5;
 
-export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy, onApplied }: Props) {
+export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, overdueTasks = [], busy, onApplied }: Props) {
   const [phase, setPhase] = useState<Phase>("config");
   const [applying, setApplying] = useState(false);
   const [workStart, setWorkStart] = useState("09:00");
   const [workEnd, setWorkEnd] = useState("18:00");
+  const [includeOverdue, setIncludeOverdue] = useState(true);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [summary, setSummary] = useState<string>("");
 
+  // Effective task list considering the include-overdue choice.
+  const effectiveTasks = useMemo(
+    () => (includeOverdue ? [...tasks, ...overdueTasks] : tasks),
+    [tasks, overdueTasks, includeOverdue]
+  );
+
   // Triage state: only ask for tasks without estimated_minutes.
   const tasksToTriage = useMemo(
-    () => tasks.filter((t) => !t.estimated_minutes),
-    [tasks]
+    () => effectiveTasks.filter((t) => !t.estimated_minutes),
+    [effectiveTasks]
   );
   const [triageIdx, setTriageIdx] = useState(0);
   const [triageAnswers, setTriageAnswers] = useState<Record<string, TriageAnswer>>({});
 
-  const taskMap = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
+  const taskMap = useMemo(() => new Map(effectiveTasks.map((t) => [t.id, t])), [effectiveTasks]);
 
   useEffect(() => {
     if (open) {
@@ -90,12 +99,13 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy,
       setSummary("");
       setTriageIdx(0);
       setTriageAnswers({});
+      setIncludeOverdue(true);
     }
   }, [open]);
 
   // ─── flow ──────────────────────────────────────────────────────
   const startTriage = () => {
-    if (tasks.length === 0) {
+    if (effectiveTasks.length === 0) {
       toast.error("Nenhuma task para organizar");
       return;
     }
@@ -122,7 +132,7 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy,
     setPhase("loading");
     try {
       // Inject estimated_minutes from triage type when missing.
-      const enrichedTasks = tasks.map((t) => {
+      const enrichedTasks = effectiveTasks.map((t) => {
         const ans = triageAnswers[t.id];
         let est = t.estimated_minutes ?? null;
         if (!est && ans?.type) {
@@ -250,12 +260,39 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy,
           {phase === "config" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                A IA vai analisar suas {tasks.length} tasks de hoje
-                {busy.length > 0 ? `, considerar ${busy.length} eventos do Google Calendar` : ""}
+                A IA vai analisar suas {tasks.length} task{tasks.length !== 1 ? "s" : ""} de hoje
+                {includeOverdue && overdueTasks.length > 0 ? ` + ${overdueTasks.length} atrasada${overdueTasks.length !== 1 ? "s" : ""}` : ""}
+                {busy.length > 0 ? `, considerar ${busy.length} evento(s) do Google Calendar` : ""}
                 {tasksToTriage.length > 0
                   ? `, e fazer ${tasksToTriage.length} pergunta(s) rápida(s) sobre tasks sem duração definida.`
                   : "."}
               </p>
+
+              {overdueTasks.length > 0 && (
+                <label
+                  htmlFor="include-overdue"
+                  className="flex items-start gap-2.5 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 cursor-pointer hover:bg-amber-500/10 transition-colors"
+                >
+                  <Checkbox
+                    id="include-overdue"
+                    checked={includeOverdue}
+                    onCheckedChange={(v) => setIncludeOverdue(!!v)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                      <span className="text-sm font-medium">
+                        Incluir {overdueTasks.length} task{overdueTasks.length !== 1 ? "s" : ""} atrasada{overdueTasks.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Permite que a IA reorganize sua semana encaixando o que ficou para trás no plano de hoje.
+                    </p>
+                  </div>
+                </label>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Início do dia</Label>
@@ -266,7 +303,7 @@ export function AISchedulePreviewDialog({ open, onOpenChange, date, tasks, busy,
                   <Input type="time" value={workEnd} onChange={(e) => setWorkEnd(e.target.value)} className="h-9" />
                 </div>
               </div>
-              <Button onClick={startTriage} disabled={tasks.length === 0} className="w-full">
+              <Button onClick={startTriage} disabled={effectiveTasks.length === 0} className="w-full">
                 <Sparkles className="h-4 w-4 mr-2" />
                 {tasksToTriage.length > 0 ? "Começar triagem" : "Gerar sugestão"}
               </Button>

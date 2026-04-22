@@ -646,6 +646,10 @@ export function DayPlanner({
           id: t.id, title: t.title, priority: t.priority,
           estimated_minutes: t.estimated_minutes, scheduled_time: t.scheduled_time,
         }))}
+        overdueTasks={overdueTasks.map((t) => ({
+          id: t.id, title: t.title, priority: t.priority,
+          estimated_minutes: t.estimated_minutes, scheduled_time: t.scheduled_time,
+        }))}
         busy={todayEvents
           .filter((e) => e.start?.dateTime)
           .map((e) => ({
