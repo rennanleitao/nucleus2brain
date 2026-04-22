@@ -241,6 +241,15 @@ export default function Tasks() {
     try {
       await updateTask(id, { status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null });
       if (newStatus === "completed") {
+        // Generate next occurrence if recurring
+        if ((task as any).recurrence) {
+          try {
+            const next = await generateNextRecurrence(id);
+            if (next) toast.success(`Próxima ocorrência criada para ${next.due_date}`);
+          } catch (err: any) {
+            console.error("Failed to generate recurrence:", err);
+          }
+        }
         setCompletionTask(task);
       }
       load();
@@ -248,6 +257,7 @@ export default function Tasks() {
       toast.error(err.message);
     }
   };
+
 
   const toggleSubtask = async (subId: string) => {
     // Find the subtask
