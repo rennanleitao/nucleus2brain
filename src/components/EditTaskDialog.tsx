@@ -349,21 +349,28 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-muted/40">
-        <DialogHeader><DialogTitle>Editar Task</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="flex items-center gap-1.5">
-            <input type="text" placeholder="Título da task" value={title} onChange={e => setTitle(e.target.value)}
-              className="field-input flex-1" required />
-            <button type="button" onClick={handleAIAnalyze} disabled={!title.trim() || validationState === "validating"}
-              className="shrink-0 h-9 w-9 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors disabled:opacity-40"
-              title="Analisar com IA">
-              {validationState === "validating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            </button>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-background p-0 gap-0">
+        <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
+          <DialogTitle className="text-base font-semibold tracking-tight">Editar Task</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 p-5">
+          <div>
+            <label className="field-label">Título</label>
+            <div className="flex items-center gap-2">
+              <input type="text" placeholder="Título da task" value={title} onChange={e => setTitle(e.target.value)}
+                className="field-input flex-1" required />
+              <button type="button" onClick={handleAIAnalyze} disabled={!title.trim() || validationState === "validating"}
+                className="shrink-0 h-10 w-10 flex items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary shadow-sm transition-colors disabled:opacity-40"
+                title="Analisar com IA">
+                {validationState === "validating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
-          <textarea placeholder="Descrição" value={description} onChange={e => setDescription(e.target.value)}
-            className="field-input h-20 resize-none" />
-
+          <div>
+            <label className="field-label">Descrição</label>
+            <textarea placeholder="Adicione contexto..." value={description} onChange={e => setDescription(e.target.value)}
+              className="field-input h-20 resize-none" />
+          </div>
           {/* AI Validation feedback */}
           {validationState === "validating" && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
