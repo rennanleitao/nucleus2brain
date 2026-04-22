@@ -748,6 +748,8 @@ export type Database = {
           id: string
           note_id: string | null
           priority: Database["public"]["Enums"]["task_priority"]
+          recurrence: string | null
+          recurrence_parent_id: string | null
           scheduled_time: string | null
           space_id: string | null
           status: Database["public"]["Enums"]["task_status"]
@@ -767,6 +769,8 @@ export type Database = {
           id?: string
           note_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          recurrence?: string | null
+          recurrence_parent_id?: string | null
           scheduled_time?: string | null
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
@@ -786,6 +790,8 @@ export type Database = {
           id?: string
           note_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          recurrence?: string | null
+          recurrence_parent_id?: string | null
           scheduled_time?: string | null
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
@@ -799,6 +805,13 @@ export type Database = {
             columns: ["note_id"]
             isOneToOne: false
             referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_recurrence_parent_id_fkey"
+            columns: ["recurrence_parent_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {

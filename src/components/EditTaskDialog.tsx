@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchTaskLinks, deleteTaskLink, fetchTaskMaterials, createTaskMaterial, deleteTaskMaterial } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink, Sparkles, Loader2, AlertTriangle, Check } from "lucide-react";
+import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink, Sparkles, Loader2, AlertTriangle, Check, Repeat } from "lucide-react";
+import { generateNextRecurrence } from "@/lib/api";
 import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
@@ -71,6 +72,7 @@ interface EditTaskDialogProps {
     space_id?: string | null;
     tag?: string | null;
     estimated_minutes?: number | null;
+    recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
   };
   spaces: { id: string; name: string }[];
   open: boolean;
@@ -94,6 +96,8 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [reminderTime, setReminderTime] = useState("");
   const [existingReminder, setExistingReminder] = useState<any>(null);
   const [estimatedMinutes, setEstimatedMinutes] = useState(task.estimated_minutes?.toString() || "");
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(!!task.recurrence);
+  const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly" | "yearly">(task.recurrence || "weekly");
 
   // Subtasks state
   const [subtasks, setSubtasks] = useState<any[]>([]);
@@ -274,6 +278,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
     if (!title.trim()) return;
     setLoading(true);
     try {
+      const prevStatus = task.status;
       await updateTask(task.id, {
         title: title.trim(),
         description: description.trim() || null,
@@ -284,7 +289,19 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         completed_at: status === "completed" ? new Date().toISOString() : null,
         tag: tag || null,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
+        recurrence: recurrenceEnabled ? recurrence : null,
       } as any);
+
+      // If the task transitioned to completed/cancelled and is recurrent, spawn next occurrence
+      const becameTerminal = (status === "completed" || status === "cancelled") && prevStatus !== status;
+      if (becameTerminal && recurrenceEnabled && dueDate) {
+        try {
+          const next = await generateNextRecurrence(task.id);
+          if (next) toast.success(`Próxima ocorrência criada para ${next.due_date}`);
+        } catch (err) {
+          console.error("recurrence generation failed", err);
+        }
+      }
 
       if (newMatTitle.trim() && newMatUrl.trim()) {
         await createTaskMaterial({
@@ -457,7 +474,39 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             </div>
           </div>
 
-          {/* Tag selector */}
+          {/* Recurrence (optional) */}
+          <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+            <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={recurrenceEnabled}
+                onChange={e => setRecurrenceEnabled(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-border accent-primary"
+              />
+              <Repeat className="h-3.5 w-3.5 text-muted-foreground" />
+              Tarefa recorrente
+            </label>
+            {recurrenceEnabled && (
+              <div className="pl-6 space-y-1">
+                <label className="text-[10px] text-muted-foreground block">Frequência</label>
+                <select
+                  value={recurrence}
+                  onChange={e => setRecurrence(e.target.value as any)}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                >
+                  <option value="daily">Todos os dias</option>
+                  <option value="weekly">Toda semana</option>
+                  <option value="monthly">Todo mês</option>
+                  <option value="yearly">Todo ano</option>
+                </select>
+                <p className="text-[10px] text-muted-foreground pt-0.5">
+                  Ao concluir ou cancelar, a próxima ocorrência é criada automaticamente.
+                  {!dueDate && " Defina uma data limite para ativar."}
+                </p>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
               <Tag className="h-3 w-3" /> Tag (opcional)

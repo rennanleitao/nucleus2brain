@@ -135,6 +135,61 @@ export async function updateTask(id: string, updates: TaskUpdate) {
   return data;
 }
 
+/**
+ * Generate the next occurrence of a recurring task.
+ * Called when a recurring task is completed or cancelled.
+ * Returns the new task, or null if the source task isn't recurrent / has no due_date.
+ */
+export async function generateNextRecurrence(taskId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: src } = await supabase.from("tasks").select("*").eq("id", taskId).maybeSingle();
+  if (!src || !src.recurrence || !src.due_date) return null;
+
+  // Compute next due_date based on frequency
+  const [y, m, d] = (src.due_date as string).split("-").map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d));
+  switch (src.recurrence) {
+    case "daily":   next.setUTCDate(next.getUTCDate() + 1); break;
+    case "weekly":  next.setUTCDate(next.getUTCDate() + 7); break;
+    case "monthly": next.setUTCMonth(next.getUTCMonth() + 1); break;
+    case "yearly":  next.setUTCFullYear(next.getUTCFullYear() + 1); break;
+    default: return null;
+  }
+  const nextDate = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-${String(next.getUTCDate()).padStart(2, "0")}`;
+
+  // Avoid duplicate generation: if any sibling already exists for this parent on/after nextDate, bail.
+  const parentId = (src as any).recurrence_parent_id || src.id;
+  const { data: existing } = await supabase
+    .from("tasks")
+    .select("id")
+    .eq("recurrence_parent_id", parentId)
+    .gte("due_date", nextDate)
+    .is("deleted_at", null)
+    .limit(1);
+  if (existing && existing.length > 0) return null;
+
+  const { id: _id, created_at: _c, completed_at: _ca, completion_note: _cn, day_order: _do, deleted_at: _del, ...fields } = src as any;
+  const { data: created, error } = await supabase
+    .from("tasks")
+    .insert({
+      ...fields,
+      user_id: user.id,
+      status: "todo" as any,
+      completed_at: null,
+      completion_note: null,
+      day_order: null,
+      deleted_at: null,
+      due_date: nextDate,
+      recurrence_parent_id: parentId,
+    })
+    .select("*, spaces(name)")
+    .single();
+  if (error) throw error;
+  return created;
+}
+
+
 // Soft delete — marks deleted_at; row is purged after 24h.
 export async function deleteTask(id: string) {
   const { error } = await (supabase as any)

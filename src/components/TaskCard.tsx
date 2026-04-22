@@ -1,5 +1,5 @@
 import { forwardRef, useState, useEffect } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy, Repeat } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -33,6 +33,7 @@ interface TaskCardProps {
     note_id?: string | null;
     tag?: string | null;
     estimated_minutes?: number | null;
+    recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
   };
   subtasks?: Subtask[];
   reminder?: { reminder_time: string; sent: boolean } | null;
@@ -274,8 +275,16 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
         </button>
 
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onSelect?.(task)}>
-          <p className={`text-small font-medium leading-tight ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
-            {task.title}
+          <p className={`text-small font-medium leading-tight flex items-center gap-1.5 ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
+            <span className="flex-1 min-w-0">{task.title}</span>
+            {task.recurrence && (
+              <Repeat
+                className="h-3 w-3 shrink-0 text-muted-foreground"
+                aria-label="Tarefa recorrente"
+              >
+                <title>Tarefa recorrente</title>
+              </Repeat>
+            )}
           </p>
           {!compact && descriptionPreview && (
             <p className="text-micro text-muted-foreground mt-0.5 line-clamp-2">{descriptionPreview}</p>

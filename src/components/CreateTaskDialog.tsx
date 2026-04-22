@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks } from "lucide-react";
+import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks, Repeat } from "lucide-react";
 import { createTask, createSpace, createSubtask, createTaskMaterial, fetchAllTags } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
@@ -125,6 +125,8 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [spaceId, setSpaceId] = useState<string>(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : ""));
   const [dueDate, setDueDate] = useState("");
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly" | "yearly">("weekly");
 
   // Sync defaults when they change (e.g. dialog reopened with new selection)
   useEffect(() => {
@@ -291,6 +293,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         tag: tag || null,
         note_id: defaultNoteId || null,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
+        recurrence: recurrenceEnabled ? recurrence : null,
       } as any);
 
       const materialsToCreate = [
@@ -329,6 +332,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
+    setRecurrenceEnabled(false); setRecurrence("weekly");
     setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
     setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
     setShowMaterials(false);
@@ -414,6 +418,39 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
               <label className="text-xs text-muted-foreground mb-1 block">Tempo estimado (minutos)</label>
               <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+            </div>
+
+            {/* Recurrence (optional) */}
+            <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={recurrenceEnabled}
+                  onChange={e => setRecurrenceEnabled(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary"
+                />
+                <Repeat className="h-3.5 w-3.5 text-muted-foreground" />
+                Tarefa recorrente
+              </label>
+              {recurrenceEnabled && (
+                <div className="pl-6 space-y-1">
+                  <label className="text-[10px] text-muted-foreground block">Frequência</label>
+                  <select
+                    value={recurrence}
+                    onChange={e => setRecurrence(e.target.value as any)}
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  >
+                    <option value="daily">Todos os dias</option>
+                    <option value="weekly">Toda semana</option>
+                    <option value="monthly">Todo mês</option>
+                    <option value="yearly">Todo ano</option>
+                  </select>
+                  <p className="text-[10px] text-muted-foreground pt-0.5">
+                    Ao concluir, uma nova ocorrência será criada automaticamente.
+                    {!dueDate && " Defina uma data limite para ativar."}
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 
