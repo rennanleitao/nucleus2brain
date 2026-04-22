@@ -28,9 +28,9 @@ interface Suggestion {
 }
 
 interface TriageAnswer {
-  type?: string;
-  urgency?: string;
-  complexity?: string;
+  urgency?: string;     // "Sim, hoje" | "Pode esperar" | "Tem deadline"
+  autonomy?: string;    // "Só de mim" | "Depende de outros"
+  complexity?: string;  // "Simples" | "Complexa"
 }
 
 interface Props {
@@ -43,15 +43,12 @@ interface Props {
   onApplied: () => void;
 }
 
-const TYPE_OPTIONS = [
-  { label: "Ligação rápida", mins: 10 },
-  { label: "E-mail simples", mins: 15 },
-  { label: "Tarefa rápida", mins: 15 },
-  { label: "Trabalho focado", mins: 60 },
-  { label: "Reunião", mins: 45 },
-  { label: "Outro", mins: 30 },
-];
-const URGENCY_OPTIONS = ["Urgente hoje", "Pode esperar", "Deadline rígido"];
+const URGENCY_OPTIONS = ["Sim, hoje", "Pode esperar", "Tem deadline"];
+const AUTONOMY_OPTIONS = ["Só de mim", "Depende de outros"];
+const COMPLEXITY_OPTIONS = ["Simples", "Complexa"];
+
+// Default duration when none informed: simple = 20min, complex = 60min.
+const DEFAULT_MINS = (complexity?: string) => (complexity === "Complexa" ? 60 : 20);
 const COMPLEXITY_OPTIONS = ["Simples", "Média", "Complexa"];
 
 type Phase = "config" | "triage" | "loading" | "preview";
