@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2 } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2, FolderOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -43,7 +43,7 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
+  const [view, setView] = useState<"list" | "kanban" | "timeline" | "space">("list");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
@@ -339,6 +339,23 @@ export function DayPlanner({
     { key: "waiting", label: "Aguardando", icon: PauseCircle, color: "text-amber-600", border: "border-amber-500/30", bg: "bg-amber-500/5" },
   ];
 
+  // Group today + overdue tasks by space (for "space" view)
+  const spaceGroups = useMemo(() => {
+    const groups = new Map<string, { id: string | null; name: string; tasks: any[] }>();
+    for (const t of dayTasks) {
+      const sid = t.space_id || "__none__";
+      const sname = t.spaces?.name || "Sem space";
+      if (!groups.has(sid)) groups.set(sid, { id: t.space_id || null, name: sname, tasks: [] });
+      groups.get(sid)!.tasks.push(t);
+    }
+    return Array.from(groups.values()).sort((a, b) => {
+      // "Sem space" sempre por último
+      if (!a.id && b.id) return 1;
+      if (a.id && !b.id) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [dayTasks]);
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -373,6 +390,13 @@ export function DayPlanner({
               title="Timeline"
             >
               <Clock className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setView("space")}
+              className={`p-1.5 transition-colors ${view === "space" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Por Space"
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
             </button>
           </div>
           <button
@@ -585,6 +609,33 @@ export function DayPlanner({
             compact
           />
         </DndContext>
+      )}
+
+      {/* SPACE VIEW — agrupa tasks de hoje + atrasadas por space */}
+      {view === "space" && (
+        dayTasks.length > 0 ? (
+          <div className="space-y-4">
+            {spaceGroups.map((g) => (
+              <div key={g.id || "__none__"} className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border">
+                  <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground truncate">{g.name}</h3>
+                  <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                    {g.tasks.length}
+                  </span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {g.tasks.map(t => renderTaskCardInSection(t))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 rounded-xl border border-dashed border-border">
+            <FolderOpen className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-small text-muted-foreground">Nenhuma task para hoje</p>
+          </div>
+        )
       )}
 
       <AISchedulePreviewDialog
