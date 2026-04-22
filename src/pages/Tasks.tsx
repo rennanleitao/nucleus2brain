@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchTasks, fetchSpaces, updateTask, deleteTask, restoreTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders, duplicateTask, fetchDeletedTasks, permanentlyDeleteTask } from "@/lib/api";
+import { fetchTasks, fetchSpaces, updateTask, deleteTask, restoreTask, fetchAllSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchReminders, duplicateTask, fetchDeletedTasks, permanentlyDeleteTask, generateNextRecurrence } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
