@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchTaskLinks, deleteTaskLink, fetchTaskMaterials, createTaskMaterial, deleteTaskMaterial } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink, Sparkles, Loader2, AlertTriangle, Check } from "lucide-react";
+import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink, Sparkles, Loader2, AlertTriangle, Check, Repeat } from "lucide-react";
+import { generateNextRecurrence } from "@/lib/api";
 import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
@@ -71,6 +72,7 @@ interface EditTaskDialogProps {
     space_id?: string | null;
     tag?: string | null;
     estimated_minutes?: number | null;
+    recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
   };
   spaces: { id: string; name: string }[];
   open: boolean;
@@ -94,6 +96,8 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [reminderTime, setReminderTime] = useState("");
   const [existingReminder, setExistingReminder] = useState<any>(null);
   const [estimatedMinutes, setEstimatedMinutes] = useState(task.estimated_minutes?.toString() || "");
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(!!task.recurrence);
+  const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly" | "yearly">(task.recurrence || "weekly");
 
   // Subtasks state
   const [subtasks, setSubtasks] = useState<any[]>([]);

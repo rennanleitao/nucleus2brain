@@ -1,5 +1,5 @@
 import { forwardRef, useState, useEffect } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy, Repeat } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -33,6 +33,7 @@ interface TaskCardProps {
     note_id?: string | null;
     tag?: string | null;
     estimated_minutes?: number | null;
+    recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
   };
   subtasks?: Subtask[];
   reminder?: { reminder_time: string; sent: boolean } | null;
