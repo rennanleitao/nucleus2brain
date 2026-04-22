@@ -664,7 +664,9 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          task_id: string
+          space_id: string | null
+          tag: string | null
+          task_id: string | null
           title: string
           url: string
           user_id: string
@@ -673,7 +675,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          task_id: string
+          space_id?: string | null
+          tag?: string | null
+          task_id?: string | null
           title: string
           url: string
           user_id: string
@@ -682,12 +686,21 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          task_id?: string
+          space_id?: string | null
+          tag?: string | null
+          task_id?: string | null
           title?: string
           url?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "task_materials_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "task_materials_task_id_fkey"
             columns: ["task_id"]
