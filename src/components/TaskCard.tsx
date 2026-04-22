@@ -549,11 +549,15 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           <div className="px-3 pb-3 pt-1 space-y-1 ml-4 border-l border-border/60">
             {materials.map((mat: any) => (
               <div key={mat.id} className="flex items-start gap-2 py-1 group/mat">
-                <a href={mat.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 shrink-0 text-primary hover:text-primary/80">
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-                <a href={mat.url} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 hover:underline">
-                  <p className="text-xs font-medium truncate text-foreground">{mat.title}</p>
+                <a
+                  href={mat.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-1 min-w-0 group/lnk"
+                  title={mat.url}
+                >
+                  <p className="text-xs font-medium truncate text-foreground group-hover/lnk:text-primary transition-colors">{mat.title}</p>
                   {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
                 </a>
                 <button onClick={(e) => { e.stopPropagation(); handleDeleteMaterialInCard(mat.id); }}
