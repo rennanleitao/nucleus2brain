@@ -28,7 +28,7 @@ function SpaceComboboxEdit({ spaces, spaceId, onSelect }: { spaces: { id: string
   return (
     <div className="relative">
       <button type="button" onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-foreground/30 transition-colors text-left">
+        className="field-input flex items-center gap-2 text-left">
         {selected ? (<><SpaceLetterAvatar name={selected.name} /><span className="truncate">{selected.name}</span></>) : (
           <span className="text-muted-foreground">Sem space</span>
         )}
@@ -436,16 +436,16 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Prioridade</label>
+              <label className="field-label">Prioridade</label>
               <select value={priority} onChange={e => setPriority(e.target.value as any)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
+                className="field-input">
                 <option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option>
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Status</label>
+              <label className="field-label">Status</label>
               <select value={status} onChange={e => setStatus(e.target.value as any)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary">
+                className="field-input">
                 <option value="todo">A Fazer</option><option value="in_progress">Em Progresso</option>
                 <option value="waiting">Aguardando</option><option value="completed">Concluída</option>
                 <option value="cancelled">Cancelada</option>
@@ -454,20 +454,20 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Space</label>
+              <label className="field-label">Space</label>
               <SpaceComboboxEdit spaces={spaces} spaceId={spaceId} onSelect={setSpaceId} />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Data limite</label>
+              <label className="field-label">Data limite</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-              <div className="flex gap-1 mt-1">
+                className="field-input" />
+              <div className="flex gap-1.5 mt-1.5">
                 <button type="button" onClick={() => setDueDate(todayStr)}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                  className={`text-[10px] px-2.5 py-1 rounded-full border transition-all ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-card border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"}`}>
                   Hoje
                 </button>
                 <button type="button" onClick={() => setDueDate(tomorrowStr)}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                  className={`text-[10px] px-2.5 py-1 rounded-full border transition-all ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-card border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"}`}>
                   Amanhã
                 </button>
               </div>
@@ -475,7 +475,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           </div>
 
           {/* Recurrence (optional) */}
-          <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+          <div className="field-section">
             <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -487,12 +487,12 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
               Tarefa recorrente
             </label>
             {recurrenceEnabled && (
-              <div className="pl-6 space-y-1">
-                <label className="text-[10px] text-muted-foreground block">Frequência</label>
+              <div className="pl-6 space-y-1.5">
+                <label className="field-label !mb-0">Frequência</label>
                 <select
                   value={recurrence}
                   onChange={e => setRecurrence(e.target.value as any)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="field-input"
                 >
                   <option value="daily">Todos os dias</option>
                   <option value="weekly">Toda semana</option>
@@ -508,7 +508,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+            <label className="field-label flex items-center gap-1.5">
               <Tag className="h-3 w-3" /> Tag (opcional)
             </label>
             {tag ? (
@@ -535,7 +535,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
                       setShowTagPicker(false);
                     }
                   }}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="field-input"
                 />
                 {showTagPicker && filteredTags.length > 0 && (
                   <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
