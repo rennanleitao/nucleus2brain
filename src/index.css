@@ -179,21 +179,27 @@
 
 /* Typography utility classes */
 @layer components {
-  /* Senior, clean form fields — white surface, crisp border, focus ring */
+  /* Senior, clean form fields — white surface, crisp border, soft focus ring */
   .field-input {
     @apply w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground
            shadow-sm outline-none transition-all
            placeholder:text-muted-foreground
            hover:border-foreground
-           focus:border-primary focus:ring-2 focus:ring-primary
+           focus:border-primary
            disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .field-input:focus {
+    box-shadow: 0 0 0 3px oklch(var(--primary) / 0.15);
   }
   .field-input-sm {
     @apply w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground
            shadow-sm outline-none transition-all
            placeholder:text-muted-foreground
            hover:border-foreground
-           focus:border-primary focus:ring-2 focus:ring-primary;
+           focus:border-primary;
+  }
+  .field-input-sm:focus {
+    box-shadow: 0 0 0 3px oklch(var(--primary) / 0.15);
   }
   .field-label {
     @apply text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5 block;
