@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks } from "lucide-react";
+import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks, Repeat } from "lucide-react";
 import { createTask, createSpace, createSubtask, createTaskMaterial, fetchAllTags } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
@@ -125,6 +125,8 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [spaceId, setSpaceId] = useState<string>(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : ""));
   const [dueDate, setDueDate] = useState("");
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly" | "yearly">("weekly");
 
   // Sync defaults when they change (e.g. dialog reopened with new selection)
   useEffect(() => {
@@ -291,6 +293,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         tag: tag || null,
         note_id: defaultNoteId || null,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
+        recurrence: recurrenceEnabled ? recurrence : null,
       } as any);
 
       const materialsToCreate = [
@@ -329,6 +332,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
+    setRecurrenceEnabled(false); setRecurrence("weekly");
     setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
     setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
     setShowMaterials(false);
