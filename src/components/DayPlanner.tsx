@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2 } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2, FolderOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -43,7 +43,7 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [view, setView] = useState<"list" | "kanban" | "timeline">("list");
+  const [view, setView] = useState<"list" | "kanban" | "timeline" | "space">("list");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
@@ -339,6 +339,23 @@ export function DayPlanner({
     { key: "waiting", label: "Aguardando", icon: PauseCircle, color: "text-amber-600", border: "border-amber-500/30", bg: "bg-amber-500/5" },
   ];
 
+  // Group today + overdue tasks by space (for "space" view)
+  const spaceGroups = useMemo(() => {
+    const groups = new Map<string, { id: string | null; name: string; tasks: any[] }>();
+    for (const t of dayTasks) {
+      const sid = t.space_id || "__none__";
+      const sname = t.spaces?.name || "Sem space";
+      if (!groups.has(sid)) groups.set(sid, { id: t.space_id || null, name: sname, tasks: [] });
+      groups.get(sid)!.tasks.push(t);
+    }
+    return Array.from(groups.values()).sort((a, b) => {
+      // "Sem space" sempre por último
+      if (!a.id && b.id) return 1;
+      if (a.id && !b.id) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [dayTasks]);
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -373,6 +390,13 @@ export function DayPlanner({
               title="Timeline"
             >
               <Clock className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setView("space")}
+              className={`p-1.5 transition-colors ${view === "space" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Por Space"
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
             </button>
           </div>
           <button
