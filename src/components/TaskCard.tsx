@@ -439,22 +439,30 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       {/* Subtasks collapsible */}
       {!compact && (hasSubtasks || onAddSubtask) && (
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <div className="px-3 pb-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <CollapsibleTrigger className="flex items-center gap-1 text-micro text-muted-foreground hover:text-foreground transition-colors">
-              {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-              {hasSubtasks ? "Subtasks" : "Adicionar subtask"}
+          <div className="px-3 pb-2 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+            <CollapsibleTrigger
+              className="group/trg flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary/40 hover:bg-secondary hover:border-border pl-2 pr-2.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all"
+            >
+              <ChevronRight className={cn("h-3 w-3 transition-transform duration-200", isOpen && "rotate-90")} />
+              <span>Subtasks</span>
+              {hasSubtasks && (
+                <span className="inline-flex items-center justify-center rounded-full bg-background/80 border border-border/60 text-[9.5px] font-semibold text-foreground/70 px-1.5 min-w-[18px] h-[16px] tabular-nums">
+                  {completedSubtasks}/{subtasks.length}
+                </span>
+              )}
             </CollapsibleTrigger>
             {onAddSubtask && (
               <button
                 onClick={(e) => { e.stopPropagation(); setAddingSubtask(true); setIsOpen(true); }}
-                className="ml-auto text-muted-foreground hover:text-primary transition-colors"
+                className="ml-auto h-5 w-5 flex items-center justify-center rounded-full border border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary hover:border-border transition-all"
+                title="Adicionar subtask"
               >
                 <Plus className="h-3 w-3" />
               </button>
             )}
           </div>
-          <CollapsibleContent onClick={(e) => e.stopPropagation()}>
-            <div className="px-3 pb-3 space-y-1 ml-4 border-l border-border">
+          <CollapsibleContent onClick={(e) => e.stopPropagation()} className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+            <div className="px-3 pb-3 pt-1 space-y-1 ml-4 border-l border-border/60">
               {subtasks.map(sub => (
                 <div key={sub.id} className="flex items-center gap-2 py-1">
                   <button
@@ -516,21 +524,29 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       {/* Materials - always visible like subtasks */}
       {!compact && (
       <Collapsible open={materialsOpen} onOpenChange={setMaterialsOpen}>
-        <div className="px-3 pb-2 flex items-center gap-1" onClick={e => e.stopPropagation()}>
-          <CollapsibleTrigger className="flex items-center gap-1 text-micro text-muted-foreground hover:text-foreground transition-colors">
-            {materialsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        <div className="px-3 pb-2 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+          <CollapsibleTrigger
+            className="group/trg flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary/40 hover:bg-secondary hover:border-border pl-2 pr-2.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all"
+          >
+            <ChevronRight className={cn("h-3 w-3 transition-transform duration-200", materialsOpen && "rotate-90")} />
             <LinkIcon className="h-3 w-3" />
-            {materials.length > 0 ? `${materials.length} ${materials.length === 1 ? "material" : "materiais"}` : "Materiais"}
+            <span>Materiais</span>
+            {materials.length > 0 && (
+              <span className="inline-flex items-center justify-center rounded-full bg-background/80 border border-border/60 text-[9.5px] font-semibold text-foreground/70 px-1.5 min-w-[18px] h-[16px] tabular-nums">
+                {materials.length}
+              </span>
+            )}
           </CollapsibleTrigger>
           <button
             onClick={(e) => { e.stopPropagation(); setAddingMaterial(true); setMaterialsOpen(true); }}
-            className="ml-auto text-muted-foreground hover:text-primary transition-colors"
+            className="ml-auto h-5 w-5 flex items-center justify-center rounded-full border border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary hover:border-border transition-all"
+            title="Adicionar material"
           >
             <Plus className="h-3 w-3" />
           </button>
         </div>
-        <CollapsibleContent onClick={e => e.stopPropagation()}>
-          <div className="px-3 pb-3 space-y-1 ml-4 border-l border-border">
+        <CollapsibleContent onClick={e => e.stopPropagation()} className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
+          <div className="px-3 pb-3 pt-1 space-y-1 ml-4 border-l border-border/60">
             {materials.map((mat: any) => (
               <div key={mat.id} className="flex items-start gap-2 py-1 group/mat">
                 <a href={mat.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 shrink-0 text-primary hover:text-primary/80">
