@@ -140,7 +140,7 @@ export default function MaterialsPage() {
                     <p className="text-xs text-muted-foreground line-clamp-2">{mat.description}</p>
                   )}
 
-                  <p className="text-[11px] text-muted-foreground/70 truncate">{mat.url}</p>
+                  
 
                   {(mat.task_title || mat.space_name || mat.tag) && (
                     <div className="flex items-center gap-2 flex-wrap pt-1">
