@@ -1,5 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Editor } from "@tiptap/react";
+import { Search, X } from "lucide-react";
+
+interface TableMeta {
+  id: string;
+  colWidths: number[];
+  top: number;
+  left: number;
+  width: number;
+}
 
 interface TableFiltersPanelProps {
   editor: Editor | null;
@@ -7,36 +16,76 @@ interface TableFiltersPanelProps {
 }
 
 /**
- * Injects a filter row directly inside each <table.note-table> rendered by
- * the TipTap editor. The filter row lives in the DOM only (it is NOT part of
- * the editor document), so it doesn't pollute the saved HTML and doesn't
- * trigger ProseMirror transactions.
- *
- * Each column gets a small input; typing hides body rows whose corresponding
- * cell does not contain the query (case-insensitive). Multiple column
- * filters combine with AND.
+ * Renders one filter bar per <table.note-table> in the editor.
+ * The bars live OUTSIDE the editor DOM (so ProseMirror can't strip them)
+ * and are absolutely positioned above each table, with one input per column.
  */
 export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelProps) {
+  const [tables, setTables] = useState<TableMeta[]>([]);
+  const [queries, setQueries] = useState<Record<string, string[]>>({});
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Scan tables, assign stable ids, capture geometry
   useEffect(() => {
     if (!editor) return;
     const root = containerRef.current;
     if (!root) return;
 
-    const FILTER_ROW_CLASS = "note-table-filter-row";
+    const scan = () => {
+      const tableEls = Array.from(root.querySelectorAll<HTMLTableElement>("table.note-table"));
+      const rootRect = root.getBoundingClientRect();
+      const next: TableMeta[] = tableEls.map((tbl, idx) => {
+        if (!tbl.dataset.tableId) tbl.dataset.tableId = `tbl-${idx}-${Math.random().toString(36).slice(2, 7)}`;
+        const id = tbl.dataset.tableId!;
+        const rect = tbl.getBoundingClientRect();
+        const firstRow = tbl.querySelector("tr");
+        const cells = firstRow ? Array.from(firstRow.children) as HTMLElement[] : [];
+        const colWidths = cells.map((c) => c.getBoundingClientRect().width);
+        return {
+          id,
+          colWidths,
+          top: rect.top - rootRect.top + root.scrollTop,
+          left: rect.left - rootRect.left + root.scrollLeft,
+          width: rect.width,
+        };
+      });
+      setTables((prev) => {
+        // shallow compare to avoid useless re-renders
+        if (prev.length === next.length && prev.every((p, i) => p.id === next[i].id && p.width === next[i].width && p.top === next[i].top && p.colWidths.length === next[i].colWidths.length && p.colWidths.every((w, j) => w === next[i].colWidths[j]))) {
+          return prev;
+        }
+        return next;
+      });
+    };
 
-    const applyFilters = (tbl: HTMLTableElement) => {
-      const filterRow = tbl.querySelector<HTMLTableRowElement>(`tr.${FILTER_ROW_CLASS}`);
-      if (!filterRow) return;
-      const inputs = Array.from(
-        filterRow.querySelectorAll<HTMLInputElement>("input.note-table-filter-input")
-      );
-      const queries = inputs.map((i) => i.value.trim().toLowerCase());
-      const hasAny = queries.some((q) => q.length > 0);
+    scan();
+    const ro = new ResizeObserver(() => scan());
+    ro.observe(root);
 
-      const allRows = Array.from(tbl.querySelectorAll<HTMLTableRowElement>("tr"));
-      allRows.forEach((row) => {
-        if (row.classList.contains(FILTER_ROW_CLASS)) return;
-        // Skip header rows (any row containing <th>)
+    const onUpdate = () => requestAnimationFrame(scan);
+    editor.on("update", onUpdate);
+    editor.on("selectionUpdate", onUpdate);
+    window.addEventListener("resize", scan);
+
+    return () => {
+      ro.disconnect();
+      editor.off("update", onUpdate);
+      editor.off("selectionUpdate", onUpdate);
+      window.removeEventListener("resize", scan);
+    };
+  }, [editor, containerRef]);
+
+  // Apply filters by hiding/showing rows in each table
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    tables.forEach((meta) => {
+      const tbl = root.querySelector<HTMLTableElement>(`table[data-table-id="${meta.id}"]`);
+      if (!tbl) return;
+      const colQueries = (queries[meta.id] ?? []).map((q) => (q ?? "").trim().toLowerCase());
+      const hasAny = colQueries.some((q) => q.length > 0);
+      const rows = Array.from(tbl.querySelectorAll<HTMLTableRowElement>("tr"));
+      rows.forEach((row) => {
         if (row.querySelector("th")) {
           row.style.display = "";
           return;
@@ -46,83 +95,80 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
           return;
         }
         const cells = Array.from(row.children) as HTMLElement[];
-        const match = queries.every((q, idx) => {
+        const ok = colQueries.every((q, idx) => {
           if (!q) return true;
-          const cell = cells[idx];
-          const text = (cell?.textContent ?? "").toLowerCase();
+          const text = (cells[idx]?.textContent ?? "").toLowerCase();
           return text.includes(q);
         });
-        row.style.display = match ? "" : "none";
+        row.style.display = ok ? "" : "none";
       });
-    };
-
-    const ensureFilterRow = (tbl: HTMLTableElement) => {
-      // Determine column count from first row
-      const firstRow = tbl.querySelector<HTMLTableRowElement>("tr");
-      if (!firstRow) return;
-      const colCount = firstRow.children.length;
-      if (colCount === 0) return;
-
-      let filterRow = tbl.querySelector<HTMLTableRowElement>(`tr.${FILTER_ROW_CLASS}`);
-      const needsRebuild = filterRow && filterRow.children.length !== colCount;
-      if (needsRebuild && filterRow) {
-        filterRow.remove();
-        filterRow = null;
-      }
-
-      if (!filterRow) {
-        filterRow = document.createElement("tr");
-        filterRow.className = FILTER_ROW_CLASS;
-        // Mark as non-editable so ProseMirror ignores it
-        filterRow.setAttribute("contenteditable", "false");
-        (filterRow as any).__isFilterRow = true;
-        for (let i = 0; i < colCount; i++) {
-          const td = document.createElement("td");
-          td.setAttribute("contenteditable", "false");
-          const input = document.createElement("input");
-          input.type = "text";
-          input.placeholder = "Filtrar…";
-          input.className = "note-table-filter-input";
-          input.addEventListener("input", () => applyFilters(tbl));
-          input.addEventListener("mousedown", (e) => e.stopPropagation());
-          input.addEventListener("click", (e) => e.stopPropagation());
-          input.addEventListener("keydown", (e) => e.stopPropagation());
-          td.appendChild(input);
-          filterRow.appendChild(td);
-        }
-
-        // Insert right after the first row (header) if it has <th>, otherwise at top
-        const tbody = tbl.querySelector("tbody") ?? tbl;
-        const headerRow = tbody.querySelector("tr");
-        if (headerRow && headerRow.querySelector("th") && headerRow.nextSibling) {
-          tbody.insertBefore(filterRow, headerRow.nextSibling);
-        } else if (headerRow && headerRow.querySelector("th")) {
-          tbody.appendChild(filterRow);
-        } else {
-          tbody.insertBefore(filterRow, tbody.firstChild);
-        }
-      }
-
-      applyFilters(tbl);
-    };
-
-    const scan = () => {
-      const tables = Array.from(root.querySelectorAll<HTMLTableElement>("table.note-table"));
-      tables.forEach(ensureFilterRow);
-    };
-
-    // Initial pass + observe DOM mutations from ProseMirror re-renders.
-    scan();
-    const mo = new MutationObserver(() => {
-      // Defer to avoid re-entering during prosemirror's own DOM updates
-      requestAnimationFrame(scan);
     });
-    mo.observe(root, { childList: true, subtree: true });
+  }, [queries, tables, containerRef]);
 
-    return () => {
-      mo.disconnect();
-    };
-  }, [editor, containerRef]);
+  if (!tables.length) return null;
 
-  return null;
+  return (
+    <div ref={overlayRef} className="pointer-events-none absolute inset-0 z-10">
+      {tables.map((meta) => {
+        const totalWidth = meta.colWidths.reduce((a, b) => a + b, 0) || meta.width;
+        return (
+          <div
+            key={meta.id}
+            className="pointer-events-auto absolute flex items-stretch bg-muted/60 backdrop-blur-sm border border-border rounded-md overflow-hidden shadow-sm"
+            style={{
+              top: Math.max(0, meta.top - 30),
+              left: meta.left,
+              width: totalWidth,
+              height: 26,
+            }}
+          >
+            <div className="flex items-center px-1.5 text-muted-foreground border-r border-border bg-background/50">
+              <Search className="h-3 w-3" />
+            </div>
+            {meta.colWidths.map((w, idx) => {
+              const value = queries[meta.id]?.[idx] ?? "";
+              return (
+                <div
+                  key={idx}
+                  className="flex items-center border-r border-border last:border-r-0 px-1"
+                  style={{ width: w }}
+                >
+                  <input
+                    type="text"
+                    value={value}
+                    placeholder="Filtrar…"
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setQueries((q) => {
+                        const arr = [...(q[meta.id] ?? [])];
+                        arr[idx] = v;
+                        return { ...q, [meta.id]: arr };
+                      });
+                    }}
+                    className="w-full bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/50 text-foreground"
+                  />
+                  {value && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQueries((q) => {
+                          const arr = [...(q[meta.id] ?? [])];
+                          arr[idx] = "";
+                          return { ...q, [meta.id]: arr };
+                        })
+                      }
+                      className="text-muted-foreground hover:text-foreground"
+                      title="Limpar"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
 }

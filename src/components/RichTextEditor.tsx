@@ -390,12 +390,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       )}
 
       {/* Editor */}
-      <div ref={editorContainerRef}>
+      <div ref={editorContainerRef} className="relative">
         <EditorContent editor={editor} />
+        {/* Filtros sobrepostos a cada tabela da nota */}
+        <TableFiltersPanel editor={editor} containerRef={editorContainerRef} />
       </div>
-
-      {/* Filtros para tabelas presentes na nota */}
-      <TableFiltersPanel editor={editor} containerRef={editorContainerRef} />
 
       {/* Google Docs Embed Prompt */}
       <AlertDialog open={!!embedPrompt} onOpenChange={(open) => !open && setEmbedPrompt(null)}>
