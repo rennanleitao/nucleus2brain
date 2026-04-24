@@ -369,6 +369,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         }} title="Inserir imagem">
           <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          title="Inserir tabela"
+        >
+          <TableIcon className="h-3.5 w-3.5" />
+        </ToolbarButton>
         {onCreateSubNote && (
           <ToolbarButton onClick={handleInsertSubNote} title="Criar sub-nota">
             <FilePlus className="h-3.5 w-3.5" />
@@ -383,7 +389,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       )}
 
       {/* Editor */}
-      <EditorContent editor={editor} />
+      <div ref={editorContainerRef}>
+        <EditorContent editor={editor} />
+      </div>
+
+      {/* Filtros para tabelas presentes na nota */}
+      <TableFiltersPanel editor={editor} containerRef={editorContainerRef} />
 
       {/* Google Docs Embed Prompt */}
       <AlertDialog open={!!embedPrompt} onOpenChange={(open) => !open && setEmbedPrompt(null)}>
