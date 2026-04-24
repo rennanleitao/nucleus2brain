@@ -100,6 +100,10 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: true }),
       Iframe,
+      Table.configure({ resizable: false, HTMLAttributes: { class: "note-table" } }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Mention.configure({
         HTMLAttributes: {
           class: "mention-note",
