@@ -6,6 +6,10 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Image from "@tiptap/extension-image";
 import Mention from "@tiptap/extension-mention";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
 import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef, useState } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +17,9 @@ import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code, FilePlus,
+  Table as TableIcon,
 } from "lucide-react";
+import { TableFiltersPanel } from "@/components/editor/TableFiltersPanel";
 import { Iframe } from "@/components/editor/IframeExtension";
 import { getGoogleEmbedUrl } from "@/components/editor/googleDocsEmbed";
 import {
