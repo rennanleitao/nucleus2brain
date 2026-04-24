@@ -593,3 +593,32 @@ html, body {
   text-align: left;
 }
 .ai-prose th { background: oklch(var(--muted)); font-weight: 600; }
+
+/* TipTap note tables */
+.ProseMirror table.note-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+.ProseMirror table.note-table td,
+.ProseMirror table.note-table th {
+  border: 1px solid hsl(var(--border));
+  padding: 6px 10px;
+  vertical-align: top;
+  position: relative;
+  min-width: 60px;
+}
+.ProseMirror table.note-table th {
+  background: hsl(var(--muted) / 0.4);
+  font-weight: 600;
+  text-align: left;
+}
+.ProseMirror table.note-table .selectedCell:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--primary) / 0.1);
+  pointer-events: none;
+}
