@@ -599,21 +599,41 @@ html, body {
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
-  margin: 0;
+  margin: 0.75rem 0;
   overflow: hidden;
+  border: 1px solid hsl(var(--foreground) / 0.25);
 }
 .ProseMirror table.note-table td,
 .ProseMirror table.note-table th {
-  border: 1px solid hsl(var(--border));
+  border: 1px solid hsl(var(--foreground) / 0.2);
   padding: 6px 10px;
   vertical-align: top;
   position: relative;
   min-width: 60px;
+  background: hsl(var(--background));
 }
 .ProseMirror table.note-table th {
-  background: hsl(var(--muted) / 0.4);
+  background: hsl(var(--muted));
   font-weight: 600;
   text-align: left;
+  color: hsl(var(--foreground));
+}
+.ProseMirror table.note-table tr.note-table-filter-row td {
+  background: hsl(var(--muted) / 0.4);
+  padding: 4px 6px;
+}
+.ProseMirror table.note-table tr.note-table-filter-row input.note-table-filter-input {
+  width: 100%;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: hsl(var(--foreground));
+  outline: none;
+}
+.ProseMirror table.note-table tr.note-table-filter-row input.note-table-filter-input:focus {
+  border-color: hsl(var(--primary));
 }
 .ProseMirror table.note-table .selectedCell:after {
   content: "";
