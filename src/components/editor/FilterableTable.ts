@@ -1,4 +1,4 @@
-import Table from "@tiptap/extension-table";
+import { Table } from "@tiptap/extension-table";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { FilterableTableNodeView } from "./FilterableTableNodeView";
 
