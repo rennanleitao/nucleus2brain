@@ -6,6 +6,10 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Image from "@tiptap/extension-image";
 import Mention from "@tiptap/extension-mention";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
 import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef, useState } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +17,9 @@ import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code, FilePlus,
+  Table as TableIcon,
 } from "lucide-react";
+import { TableFiltersPanel } from "@/components/editor/TableFiltersPanel";
 import { Iframe } from "@/components/editor/IframeExtension";
 import { getGoogleEmbedUrl } from "@/components/editor/googleDocsEmbed";
 import {
@@ -50,6 +56,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   allNotes = [], onNoteLinkClick, onCreateSubNote,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const [embedPrompt, setEmbedPrompt] = useState<{ embedUrl: string; type: string; originalUrl: string } | null>(null);
 
   // Keep refs for the latest values so the suggestion closure always sees fresh data
@@ -94,6 +101,10 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: true }),
       Iframe,
+      Table.configure({ resizable: false, HTMLAttributes: { class: "note-table" } }),
+      TableRow,
+      TableHeader,
+      TableCell,
       Mention.configure({
         HTMLAttributes: {
           class: "mention-note",
@@ -359,6 +370,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         }} title="Inserir imagem">
           <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          title="Inserir tabela"
+        >
+          <TableIcon className="h-3.5 w-3.5" />
+        </ToolbarButton>
         {onCreateSubNote && (
           <ToolbarButton onClick={handleInsertSubNote} title="Criar sub-nota">
             <FilePlus className="h-3.5 w-3.5" />
@@ -373,7 +390,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       )}
 
       {/* Editor */}
-      <EditorContent editor={editor} />
+      <div ref={editorContainerRef}>
+        <EditorContent editor={editor} />
+      </div>
+
+      {/* Filtros para tabelas presentes na nota */}
+      <TableFiltersPanel editor={editor} containerRef={editorContainerRef} />
 
       {/* Google Docs Embed Prompt */}
       <AlertDialog open={!!embedPrompt} onOpenChange={(open) => !open && setEmbedPrompt(null)}>
