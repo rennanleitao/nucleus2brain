@@ -56,6 +56,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   allNotes = [], onNoteLinkClick, onCreateSubNote,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const [embedPrompt, setEmbedPrompt] = useState<{ embedUrl: string; type: string; originalUrl: string } | null>(null);
 
   // Keep refs for the latest values so the suggestion closure always sees fresh data
