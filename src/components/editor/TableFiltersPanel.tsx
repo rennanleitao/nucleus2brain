@@ -1,11 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Editor } from "@tiptap/react";
-import { Search, X } from "lucide-react";
-
-interface TableInfo {
-  id: string;
-  preview: string;
-}
 
 interface TableFiltersPanelProps {
   editor: Editor | null;
@@ -13,103 +7,122 @@ interface TableFiltersPanelProps {
 }
 
 /**
- * Scans the editor DOM for <table> elements, gives each a stable id,
- * and renders a filter input per table. Filtering hides rows whose
- * text doesn't match the query (header row stays visible).
+ * Injects a filter row directly inside each <table.note-table> rendered by
+ * the TipTap editor. The filter row lives in the DOM only (it is NOT part of
+ * the editor document), so it doesn't pollute the saved HTML and doesn't
+ * trigger ProseMirror transactions.
+ *
+ * Each column gets a small input; typing hides body rows whose corresponding
+ * cell does not contain the query (case-insensitive). Multiple column
+ * filters combine with AND.
  */
 export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelProps) {
-  const [tables, setTables] = useState<TableInfo[]>([]);
-  const [queries, setQueries] = useState<Record<string, string>>({});
-
-  // Re-scan tables on every editor update
   useEffect(() => {
     if (!editor) return;
-    const scan = () => {
-      const root = containerRef.current;
-      if (!root) return;
-      const tableEls = Array.from(root.querySelectorAll("table")) as HTMLTableElement[];
-      const infos: TableInfo[] = tableEls.map((tbl, idx) => {
-        if (!tbl.dataset.tableId) tbl.dataset.tableId = `tbl-${Date.now()}-${idx}`;
-        const firstCell = tbl.querySelector("th, td")?.textContent?.trim() ?? "";
-        return {
-          id: tbl.dataset.tableId,
-          preview: firstCell.slice(0, 24) || `Tabela ${idx + 1}`,
-        };
-      });
-      setTables(infos);
-    };
-    scan();
-    editor.on("update", scan);
-    editor.on("selectionUpdate", scan);
-    return () => {
-      editor.off("update", scan);
-      editor.off("selectionUpdate", scan);
-    };
-  }, [editor, containerRef]);
-
-  // Apply filters whenever queries change or tables change
-  useEffect(() => {
     const root = containerRef.current;
     if (!root) return;
-    const tableEls = Array.from(root.querySelectorAll("table")) as HTMLTableElement[];
-    tableEls.forEach((tbl) => {
-      const id = tbl.dataset.tableId;
-      const q = (id && queries[id]?.trim().toLowerCase()) || "";
-      const rows = Array.from(tbl.querySelectorAll("tr")) as HTMLElement[];
-      rows.forEach((row, idx) => {
-        const isHeader = idx === 0 && row.querySelector("th");
-        if (!q || isHeader) {
+
+    const FILTER_ROW_CLASS = "note-table-filter-row";
+
+    const applyFilters = (tbl: HTMLTableElement) => {
+      const filterRow = tbl.querySelector<HTMLTableRowElement>(`tr.${FILTER_ROW_CLASS}`);
+      if (!filterRow) return;
+      const inputs = Array.from(
+        filterRow.querySelectorAll<HTMLInputElement>("input.note-table-filter-input")
+      );
+      const queries = inputs.map((i) => i.value.trim().toLowerCase());
+      const hasAny = queries.some((q) => q.length > 0);
+
+      const allRows = Array.from(tbl.querySelectorAll<HTMLTableRowElement>("tr"));
+      allRows.forEach((row) => {
+        if (row.classList.contains(FILTER_ROW_CLASS)) return;
+        // Skip header rows (any row containing <th>)
+        if (row.querySelector("th")) {
           row.style.display = "";
           return;
         }
-        const text = row.textContent?.toLowerCase() ?? "";
-        row.style.display = text.includes(q) ? "" : "none";
+        if (!hasAny) {
+          row.style.display = "";
+          return;
+        }
+        const cells = Array.from(row.children) as HTMLElement[];
+        const match = queries.every((q, idx) => {
+          if (!q) return true;
+          const cell = cells[idx];
+          const text = (cell?.textContent ?? "").toLowerCase();
+          return text.includes(q);
+        });
+        row.style.display = match ? "" : "none";
       });
+    };
+
+    const ensureFilterRow = (tbl: HTMLTableElement) => {
+      // Determine column count from first row
+      const firstRow = tbl.querySelector<HTMLTableRowElement>("tr");
+      if (!firstRow) return;
+      const colCount = firstRow.children.length;
+      if (colCount === 0) return;
+
+      let filterRow = tbl.querySelector<HTMLTableRowElement>(`tr.${FILTER_ROW_CLASS}`);
+      const needsRebuild = filterRow && filterRow.children.length !== colCount;
+      if (needsRebuild && filterRow) {
+        filterRow.remove();
+        filterRow = null;
+      }
+
+      if (!filterRow) {
+        filterRow = document.createElement("tr");
+        filterRow.className = FILTER_ROW_CLASS;
+        // Mark as non-editable so ProseMirror ignores it
+        filterRow.setAttribute("contenteditable", "false");
+        (filterRow as any).__isFilterRow = true;
+        for (let i = 0; i < colCount; i++) {
+          const td = document.createElement("td");
+          td.setAttribute("contenteditable", "false");
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Filtrar…";
+          input.className = "note-table-filter-input";
+          input.addEventListener("input", () => applyFilters(tbl));
+          input.addEventListener("mousedown", (e) => e.stopPropagation());
+          input.addEventListener("click", (e) => e.stopPropagation());
+          input.addEventListener("keydown", (e) => e.stopPropagation());
+          td.appendChild(input);
+          filterRow.appendChild(td);
+        }
+
+        // Insert right after the first row (header) if it has <th>, otherwise at top
+        const tbody = tbl.querySelector("tbody") ?? tbl;
+        const headerRow = tbody.querySelector("tr");
+        if (headerRow && headerRow.querySelector("th") && headerRow.nextSibling) {
+          tbody.insertBefore(filterRow, headerRow.nextSibling);
+        } else if (headerRow && headerRow.querySelector("th")) {
+          tbody.appendChild(filterRow);
+        } else {
+          tbody.insertBefore(filterRow, tbody.firstChild);
+        }
+      }
+
+      applyFilters(tbl);
+    };
+
+    const scan = () => {
+      const tables = Array.from(root.querySelectorAll<HTMLTableElement>("table.note-table"));
+      tables.forEach(ensureFilterRow);
+    };
+
+    // Initial pass + observe DOM mutations from ProseMirror re-renders.
+    scan();
+    const mo = new MutationObserver(() => {
+      // Defer to avoid re-entering during prosemirror's own DOM updates
+      requestAnimationFrame(scan);
     });
-  }, [queries, tables, containerRef]);
+    mo.observe(root, { childList: true, subtree: true });
 
-  const activeFilters = tables.filter((t) => queries[t.id]?.trim());
+    return () => {
+      mo.disconnect();
+    };
+  }, [editor, containerRef]);
 
-  if (tables.length === 0) return null;
-
-  return (
-    <div className="border-t border-border/40 bg-muted/20 px-3 py-2 space-y-1.5">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground/70 font-medium">
-        <Search className="h-2.5 w-2.5" />
-        Filtros de tabela ({tables.length})
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {tables.map((t, i) => (
-          <div key={t.id} className="flex items-center gap-1 bg-background border border-border rounded px-1.5 py-0.5">
-            <span className="text-[10px] text-muted-foreground">#{i + 1}</span>
-            <input
-              type="text"
-              value={queries[t.id] ?? ""}
-              onChange={(e) => setQueries((q) => ({ ...q, [t.id]: e.target.value }))}
-              placeholder={`Filtrar "${t.preview}"...`}
-              className="bg-transparent text-xs outline-none w-32 placeholder:text-muted-foreground/50"
-            />
-            {queries[t.id] && (
-              <button
-                type="button"
-                onClick={() => setQueries((q) => ({ ...q, [t.id]: "" }))}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
-            )}
-          </div>
-        ))}
-        {activeFilters.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setQueries({})}
-            className="text-[10px] text-muted-foreground hover:text-foreground underline"
-          >
-            limpar todos
-          </button>
-        )}
-      </div>
-    </div>
-  );
+  return null;
 }
