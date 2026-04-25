@@ -345,7 +345,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
               type="button"
               title="Adicionar coluna"
               onClick={() => {
-                if (focusLastCellOf(meta.id)) editor.chain().focus().addColumnAfter().run();
+                runTableCommand(meta.id, "addColumnAfter", "last");
               }}
               className={`pointer-events-auto absolute flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-opacity hover:scale-110 ${
                 isHover ? "opacity-100" : "opacity-0"
@@ -365,7 +365,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
               type="button"
               title="Adicionar linha"
               onClick={() => {
-                if (focusLastCellOf(meta.id)) editor.chain().focus().addRowAfter().run();
+                runTableCommand(meta.id, "addRowAfter", "last");
               }}
               className={`pointer-events-auto absolute flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-opacity hover:scale-110 ${
                 isHover ? "opacity-100" : "opacity-0"
