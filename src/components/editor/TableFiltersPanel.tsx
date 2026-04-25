@@ -165,11 +165,11 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
         return (
           <div
             key={meta.id}
-            className="pointer-events-auto absolute"
+            className="pointer-events-none absolute"
             style={{
               top: meta.top - 32,
               left: meta.left,
-              width: totalWidth,
+              width: totalWidth + 28,
               height: meta.height + 32 + 16,
             }}
             onMouseEnter={() => setHoveredId(meta.id)}
