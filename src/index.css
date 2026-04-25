@@ -594,51 +594,39 @@ html, body {
 }
 .ai-prose th { background: oklch(var(--muted)); font-weight: 600; }
 
-/* TipTap note tables */
+/* TipTap note tables — Evernote style */
 .ProseMirror table.note-table {
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
-  margin: 2.25rem 0 0.75rem; /* extra top space for floating filter bar */
-  overflow: hidden;
-  border: 1px solid hsl(var(--foreground) / 0.25);
+  margin: 2.5rem 0 0.75rem; /* extra top space for floating filter bar */
+  border: 1px solid #4a4a4a;
+  background: oklch(var(--background));
 }
 .ProseMirror table.note-table td,
 .ProseMirror table.note-table th {
-  border: 1px solid hsl(var(--foreground) / 0.2);
+  border: 1px solid #4a4a4a;
   padding: 6px 10px;
   vertical-align: top;
   position: relative;
   min-width: 60px;
-  background: hsl(var(--background));
+  background: oklch(var(--background));
+  color: oklch(var(--foreground));
 }
 .ProseMirror table.note-table th {
-  background: hsl(var(--muted));
+  background: oklch(var(--muted));
   font-weight: 600;
   text-align: left;
-  color: hsl(var(--foreground));
 }
-.ProseMirror table.note-table tr.note-table-filter-row td {
-  background: hsl(var(--muted) / 0.4);
-  padding: 4px 6px;
-}
-.ProseMirror table.note-table tr.note-table-filter-row input.note-table-filter-input {
-  width: 100%;
-  background: hsl(var(--background));
-  border: 1px solid hsl(var(--border));
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 11px;
-  color: hsl(var(--foreground));
-  outline: none;
-}
-.ProseMirror table.note-table tr.note-table-filter-row input.note-table-filter-input:focus {
-  border-color: hsl(var(--primary));
+.dark .ProseMirror table.note-table,
+.dark .ProseMirror table.note-table td,
+.dark .ProseMirror table.note-table th {
+  border-color: #6b6b6b;
 }
 .ProseMirror table.note-table .selectedCell:after {
   content: "";
   position: absolute;
   inset: 0;
-  background: hsl(var(--primary) / 0.1);
+  background: oklch(var(--primary) / 0.1);
   pointer-events: none;
 }
