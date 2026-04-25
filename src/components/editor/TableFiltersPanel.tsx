@@ -299,14 +299,14 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuItem
                       onClick={() => {
-                        if (focusLastCellOf(meta.id)) editor.chain().focus().addColumnAfter().run();
+                        runTableCommand(meta.id, "addColumnAfter", "last");
                       }}
                     >
                       <Columns3 className="h-4 w-4 mr-2" /> Adicionar coluna
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
-                        if (focusLastCellOf(meta.id)) editor.chain().focus().addRowAfter().run();
+                        runTableCommand(meta.id, "addRowAfter", "last");
                       }}
                     >
                       <Rows3 className="h-4 w-4 mr-2" /> Adicionar linha
@@ -314,14 +314,14 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => {
-                        if (focusFirstCellOf(meta.id)) editor.chain().focus().deleteColumn().run();
+                        runTableCommand(meta.id, "deleteColumn");
                       }}
                     >
                       <X className="h-4 w-4 mr-2" /> Remover coluna atual
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
-                        if (focusFirstCellOf(meta.id)) editor.chain().focus().deleteRow().run();
+                        runTableCommand(meta.id, "deleteRow");
                       }}
                     >
                       <X className="h-4 w-4 mr-2" /> Remover linha atual
@@ -330,7 +330,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
                       onClick={() => {
-                        if (focusFirstCellOf(meta.id)) editor.chain().focus().deleteTable().run();
+                        runTableCommand(meta.id, "deleteTable", "first");
                       }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" /> Excluir tabela
