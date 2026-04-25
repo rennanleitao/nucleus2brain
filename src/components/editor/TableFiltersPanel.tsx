@@ -37,27 +37,68 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Focus a cell inside table id, then run command
-  const focusCellOf = (tableId: string, which: "first" | "last") => {
+  const getCellPosition = (cell: HTMLElement) => {
+    if (!editor) return null;
+    const view = (editor as any).view;
+    let found: number | null = null;
+
+    editor.state.doc.descendants((node, pos) => {
+      if (found !== null) return false;
+      if (node.type.name !== "tableCell" && node.type.name !== "tableHeader") return true;
+
+      const dom = view.nodeDOM(pos);
+      if (dom === cell || (dom instanceof HTMLElement && dom.contains(cell))) {
+        found = pos;
+        return false;
+      }
+
+      return true;
+    });
+
+    return found;
+  };
+
+  const getSelectionTableId = () => {
+    if (!editor) return null;
+    const view = (editor as any).view;
+    const domAtSelection = view.domAtPos(editor.state.selection.from).node;
+    const el = domAtSelection instanceof HTMLElement ? domAtSelection : domAtSelection?.parentElement;
+    return ((el?.closest("table.note-table") as HTMLTableElement | null)?.dataset.tableId) ?? null;
+  };
+
+  // Select a reliable table cell, then run the TipTap table command.
+  const runTableCommand = (
+    tableId: string,
+    command: "addColumnAfter" | "addRowAfter" | "deleteColumn" | "deleteRow" | "deleteTable",
+    targetCell: "first" | "last" | "current" = "current"
+  ) => {
     const root = containerRef.current;
     if (!root || !editor) return false;
-    const tbl = root.querySelector<HTMLTableElement>(`table[data-table-id="${tableId}"]`);
-    if (!tbl) return false;
-    const cells = tbl.querySelectorAll<HTMLElement>("td, th");
-    const target = which === "first" ? cells[0] : cells[cells.length - 1];
-    if (!target) return false;
-    try {
-      const view = (editor as any).view;
-      const pos = view.posAtDOM(target, 0);
+
+    let chain = editor.chain().focus() as any;
+    const currentSelectionIsInTable = targetCell === "current" && getSelectionTableId() === tableId;
+
+    if (!currentSelectionIsInTable) {
+      const tbl = root.querySelector<HTMLTableElement>(`table[data-table-id="${tableId}"]`);
+      const cells = tbl?.querySelectorAll<HTMLElement>("td, th");
+      const target = targetCell === "last" ? cells?.[(cells?.length ?? 0) - 1] : cells?.[0];
+      if (!target) return false;
+
+      const pos = getCellPosition(target);
       if (typeof pos !== "number" || pos < 0) return false;
-      editor.chain().focus().setTextSelection(pos + 1).run();
-      return true;
-    } catch {
+      chain = chain.setCellSelection({ anchorCell: pos, headCell: pos });
+    }
+
+    const commandFn = chain[command];
+    if (typeof commandFn !== "function") return false;
+
+    try {
+      return Boolean(commandFn.call(chain).run());
+    } catch (error) {
+      console.error("Erro ao executar comando da tabela", error);
       return false;
     }
   };
-  const focusFirstCellOf = (id: string) => focusCellOf(id, "first");
-  const focusLastCellOf = (id: string) => focusCellOf(id, "last");
 
   // Scan tables, assign stable ids, capture geometry
   useEffect(() => {
@@ -258,14 +299,14 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuItem
                       onClick={() => {
-                        if (focusLastCellOf(meta.id)) editor.chain().focus().addColumnAfter().run();
+                        runTableCommand(meta.id, "addColumnAfter", "last");
                       }}
                     >
                       <Columns3 className="h-4 w-4 mr-2" /> Adicionar coluna
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
-                        if (focusLastCellOf(meta.id)) editor.chain().focus().addRowAfter().run();
+                        runTableCommand(meta.id, "addRowAfter", "last");
                       }}
                     >
                       <Rows3 className="h-4 w-4 mr-2" /> Adicionar linha
@@ -273,14 +314,14 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => {
-                        if (focusFirstCellOf(meta.id)) editor.chain().focus().deleteColumn().run();
+                        runTableCommand(meta.id, "deleteColumn");
                       }}
                     >
                       <X className="h-4 w-4 mr-2" /> Remover coluna atual
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
-                        if (focusFirstCellOf(meta.id)) editor.chain().focus().deleteRow().run();
+                        runTableCommand(meta.id, "deleteRow");
                       }}
                     >
                       <X className="h-4 w-4 mr-2" /> Remover linha atual
@@ -289,7 +330,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
                       onClick={() => {
-                        if (focusFirstCellOf(meta.id)) editor.chain().focus().deleteTable().run();
+                        runTableCommand(meta.id, "deleteTable", "first");
                       }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" /> Excluir tabela
@@ -304,7 +345,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
               type="button"
               title="Adicionar coluna"
               onClick={() => {
-                if (focusLastCellOf(meta.id)) editor.chain().focus().addColumnAfter().run();
+                runTableCommand(meta.id, "addColumnAfter", "last");
               }}
               className={`pointer-events-auto absolute flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-opacity hover:scale-110 ${
                 isHover ? "opacity-100" : "opacity-0"
@@ -324,7 +365,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
               type="button"
               title="Adicionar linha"
               onClick={() => {
-                if (focusLastCellOf(meta.id)) editor.chain().focus().addRowAfter().run();
+                runTableCommand(meta.id, "addRowAfter", "last");
               }}
               className={`pointer-events-auto absolute flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-opacity hover:scale-110 ${
                 isHover ? "opacity-100" : "opacity-0"
