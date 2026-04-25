@@ -38,33 +38,26 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
   const overlayRef = useRef<HTMLDivElement>(null);
 
   // Focus a cell inside table id, then run command
-  const focusFirstCellOf = (tableId: string) => {
-    const root = containerRef.current;
-    if (!root || !editor) return false;
-    const tbl = root.querySelector<HTMLTableElement>(`table[data-table-id="${tableId}"]`);
-    if (!tbl) return false;
-    const firstCell = tbl.querySelector<HTMLElement>("td, th");
-    if (!firstCell) return false;
-    // Focus the editor first, then place selection inside the cell via ProseMirror
-    const view = (editor as any).view;
-    const pos = view.posAtDOM(firstCell, 0);
-    editor.chain().focus().setTextSelection(pos + 1).run();
-    return true;
-  };
-
-  const focusLastCellOf = (tableId: string) => {
+  const focusCellOf = (tableId: string, which: "first" | "last") => {
     const root = containerRef.current;
     if (!root || !editor) return false;
     const tbl = root.querySelector<HTMLTableElement>(`table[data-table-id="${tableId}"]`);
     if (!tbl) return false;
     const cells = tbl.querySelectorAll<HTMLElement>("td, th");
-    const last = cells[cells.length - 1];
-    if (!last) return false;
-    const view = (editor as any).view;
-    const pos = view.posAtDOM(last, 0);
-    editor.chain().focus().setTextSelection(pos + 1).run();
-    return true;
+    const target = which === "first" ? cells[0] : cells[cells.length - 1];
+    if (!target) return false;
+    try {
+      const view = (editor as any).view;
+      const pos = view.posAtDOM(target, 0);
+      if (typeof pos !== "number" || pos < 0) return false;
+      editor.chain().focus().setTextSelection(pos + 1).run();
+      return true;
+    } catch {
+      return false;
+    }
   };
+  const focusFirstCellOf = (id: string) => focusCellOf(id, "first");
+  const focusLastCellOf = (id: string) => focusCellOf(id, "last");
 
   // Scan tables, assign stable ids, capture geometry
   useEffect(() => {
@@ -161,6 +154,26 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
     });
   }, [queries, tables, containerRef]);
 
+  // Hover detection: since wrapper is pointer-events:none, listen on container directly
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    const onMove = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tbl = target?.closest?.("table.note-table") as HTMLTableElement | null;
+      if (tbl?.dataset.tableId) {
+        setHoveredId(tbl.dataset.tableId);
+      }
+    };
+    const onLeave = () => setHoveredId(null);
+    root.addEventListener("mousemove", onMove);
+    root.addEventListener("mouseleave", onLeave);
+    return () => {
+      root.removeEventListener("mousemove", onMove);
+      root.removeEventListener("mouseleave", onLeave);
+    };
+  }, [containerRef]);
+
   if (!tables.length || !editor) return null;
 
   return (
@@ -172,15 +185,13 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
         return (
           <div
             key={meta.id}
-            className="pointer-events-auto absolute"
+            className="pointer-events-none absolute"
             style={{
               top: meta.top - 32,
               left: meta.left,
-              width: totalWidth,
+              width: totalWidth + 28,
               height: meta.height + 32 + 16,
             }}
-            onMouseEnter={() => setHoveredId(meta.id)}
-            onMouseLeave={() => setHoveredId((h) => (h === meta.id ? null : h))}
           >
             {/* Filter bar */}
             <div
