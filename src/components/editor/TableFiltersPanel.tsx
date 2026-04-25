@@ -63,7 +63,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
     const view = (editor as any).view;
     const domAtSelection = view.domAtPos(editor.state.selection.from).node;
     const el = domAtSelection instanceof HTMLElement ? domAtSelection : domAtSelection?.parentElement;
-    return el?.closest<HTMLTableElement>("table.note-table")?.dataset.tableId ?? null;
+    return ((el?.closest("table.note-table") as HTMLTableElement | null)?.dataset.tableId) ?? null;
   };
 
   // Select a reliable table cell, then run the TipTap table command.
@@ -81,7 +81,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
     if (!currentSelectionIsInTable) {
       const tbl = root.querySelector<HTMLTableElement>(`table[data-table-id="${tableId}"]`);
       const cells = tbl?.querySelectorAll<HTMLElement>("td, th");
-      const target = targetCell === "first" ? cells?.[0] : cells?.[(cells?.length ?? 0) - 1];
+      const target = targetCell === "last" ? cells?.[(cells?.length ?? 0) - 1] : cells?.[0];
       if (!target) return false;
 
       const pos = getCellPosition(target);
