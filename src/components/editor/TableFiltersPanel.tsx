@@ -166,12 +166,12 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
     const root = containerRef.current;
     if (!root || !editor) return;
 
-    const setActiveFromTarget = (target: EventTarget | null) => {
-      const target = e.target as HTMLElement | null;
-      const tbl = target?.closest?.("table.note-table") as HTMLTableElement | null;
+    const setActiveFromTarget = (eventTarget: EventTarget | null) => {
+      const element = eventTarget instanceof HTMLElement ? eventTarget : null;
+      const tbl = element?.closest?.("table.note-table") as HTMLTableElement | null;
       if (tbl?.dataset.tableId) {
         setActiveId(tbl.dataset.tableId);
-      } else if (!(target as HTMLElement | null)?.closest?.("[data-table-controls]")) {
+      } else if (!element?.closest?.("[data-table-controls]")) {
         setActiveId(null);
       }
     };
