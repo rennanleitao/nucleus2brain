@@ -37,6 +37,16 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
     const view = (editor as any).view;
     let found: number | null = null;
 
+    const isCellStart = (pos: number | null | undefined) => {
+      if (typeof pos !== "number" || pos < 0) return false;
+      try {
+        const nodeAfter = editor.state.doc.resolve(pos).nodeAfter;
+        return nodeAfter?.type.name === "tableCell" || nodeAfter?.type.name === "tableHeader";
+      } catch {
+        return false;
+      }
+    };
+
     editor.state.doc.descendants((node, pos) => {
       if (found !== null) return false;
       if (node.type.name !== "tableCell" && node.type.name !== "tableHeader") return true;
@@ -49,6 +59,24 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
 
       return true;
     });
+
+    if (isCellStart(found)) return found;
+
+    try {
+      const row = cell.parentElement;
+      const index = row ? Array.from(row.children).indexOf(cell) : -1;
+      const candidates = [
+        row && index >= 0 ? view.posAtDOM(row, index) : null,
+        view.posAtDOM(cell, 0),
+      ];
+
+      for (const candidate of candidates) {
+        if (isCellStart(candidate)) return candidate;
+        if (isCellStart(candidate - 1)) return candidate - 1;
+      }
+    } catch {
+      return null;
+    }
 
     return found;
   };
@@ -65,22 +93,20 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
     return ((el?.closest("table.note-table") as HTMLTableElement | null)?.dataset.tableId) ?? null;
   };
 
-  const selectTableCell = (tableId: string, targetCell: "first" | "last" | "current") => {
-    if (!editor) return false;
+  const getTargetCellPosition = (tableId: string, targetCell: "first" | "last" | "current") => {
+    if (!editor) return null;
 
     if (targetCell === "current" && getSelectionTableId() === tableId) {
-      return true;
+      return "current";
     }
 
     const tbl = getTableElement(tableId);
     const cells = tbl?.querySelectorAll<HTMLElement>("td, th");
     const target = targetCell === "last" ? cells?.[(cells?.length ?? 0) - 1] : cells?.[0];
-    if (!target) return false;
+    if (!target) return null;
 
     const pos = getCellPosition(target);
-    if (typeof pos !== "number" || pos < 0) return false;
-
-    return Boolean((editor.commands as any).setCellSelection({ anchorCell: pos, headCell: pos }));
+    return typeof pos === "number" && pos >= 0 ? pos : null;
   };
 
   // Select a reliable table cell, then run the TipTap table command in a fresh editor state.
@@ -89,14 +115,23 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
     command: "addColumnAfter" | "addRowAfter" | "deleteColumn" | "deleteRow" | "deleteTable",
     targetCell: "first" | "last" | "current" = "current"
   ) => {
-    if (!editor || !selectTableCell(tableId, targetCell)) return false;
+    if (!editor) return false;
+
+    const targetPos = getTargetCellPosition(tableId, targetCell);
+    if (targetPos === null) return false;
 
     const commandFn = (editor.commands as any)[command];
     if (typeof commandFn !== "function") return false;
 
     try {
+      if (typeof targetPos === "number") {
+        const selected = Boolean((editor.commands as any).setCellSelection({ anchorCell: targetPos, headCell: targetPos }));
+        if (!selected) return false;
+      }
+
+      editor.view.focus();
       const ok = Boolean(commandFn());
-      (editor.commands as any).focus(null, { scrollIntoView: false });
+      requestAnimationFrame(() => editor.view.focus());
       return ok;
     } catch (error) {
       console.error("Erro ao executar comando da tabela", error);
