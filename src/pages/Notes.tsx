@@ -365,16 +365,19 @@ export default function Notes() {
               {filteredNotes.map(note => {
                 const isSelected = selectedNote?.id === note.id;
                 return (
-                  <button
+                  <div
                     key={note.id}
                     onClick={() => selectNote(note)}
-                    className={`group w-full text-left rounded-xl border transition-all touch-manipulation active:scale-[0.995] overflow-hidden ${
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
+                    className={`group relative w-full text-left rounded-xl border transition-all touch-manipulation active:scale-[0.995] overflow-hidden cursor-pointer ${
                       isSelected
                         ? "bg-card border-foreground/20 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] ring-1 ring-foreground/5"
                         : "bg-card border-border/70 hover:border-foreground/15 hover:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]"
                     }`}
                   >
-                    <div className="px-3.5 pt-3 pb-2.5">
+                    <div className="px-3.5 pt-3 pb-2.5 pr-10">
                       <p className="text-[13.5px] font-semibold tracking-tight text-foreground truncate leading-tight">
                         {note.title}
                       </p>
@@ -382,6 +385,40 @@ export default function Notes() {
                         {stripHtml(note.content || "") || "Sem conteúdo"}
                       </p>
                     </div>
+
+                    {/* Menu de ações no canto do card */}
+                    <div
+                      className="absolute top-1.5 right-1.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 opacity-70 hover:opacity-100"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Excluir a nota "${note.title}"?`)) {
+                                handleDelete(note.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
                     {(note.spaces?.name || (note.tags || []).length > 0) && (
                       <div className="flex items-center gap-1.5 px-3.5 py-2 border-t border-border/50 bg-muted/30 flex-wrap">
                         {note.spaces?.name && (
@@ -402,7 +439,7 @@ export default function Notes() {
                         ))}
                       </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
               {filteredNotes.length === 0 && (
