@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { Editor } from "@tiptap/react";
-import { Plus, Trash2, MoreHorizontal, Columns3, Rows3, X } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Trash2, Columns3, Rows3, BetweenHorizontalStart, BetweenVerticalStart } from "lucide-react";
 
 interface TableMeta {
   id: string;
