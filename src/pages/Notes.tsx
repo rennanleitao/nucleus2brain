@@ -285,11 +285,11 @@ export default function Notes() {
   const showEditor = !isMobile || !!selectedNote;
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] animate-fade-in">
+    <div className="flex h-[calc(100vh-3.5rem)] w-full max-w-full min-w-0 overflow-hidden animate-fade-in">
       {/* Sidebar - Note list */}
       {showList && (
-        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border flex flex-col bg-muted/40 flex-shrink-0`}>
-          <div className="p-3 border-b border-border space-y-2">
+        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border flex flex-col bg-muted/40 flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
+          <div className="p-3 border-b border-border space-y-2 min-w-0">
             <div className="flex items-center justify-between">
               <h2 className="text-small font-semibold flex items-center gap-1.5">
                 <FileText className="h-4 w-4 text-muted-foreground" /> Notas
@@ -360,8 +360,8 @@ export default function Notes() {
             )}
           </div>
 
-          <ScrollArea className="flex-1 w-full">
-            <div className="p-3 space-y-2.5 min-w-0 max-w-full">
+          <ScrollArea className="flex-1 w-full min-w-0 overflow-hidden">
+            <div className="w-full min-w-0 max-w-full overflow-x-hidden p-3 space-y-2.5">
               {filteredNotes.map(note => {
                 const isSelected = selectedNote?.id === note.id;
                 return (
@@ -377,11 +377,11 @@ export default function Notes() {
                         : "bg-card border-border/70 hover:border-foreground/15 hover:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]"
                     }`}
                   >
-                    <div className="px-3.5 pt-3 pb-2.5 pr-10 min-w-0">
+                    <div className="px-3.5 pt-3 pb-2.5 pr-10 min-w-0 max-w-full overflow-hidden">
                       <p className="text-[13.5px] font-semibold tracking-tight text-foreground truncate leading-tight">
                         {note.title}
                       </p>
-                      <p className="text-[11.5px] line-clamp-2 mt-1.5 whitespace-pre-line leading-[1.5] text-muted-foreground/90 break-words">
+                      <p className="text-[11.5px] line-clamp-2 mt-1.5 whitespace-pre-line leading-[1.5] text-muted-foreground/90 break-words [overflow-wrap:anywhere]">
                         {stripHtml(note.content || "") || "Sem conteúdo"}
                       </p>
                     </div>
@@ -403,9 +403,9 @@ export default function Notes() {
                     </button>
 
                     {(note.spaces?.name || (note.tags || []).length > 0) && (
-                      <div className="flex items-center gap-1.5 px-3.5 py-2 border-t border-border/50 bg-muted/30 flex-wrap">
+                      <div className="flex min-w-0 max-w-full items-center gap-1.5 px-3.5 py-2 border-t border-border/50 bg-muted/30 flex-wrap overflow-hidden">
                         {note.spaces?.name && (
-                          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          <span className="min-w-0 max-w-full text-[10px] font-medium uppercase tracking-wide text-muted-foreground truncate">
                             {note.spaces.name}
                           </span>
                         )}
@@ -415,7 +415,7 @@ export default function Notes() {
                         {(note.tags || []).slice(0, 2).map((tag: string) => (
                           <span
                             key={tag}
-                            className="text-[10px] font-medium text-muted-foreground/80 bg-background border border-border/60 rounded-md px-1.5 py-0.5"
+                            className="min-w-0 max-w-full text-[10px] font-medium text-muted-foreground/80 bg-background border border-border/60 rounded-md px-1.5 py-0.5 truncate"
                           >
                             #{tag}
                           </span>
