@@ -360,7 +360,7 @@ export default function Notes() {
             )}
           </div>
 
-          <ScrollArea className="flex-1 w-full min-w-0 overflow-hidden">
+          <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden">
             <div className="w-full min-w-0 max-w-full overflow-x-hidden p-3 space-y-2.5">
               {filteredNotes.map(note => {
                 const isSelected = selectedNote?.id === note.id;
@@ -431,7 +431,7 @@ export default function Notes() {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       )}
 
