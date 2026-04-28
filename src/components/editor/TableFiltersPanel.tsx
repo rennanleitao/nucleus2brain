@@ -24,6 +24,12 @@ const TABLE_ACTIONS: Array<{
 export function TableFiltersPanel({ editor }: TableFiltersPanelProps) {
   if (!editor) return null;
 
+  const getActiveTableElement = () => {
+    const node = editor.view.domAtPos(editor.state.selection.from).node;
+    const element = node instanceof HTMLElement ? node : node.parentElement;
+    return element?.closest("table.note-table") as HTMLTableElement | null;
+  };
+
   const runTableCommand = (command: (typeof TABLE_ACTIONS)[number]["command"]) => {
     const chain = editor.chain().focus() as any;
     const commandFn = chain[command];
@@ -34,8 +40,13 @@ export function TableFiltersPanel({ editor }: TableFiltersPanelProps) {
   return (
     <BubbleMenu
       editor={editor}
+      pluginKey="tableBubbleMenu"
       options={{ placement: "top", offset: 8 }}
-      shouldShow={({ editor }) => editor.isActive("table") || editor.isActive("tableCell") || editor.isActive("tableHeader")}
+      shouldShow={() => Boolean(getActiveTableElement())}
+      getReferencedVirtualElement={() => {
+        const table = getActiveTableElement();
+        return table ? { getBoundingClientRect: () => table.getBoundingClientRect() } : null;
+      }}
       className="z-50 flex items-center gap-0.5 rounded-lg border border-border bg-popover px-1 py-0.5 shadow-elevated"
     >
       <div className="flex items-center gap-0.5" onMouseDown={(event) => event.preventDefault()}>
