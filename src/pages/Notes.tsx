@@ -360,8 +360,8 @@ export default function Notes() {
             )}
           </div>
 
-          <ScrollArea className="flex-1">
-            <div className="p-3 space-y-2.5">
+          <ScrollArea className="flex-1 w-full">
+            <div className="p-3 space-y-2.5 min-w-0 max-w-full">
               {filteredNotes.map(note => {
                 const isSelected = selectedNote?.id === note.id;
                 return (
@@ -371,53 +371,36 @@ export default function Notes() {
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
-                    className={`group relative w-full text-left rounded-xl border transition-all touch-manipulation active:scale-[0.995] overflow-hidden cursor-pointer ${
+                    className={`group relative w-full max-w-full min-w-0 text-left rounded-xl border transition-all touch-manipulation active:scale-[0.995] overflow-hidden cursor-pointer ${
                       isSelected
                         ? "bg-card border-foreground/20 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] ring-1 ring-foreground/5"
                         : "bg-card border-border/70 hover:border-foreground/15 hover:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]"
                     }`}
                   >
-                    <div className="px-3.5 pt-3 pb-2.5 pr-10">
+                    <div className="px-3.5 pt-3 pb-2.5 pr-10 min-w-0">
                       <p className="text-[13.5px] font-semibold tracking-tight text-foreground truncate leading-tight">
                         {note.title}
                       </p>
-                      <p className="text-[11.5px] line-clamp-2 mt-1.5 whitespace-pre-line leading-[1.5] text-muted-foreground/90">
+                      <p className="text-[11.5px] line-clamp-2 mt-1.5 whitespace-pre-line leading-[1.5] text-muted-foreground/90 break-words">
                         {stripHtml(note.content || "") || "Sem conteúdo"}
                       </p>
                     </div>
 
-                    {/* Menu de ações no canto do card */}
-                    <div
-                      className="absolute top-1.5 right-1.5"
-                      onClick={(e) => e.stopPropagation()}
+                    {/* Botão de excluir aparece no hover */}
+                    <button
+                      type="button"
+                      aria-label={`Excluir nota ${note.title}`}
+                      title="Excluir nota"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Excluir a nota "${note.title}"?`)) {
+                          handleDelete(note.id);
+                        }
+                      }}
+                      className="absolute top-1.5 right-1.5 h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                     >
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 opacity-70 hover:opacity-100"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="h-3.5 w-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm(`Excluir a nota "${note.title}"?`)) {
-                                handleDelete(note.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
 
                     {(note.spaces?.name || (note.tags || []).length > 0) && (
                       <div className="flex items-center gap-1.5 px-3.5 py-2 border-t border-border/50 bg-muted/30 flex-wrap">
