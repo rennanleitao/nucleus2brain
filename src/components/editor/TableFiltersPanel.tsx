@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { Editor } from "@tiptap/react";
-import { Plus, Trash2, MoreHorizontal, Columns3, Rows3, X } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Trash2, Columns3, Rows3, BetweenHorizontalStart, BetweenVerticalStart } from "lucide-react";
 
 interface TableMeta {
   id: string;
@@ -224,6 +217,21 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
 
   if (!tables.length || !editor) return null;
 
+  const actions: Array<{
+    key: string;
+    label: string;
+    icon: typeof Trash2;
+    command: "addColumnAfter" | "addRowAfter" | "deleteColumn" | "deleteRow" | "deleteTable";
+    target: "first" | "last" | "current";
+    destructive?: boolean;
+  }> = [
+    { key: "add-col", label: "Coluna", icon: BetweenVerticalStart, command: "addColumnAfter", target: "current" },
+    { key: "add-row", label: "Linha", icon: BetweenHorizontalStart, command: "addRowAfter", target: "current" },
+    { key: "del-col", label: "Coluna", icon: Columns3, command: "deleteColumn", target: "current", destructive: true },
+    { key: "del-row", label: "Linha", icon: Rows3, command: "deleteRow", target: "current", destructive: true },
+    { key: "del-tbl", label: "Tabela", icon: Trash2, command: "deleteTable", target: "first", destructive: true },
+  ];
+
   return (
     <div data-table-controls className="pointer-events-none absolute inset-0 z-10">
       {tables.map((meta) => {
@@ -233,6 +241,7 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
         return (
           <div
             key={meta.id}
+            data-table-controls
             className="pointer-events-none absolute"
             style={{
               top: meta.top,
@@ -241,101 +250,43 @@ export function TableFiltersPanel({ editor, containerRef }: TableFiltersPanelPro
               height: meta.height,
             }}
           >
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="pointer-events-auto absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground"
-                  title="Opções da tabela"
-                  onPointerDown={(event) => event.stopPropagation()}
-                >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    runTableCommand(meta.id, "addColumnAfter", "last");
-                  }}
-                >
-                  <Columns3 className="h-4 w-4 mr-2" /> Adicionar coluna
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    runTableCommand(meta.id, "addRowAfter", "last");
-                  }}
-                >
-                  <Rows3 className="h-4 w-4 mr-2" /> Adicionar linha
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    runTableCommand(meta.id, "deleteColumn", "current");
-                  }}
-                >
-                  <X className="h-4 w-4 mr-2" /> Remover coluna atual
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    runTableCommand(meta.id, "deleteRow", "current");
-                  }}
-                >
-                  <X className="h-4 w-4 mr-2" /> Remover linha atual
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    runTableCommand(meta.id, "deleteTable", "first");
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" /> Excluir tabela
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* "+" on right edge to add column */}
-            <button
-              type="button"
-              title="Adicionar coluna"
+            <div
+              className="pointer-events-auto absolute left-1/2 -translate-x-1/2 -top-12 flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1.5 shadow-lg"
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                runTableCommand(meta.id, "addColumnAfter", "last");
-              }}
-              className="pointer-events-auto absolute flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110"
-              style={{
-                top: meta.height / 2 - 11,
-                left: meta.width - 11,
-                width: 22,
-                height: 22,
-              }}
             >
-              <Plus className="h-3 w-3" />
-            </button>
-
-            {/* "+" on bottom edge to add row */}
-            <button
-              type="button"
-              title="Adicionar linha"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                runTableCommand(meta.id, "addRowAfter", "last");
-              }}
-              className="pointer-events-auto absolute flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110"
-              style={{
-                top: meta.height - 11,
-                left: meta.width / 2 - 11,
-                width: 22,
-                height: 22,
-              }}
-            >
-              <Plus className="h-3 w-3" />
-            </button>
+              {actions.map((action, idx) => {
+                const Icon = action.icon;
+                const showSeparatorBefore = idx === 2;
+                return (
+                  <div key={action.key} className="flex items-center">
+                    {showSeparatorBefore && <div className="mx-1 h-5 w-px bg-border" />}
+                    <button
+                      type="button"
+                      title={
+                        action.command === "addColumnAfter"
+                          ? "Adicionar coluna"
+                          : action.command === "addRowAfter"
+                          ? "Adicionar linha"
+                          : action.command === "deleteColumn"
+                          ? "Remover coluna"
+                          : action.command === "deleteRow"
+                          ? "Remover linha"
+                          : "Excluir tabela"
+                      }
+                      onClick={() => runTableCommand(meta.id, action.command, action.target)}
+                      className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                        action.destructive
+                          ? "text-destructive hover:bg-destructive/10"
+                          : "text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{action.label}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}
