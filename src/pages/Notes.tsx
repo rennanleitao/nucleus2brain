@@ -626,9 +626,9 @@ export default function Notes() {
                     placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
                     className="border-0 rounded-none min-h-full"
                     allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
+                    onLinkNote={() => setLinkNoteOpen(true)}
                     onNoteLinkClick={(noteId) => {
-                      const note = notes.find(n => n.id === noteId);
-                      if (note) selectNote(note);
+                      setPreviewNoteId(noteId);
                     }}
                     onCreateSubNote={async (title) => {
                       try {
