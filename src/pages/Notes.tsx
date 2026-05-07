@@ -683,6 +683,28 @@ export default function Notes() {
                   onConfirm={handleMoveOrReplicate}
                 />
               )}
+
+              <LinkNoteDialog
+                open={linkNoteOpen}
+                onOpenChange={setLinkNoteOpen}
+                notes={notes.map(n => ({ id: n.id, title: n.title }))}
+                excludeId={selectedNote?.id}
+                onSelect={(n) => {
+                  editorRef.current?.insertNoteMention(n);
+                  setDirty(true);
+                }}
+              />
+
+              <NotePreviewDialog
+                noteId={previewNoteId}
+                open={!!previewNoteId}
+                onOpenChange={(o) => { if (!o) setPreviewNoteId(null); }}
+                onOpenFull={(id) => {
+                  const n = notes.find(x => x.id === id);
+                  if (n) selectNote(n);
+                  load();
+                }}
+              />
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center relative">
