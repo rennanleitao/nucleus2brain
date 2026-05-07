@@ -256,6 +256,18 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       onChange(editor.getHTML());
       return titles;
     },
+    insertNoteMention: (note: { id: string; title: string }) => {
+      if (!editor) return;
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          { type: "mention", attrs: { id: note.id, label: note.title } },
+          { type: "text", text: " " },
+        ])
+        .run();
+      onChange(editor.getHTML());
+    },
   }), [editor, onChange]);
 
   useEffect(() => {
