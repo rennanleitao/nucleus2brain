@@ -51,6 +51,8 @@ export default function Notes() {
   const [moveMode, setMoveMode] = useState<"move" | "replicate">("move");
   const [listCollapsed, setListCollapsed] = useState(false);
   const autosaveEnabled = true;
+  const [linkNoteOpen, setLinkNoteOpen] = useState(false);
+  const [previewNoteId, setPreviewNoteId] = useState<string | null>(null);
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
