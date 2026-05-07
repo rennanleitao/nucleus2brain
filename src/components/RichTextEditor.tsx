@@ -390,6 +390,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         >
           <TableIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
+        {onLinkNote && (
+          <ToolbarButton onClick={onLinkNote} title="Vincular nota">
+            <Link2 className="h-3.5 w-3.5" />
+          </ToolbarButton>
+        )}
         {onCreateSubNote && (
           <ToolbarButton onClick={handleInsertSubNote} title="Criar sub-nota">
             <FilePlus className="h-3.5 w-3.5" />
