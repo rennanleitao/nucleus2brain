@@ -45,10 +45,12 @@ interface RichTextEditorProps {
   allNotes?: { id: string; title: string }[];
   onNoteLinkClick?: (noteId: string) => void;
   onCreateSubNote?: (title: string) => void;
+  onLinkNote?: () => void;
 }
 
 export interface RichTextEditorHandle {
   processTaskPatterns: () => string[];
+  insertNoteMention: (note: { id: string; title: string }) => void;
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
