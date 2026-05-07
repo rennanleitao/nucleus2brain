@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code, FilePlus,
-  Table as TableIcon,
+  Table as TableIcon, Link2,
 } from "lucide-react";
 import { TableFiltersPanel } from "@/components/editor/TableFiltersPanel";
 import { Iframe } from "@/components/editor/IframeExtension";
@@ -45,15 +45,17 @@ interface RichTextEditorProps {
   allNotes?: { id: string; title: string }[];
   onNoteLinkClick?: (noteId: string) => void;
   onCreateSubNote?: (title: string) => void;
+  onLinkNote?: () => void;
 }
 
 export interface RichTextEditorHandle {
   processTaskPatterns: () => string[];
+  insertNoteMention: (note: { id: string; title: string }) => void;
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick, spaceId = null, onTaskCreated,
-  allNotes = [], onNoteLinkClick, onCreateSubNote,
+  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -254,6 +256,18 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       onChange(editor.getHTML());
       return titles;
     },
+    insertNoteMention: (note: { id: string; title: string }) => {
+      if (!editor) return;
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          { type: "mention", attrs: { id: note.id, label: note.title } },
+          { type: "text", text: " " },
+        ])
+        .run();
+      onChange(editor.getHTML());
+    },
   }), [editor, onChange]);
 
   useEffect(() => {
@@ -376,6 +390,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         >
           <TableIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
+        {onLinkNote && (
+          <ToolbarButton onClick={onLinkNote} title="Vincular nota">
+            <Link2 className="h-3.5 w-3.5" />
+          </ToolbarButton>
+        )}
         {onCreateSubNote && (
           <ToolbarButton onClick={handleInsertSubNote} title="Criar sub-nota">
             <FilePlus className="h-3.5 w-3.5" />

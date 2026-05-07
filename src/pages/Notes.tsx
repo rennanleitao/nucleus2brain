@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
+import { LinkNoteDialog } from "@/components/LinkNoteDialog";
+import { NotePreviewDialog } from "@/components/NotePreviewDialog";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
@@ -49,6 +51,8 @@ export default function Notes() {
   const [moveMode, setMoveMode] = useState<"move" | "replicate">("move");
   const [listCollapsed, setListCollapsed] = useState(false);
   const autosaveEnabled = true;
+  const [linkNoteOpen, setLinkNoteOpen] = useState(false);
+  const [previewNoteId, setPreviewNoteId] = useState<string | null>(null);
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -622,9 +626,9 @@ export default function Notes() {
                     placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
                     className="border-0 rounded-none min-h-full"
                     allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
+                    onLinkNote={() => setLinkNoteOpen(true)}
                     onNoteLinkClick={(noteId) => {
-                      const note = notes.find(n => n.id === noteId);
-                      if (note) selectNote(note);
+                      setPreviewNoteId(noteId);
                     }}
                     onCreateSubNote={async (title) => {
                       try {
@@ -679,6 +683,28 @@ export default function Notes() {
                   onConfirm={handleMoveOrReplicate}
                 />
               )}
+
+              <LinkNoteDialog
+                open={linkNoteOpen}
+                onOpenChange={setLinkNoteOpen}
+                notes={notes.map(n => ({ id: n.id, title: n.title }))}
+                excludeId={selectedNote?.id}
+                onSelect={(n) => {
+                  editorRef.current?.insertNoteMention(n);
+                  setDirty(true);
+                }}
+              />
+
+              <NotePreviewDialog
+                noteId={previewNoteId}
+                open={!!previewNoteId}
+                onOpenChange={(o) => { if (!o) setPreviewNoteId(null); }}
+                onOpenFull={(id) => {
+                  const n = notes.find(x => x.id === id);
+                  if (n) selectNote(n);
+                  load();
+                }}
+              />
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center relative">
