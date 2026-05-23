@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["'Inter'", "system-ui", "-apple-system", "'Segoe UI'", "Roboto", "Arial", "sans-serif"],
+        sans: ["'Figtree'", "'Inter'", "system-ui", "-apple-system", "'Segoe UI'", "Roboto", "sans-serif"],
+        display: ["'Outfit'", "'Figtree'", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "monospace"],
       },
       colors: {
