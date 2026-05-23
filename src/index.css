@@ -146,9 +146,11 @@
     touch-action: manipulation;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-sans);
-    letter-spacing: -0.01em;
+  h1, h2, h3, h4, h5, h6,
+  .text-title, .text-h1, .text-h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.018em;
+    font-weight: 600;
   }
 
   h1 {
