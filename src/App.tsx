@@ -24,6 +24,7 @@ import Pomodoro from "./pages/Pomodoro";
 import SharedNote from "./pages/SharedNote";
 import MaterialsPage from "./pages/MaterialsPage";
 import NotFound from "./pages/NotFound";
+import ChatGPTIntegration from "./pages/ChatGPTIntegration";
 
 
 const queryClient = new QueryClient();
