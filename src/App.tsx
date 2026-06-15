@@ -24,6 +24,7 @@ import Pomodoro from "./pages/Pomodoro";
 import SharedNote from "./pages/SharedNote";
 import MaterialsPage from "./pages/MaterialsPage";
 import NotFound from "./pages/NotFound";
+import ChatGPTIntegration from "./pages/ChatGPTIntegration";
 
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ function AppRoutes() {
             <Route path="/import" element={<ImportPage />} />
             
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/integrations/chatgpt" element={<ChatGPTIntegration />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route path="/shared/:token" element={<SharedNote />} />
         <Route path="*" element={<NotFound />} />
