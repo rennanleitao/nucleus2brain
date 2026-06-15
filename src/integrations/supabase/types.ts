@@ -379,6 +379,123 @@ export type Database = {
           },
         ]
       }
+      oauth_clients: {
+        Row: {
+          client_id: string
+          client_name: string
+          client_secret_hash: string | null
+          created_at: string
+          grant_types: string[]
+          id: string
+          redirect_uris: string[]
+          scope: string
+          token_endpoint_auth_method: string
+        }
+        Insert: {
+          client_id: string
+          client_name?: string
+          client_secret_hash?: string | null
+          created_at?: string
+          grant_types?: string[]
+          id?: string
+          redirect_uris?: string[]
+          scope?: string
+          token_endpoint_auth_method?: string
+        }
+        Update: {
+          client_id?: string
+          client_name?: string
+          client_secret_hash?: string | null
+          created_at?: string
+          grant_types?: string[]
+          id?: string
+          redirect_uris?: string[]
+          scope?: string
+          token_endpoint_auth_method?: string
+        }
+        Relationships: []
+      }
+      oauth_codes: {
+        Row: {
+          client_id: string
+          code: string
+          code_challenge: string
+          code_challenge_method: string
+          created_at: string
+          expires_at: string
+          redirect_uri: string
+          scope: string
+          supabase_refresh_token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          code: string
+          code_challenge: string
+          code_challenge_method?: string
+          created_at?: string
+          expires_at: string
+          redirect_uri: string
+          scope?: string
+          supabase_refresh_token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          code?: string
+          code_challenge?: string
+          code_challenge_method?: string
+          created_at?: string
+          expires_at?: string
+          redirect_uri?: string
+          scope?: string
+          supabase_refresh_token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oauth_refresh_tokens: {
+        Row: {
+          client_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          last_used_at: string | null
+          revoked_at: string | null
+          scope: string
+          supabase_refresh_token: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          scope?: string
+          supabase_refresh_token: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          scope?: string
+          supabase_refresh_token?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
