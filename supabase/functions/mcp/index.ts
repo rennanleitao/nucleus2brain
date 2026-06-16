@@ -699,9 +699,11 @@ app.all("*", async (c) => {
   // ChatGPT refreshes the action catalog through tools/list and is more reliable
   // when the server returns plain JSON instead of an SSE-wrapped JSON-RPC result.
   const mcpReq = req.method === "POST"
-    ? new Request(req, {
-      headers: new Headers({ ...Object.fromEntries(req.headers), Accept: "application/json" }),
-    })
+    ? (() => {
+      const headers = new Headers(req.headers);
+      headers.set("Accept", "application/json");
+      return new Request(req, { headers });
+    })()
     : req;
   const res = await handleMcpRequest(mcpReq, {
     authInfo: { token: auth.token, clientId: auth.user.id, scopes: [] },
