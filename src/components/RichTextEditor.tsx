@@ -47,6 +47,7 @@ interface RichTextEditorProps {
   onCreateSubNote?: (title: string) => void;
   onLinkNote?: () => void;
   onSelectionChange?: (hasSelection: boolean) => void;
+  toolbarExtra?: React.ReactNode;
 }
 
 export interface RichTextEditorHandle {
