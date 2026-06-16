@@ -77,24 +77,38 @@ const buildServer = (ctx: Ctx) => {
   // co-authors: preserve structure, format for human reading, and date every
   // contribution.
   const NOTE_STYLE_GUIDE = [
-    "FORMAT: Write Markdown ready for a rich-text editor.",
-    "- Use ##/### headings and short paragraphs. Avoid long walls of text.",
-    "- Prefer bullet/numbered lists for points, decisions, next steps.",
-    "- Separate sections with a blank line. Bold key terms sparingly.",
-    "DATES: Always make dates explicit in DD-MM-YYYY format (BRT). Never write",
-    "vague refs like 'this week' without an absolute date next to it.",
-    "STRUCTURE: When relevant, organize content into clear sections such as",
-    "Contexto / Principais pontos / Decisões / Próximos passos / Conhecimento",
-    "relacionado. Keep historical context and action items in separate sections.",
-    "SOURCES: When adding external knowledge, cite it: title, URL, captured_at",
-    "(DD-MM-YYYY), short summary, key insights — in a dedicated subsection.",
+    "PRESERVE FIRST: Before writing, inspect the existing note. If it already",
+    "follows a template or has a clear structure (headings, sections, lists),",
+    "respect it and write your additions INSIDE that structure — never replace,",
+    "reorder or normalize what is already there. Do not impose a new template.",
+    "INCREMENTAL: When the request is to complement, only ADD new content.",
+    "Never rewrite the whole note. Prefer append_to_note / append_section_to_note;",
+    "use update_note.content only when you intentionally re-emit the original",
+    "content verbatim plus your additions.",
+    "READABILITY: Optimize for human reading.",
+    "- One idea per paragraph. Keep paragraphs short (1–3 sentences).",
+    "- Leave a blank line between distinct subjects.",
+    "- Use bullet/numbered lists for enumerable points.",
+    "- Avoid long walls of running text.",
+    "- Bold key terms sparingly; do not over-format.",
+    "DATES: Make dates explicit in DD-MM-YYYY (BRT) whenever there is context.",
+    "Never write vague references like 'this week' without an absolute date.",
+    "LIGHT STRUCTURE WHEN NO TEMPLATE: If the note has no template, do not force",
+    "one. Just organize ideas in clean paragraphs, and — only when the content",
+    "naturally calls for it — separate Contexto, Decisões, Próximos passos and",
+    "Referências externas into distinct paragraphs or short subsections.",
+    "SOURCES: When citing external knowledge, keep it in its own paragraph or",
+    "subsection with title, URL, captured_at (DD-MM-YYYY) and a brief summary,",
+    "so it never gets mixed with the user's own notes.",
   ].join(" ");
+
 
   s.tool("create_note", {
     description:
-      "Create a new note. tags is an array of plain strings. " +
-      "Write the body as well-structured Markdown so it renders cleanly in the " +
-      "Nucleus rich editor. " + NOTE_STYLE_GUIDE,
+      "Create a new note. tags is an array of plain strings. Write the body as " +
+      "clean Markdown organized in short, readable paragraphs. If the target " +
+      "Space has an established convention, mirror it; otherwise keep the " +
+      "structure light and let the content shape itself. " + NOTE_STYLE_GUIDE,
     inputSchema: z.object({
       title: z.string().min(1).max(500),
       content: z.string().optional(),
@@ -117,12 +131,13 @@ const buildServer = (ctx: Ctx) => {
   s.tool("update_note", {
     description:
       "Update fields of an existing note. Only provided fields change. " +
-      "IMPORTANT: passing `content` REPLACES the entire body. Before overwriting, " +
-      "ALWAYS call get_note first and preserve existing headings, lists, and " +
-      "structure — act as a co-author that enriches, never as a rewriter. " +
-      "Prefer `append_to_note` or `append_section_to_note` for incremental " +
-      "enrichment; only use `update_note.content` when you have re-emitted the " +
-      "full original content plus your additions. " + NOTE_STYLE_GUIDE,
+      "CRITICAL: passing `content` REPLACES the entire body. ALWAYS call " +
+      "get_note first, preserve the existing template/structure, headings and " +
+      "lists, and act as a co-author that enriches — never as a rewriter. " +
+      "If the user only asked to complement the note, do NOT use update_note.content; " +
+      "use append_to_note or append_section_to_note instead. Only fall back to " +
+      "update_note.content when you have re-emitted the full original content " +
+      "verbatim plus your additions. " + NOTE_STYLE_GUIDE,
     inputSchema: z.object({
       id: z.string().uuid(),
       title: z.string().min(1).max(500).optional(),
@@ -144,9 +159,12 @@ const buildServer = (ctx: Ctx) => {
   s.tool("append_to_note", {
     description:
       "Append Markdown to the end of a note, separated by a blank line. " +
-      "Preferred over update_note for incremental enrichment — preserves the " +
-      "existing structure. Start your addition with a heading (## or ###) so " +
-      "it visually separates from prior content. " + NOTE_STYLE_GUIDE,
+      "PREFERRED tool for incremental enrichment — it preserves the existing " +
+      "template and structure untouched. Before writing, read the note to match " +
+      "its tone and section conventions. Start your addition with a short " +
+      "heading (## or ###) or a clear paragraph lead so it visually separates " +
+      "from prior content, and keep paragraphs short with one idea each. " + NOTE_STYLE_GUIDE,
+
     inputSchema: z.object({
       id: z.string().uuid(),
       content: z.string().min(1),
