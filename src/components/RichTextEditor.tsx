@@ -51,6 +51,12 @@ interface RichTextEditorProps {
 export interface RichTextEditorHandle {
   processTaskPatterns: () => string[];
   insertNoteMention: (note: { id: string; title: string }) => void;
+  isEmpty: () => boolean;
+  getSelectionText: () => string;
+  getDocText: () => string;
+  insertHtml: (html: string) => void;
+  replaceSelectionWithHtml: (html: string) => void;
+  setHtml: (html: string) => void;
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
@@ -266,6 +272,40 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           { type: "text", text: " " },
         ])
         .run();
+      onChange(editor.getHTML());
+    },
+    isEmpty: () => {
+      if (!editor) return true;
+      return editor.isEmpty || !editor.getText().trim();
+    },
+    getSelectionText: () => {
+      if (!editor) return "";
+      const { from, to } = editor.state.selection;
+      if (from === to) return "";
+      return editor.state.doc.textBetween(from, to, "\n").trim();
+    },
+    getDocText: () => {
+      if (!editor) return "";
+      return editor.getText().trim();
+    },
+    insertHtml: (html: string) => {
+      if (!editor) return;
+      editor.chain().focus("end").insertContent(html).run();
+      onChange(editor.getHTML());
+    },
+    replaceSelectionWithHtml: (html: string) => {
+      if (!editor) return;
+      const { from, to } = editor.state.selection;
+      if (from === to) {
+        editor.commands.setContent(html);
+      } else {
+        editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, html).run();
+      }
+      onChange(editor.getHTML());
+    },
+    setHtml: (html: string) => {
+      if (!editor) return;
+      editor.commands.setContent(html);
       onChange(editor.getHTML());
     },
   }), [editor, onChange]);
