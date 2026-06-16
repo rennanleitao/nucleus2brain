@@ -10,6 +10,7 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
+import { Details, DetailsSummary, DetailsContent } from "@tiptap/extension-details";
 import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef, useState } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import { supabase } from "@/integrations/supabase/client";
