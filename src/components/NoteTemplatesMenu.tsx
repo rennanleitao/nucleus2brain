@@ -10,7 +10,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileStack, Loader2, Pencil, Settings2, Sparkles, Trash2, Copy } from "lucide-react";
+import { FileStack, Loader2, Pencil, Settings2, Sparkles, Trash2 } from "lucide-react";
 import { BUILT_IN_TEMPLATES, type NoteTemplate } from "@/lib/noteTemplates";
 import { ManageTemplatesDialog } from "@/components/ManageTemplatesDialog";
 
