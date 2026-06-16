@@ -57,6 +57,7 @@ export default function Notes() {
   const [previewNoteId, setPreviewNoteId] = useState<string | null>(null);
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hasSelection, setHasSelection] = useState(false);
 
   const load = async () => {
     try {
