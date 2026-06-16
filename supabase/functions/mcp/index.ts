@@ -81,13 +81,13 @@ const buildServer = (ctx: Ctx) => {
     "- Use ##/### headings and short paragraphs. Avoid long walls of text.",
     "- Prefer bullet/numbered lists for points, decisions, next steps.",
     "- Separate sections with a blank line. Bold key terms sparingly.",
-    "DATES: Always make dates explicit (YYYY-MM-DD). Never write vague refs",
-    "like 'this week' without an absolute date next to it.",
+    "DATES: Always make dates explicit in DD-MM-YYYY format (BRT). Never write",
+    "vague refs like 'this week' without an absolute date next to it.",
     "STRUCTURE: When relevant, organize content into clear sections such as",
     "Contexto / Principais pontos / Decisões / Próximos passos / Conhecimento",
     "relacionado. Keep historical context and action items in separate sections.",
     "SOURCES: When adding external knowledge, cite it: title, URL, captured_at",
-    "(YYYY-MM-DD), short summary, key insights — in a dedicated subsection.",
+    "(DD-MM-YYYY), short summary, key insights — in a dedicated subsection.",
   ].join(" ");
 
   s.tool("create_note", {
