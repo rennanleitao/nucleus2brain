@@ -187,11 +187,11 @@ const buildServer = (ctx: Ctx) => {
         title: z.string().optional(),
         url: z.string().url().optional(),
         captured_at: z.string().optional()
-          .describe("Date the source was captured (YYYY-MM-DD). Defaults to today."),
+          .describe("Date the source was captured (DD-MM-YYYY). Defaults to today."),
       }).optional()
         .describe("Citation for external knowledge added to the note."),
       event_date: z.string().optional()
-        .describe("Date the underlying event/meeting happened (YYYY-MM-DD)."),
+        .describe("Date the underlying event/meeting happened (DD-MM-YYYY)."),
     }),
     handler: async (input) => {
       const { data: note, error: gErr } = await db.from("notes")
