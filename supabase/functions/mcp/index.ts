@@ -694,7 +694,20 @@ app.all("*", async (c) => {
   const supabase = clientFor(auth.token);
   const server = buildServer({ userId: auth.user.id, supabase });
   const transport = new StreamableHttpTransport();
-  const res = await transport.handleRequest(req, server);
+  const handleMcpRequest = transport.bind(server);
+
+  // ChatGPT refreshes the action catalog through tools/list and is more reliable
+  // when the server returns plain JSON instead of an SSE-wrapped JSON-RPC result.
+  const mcpReq = req.method === "POST"
+    ? (() => {
+      const headers = new Headers(req.headers);
+      headers.set("Accept", "application/json");
+      return new Request(req, { headers });
+    })()
+    : req;
+  const res = await handleMcpRequest(mcpReq, {
+    authInfo: { token: auth.token, clientId: auth.user.id, scopes: [] },
+  });
   // Merge CORS headers into response
   const headers = new Headers(res.headers);
   for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
