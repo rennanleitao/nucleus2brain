@@ -2,9 +2,8 @@
 // Validates the live /functions/v1/mcp endpoint:
 //   1. Returns 401 + WWW-Authenticate when called without a Bearer token.
 //   2. Responds to JSON-RPC `initialize` handshake.
-//   3. `tools/list` returns a valid catalog where every tool has a
-//      name, description, and a JSON-Schema `inputSchema` of type "object".
-//   4. Required tool names (the ones promised to ChatGPT) are all present.
+//   3. `tools/list` returns a valid catalog containing only the temporary
+//      minimal `ping` tool while ChatGPT discovery is being isolated.
 //
 // Auth: signs in via Supabase password grant using TEST_USER_EMAIL /
 // TEST_USER_PASSWORD from the .env file. If those are absent, the
@@ -20,18 +19,7 @@ const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!;
 const MCP_URL = `${SUPABASE_URL}/functions/v1/mcp`;
 
-const REQUIRED_TOOLS = [
-  "list_spaces",
-  "get_space",
-  "list_notes",
-  "search_notes",
-  "create_note",
-  "update_note",
-  "list_tasks",
-  "create_task",
-  "update_task",
-  "complete_task",
-];
+const TEMPORARY_TOOLS = ["ping"];
 
 function jsonRpc(id: number, method: string, params: unknown = {}) {
   return JSON.stringify({ jsonrpc: "2.0", id, method, params });
@@ -78,7 +66,7 @@ Deno.test("MCP: unauthenticated request returns 401 with WWW-Authenticate", asyn
   JSON.parse(text);
 });
 
-Deno.test("MCP: initialize + tools/list returns a valid catalog", async () => {
+Deno.test("MCP: initialize + tools/list returns only the temporary ping tool", async () => {
   const token = await signIn();
   if (!token) {
     console.warn(
@@ -116,7 +104,7 @@ Deno.test("MCP: initialize + tools/list returns a valid catalog", async () => {
     description?: string;
     inputSchema?: Record<string, unknown>;
   }>;
-  assert(Array.isArray(tools) && tools.length > 0, "tools array must be non-empty");
+  assert(Array.isArray(tools), "tools must be an array");
 
   // Every tool: name, description, inputSchema (object JSON Schema)
   const seen = new Set<string>();
@@ -141,7 +129,9 @@ Deno.test("MCP: initialize + tools/list returns a valid catalog", async () => {
     );
   }
 
-  // All required tools must be exposed
-  const missing = REQUIRED_TOOLS.filter((n) => !seen.has(n));
-  assertEquals(missing, [], `missing required tools: ${missing.join(", ")}`);
+  assertEquals([...seen].sort(), TEMPORARY_TOOLS, `unexpected tools payload: ${text}`);
+
+  const ping = tools.find((t) => t.name === "ping");
+  assertExists(ping, `ping tool missing from tools/list: ${text}`);
+  assertEquals(ping.description, "Simple connectivity test");
 });
