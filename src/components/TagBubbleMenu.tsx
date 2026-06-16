@@ -279,8 +279,8 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
 
       {/* AI Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className={previewMode === "meeting" ? "sm:max-w-2xl max-h-[80vh] overflow-y-auto" : "sm:max-w-lg"}>
-          <DialogHeader>
+        <DialogContent className={`${previewMode === "meeting" ? "sm:max-w-2xl" : "sm:max-w-lg"} max-h-[85vh] flex flex-col gap-0 p-0`}>
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
             <DialogTitle className="flex items-center gap-2 text-sm">
               {previewMode === "meeting" ? (
                 <ClipboardList className="h-4 w-4" />
@@ -290,7 +290,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
               {previewMode === "meeting" ? "Meeting Notes Organizadas" : "Confirmar alteração"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-y-auto px-6 flex-1 min-h-0">
             {previewMode !== "meeting" && (
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground mb-1">Original</p>
@@ -338,7 +338,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
               </div>
             )}
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 sm:gap-0 px-6 py-4 border-t bg-background shrink-0">
             <Button variant="outline" size="sm" onClick={handleRejectPreview} className="gap-1.5">
               <X className="h-3.5 w-3.5" />
               Descartar
@@ -350,6 +350,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Create Task Dialog */}
       <CreateTaskDialog
