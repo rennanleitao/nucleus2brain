@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { text, mode, extraInstructions } = await req.json();
+    const { text, mode, extraInstructions, templateName, templateStructure } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -44,6 +44,20 @@ Lista de ações de seguimento identificadas, com responsáveis (se mencionados)
 IMPORTANTE: Adicione uma linha em branco após cada título de seção e entre cada bullet point para melhor legibilidade.
 
 ${extraInstructions ? `INSTRUÇÕES ADICIONAIS DO USUÁRIO (aplique estas orientações na organização):\n${extraInstructions}\n\n` : ""}Retorne APENAS o conteúdo reorganizado em Markdown, sem explicações adicionais antes ou depois:\n\n${text}`,
+      template: `Você é um especialista em organizar anotações. Reorganize o TEXTO ORIGINAL abaixo seguindo EXATAMENTE a estrutura do TEMPLATE "${templateName || "Personalizado"}".
+
+Regras obrigatórias:
+- Mantenha o mesmo idioma do texto original.
+- Preserve as informações relevantes; não invente fatos.
+- Use os mesmos títulos, seções, listas e separadores do template.
+- Se o texto original não tiver informação para alguma seção, mantenha a seção com um item vazio ou um placeholder curto entre parênteses.
+- Retorne APENAS HTML válido seguindo o esqueleto do template. Use as tags: h1, h2, h3, p, ul, ol, li, hr, strong, em. Não inclua <html>, <body>, <head>, <style> nem comentários. Não use blocos de código markdown.
+
+TEMPLATE (esqueleto HTML de referência):
+${templateStructure || ""}
+
+${extraInstructions ? `INSTRUÇÕES ADICIONAIS DO USUÁRIO:\n${extraInstructions}\n\n` : ""}TEXTO ORIGINAL:
+${text}`,
     };
 
     const systemPrompt = prompts[mode] || prompts.improve;

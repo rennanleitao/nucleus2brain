@@ -19,6 +19,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
 import { LinkNoteDialog } from "@/components/LinkNoteDialog";
 import { NotePreviewDialog } from "@/components/NotePreviewDialog";
+import { NoteTemplatesMenu } from "@/components/NoteTemplatesMenu";
+import type { NoteTemplate } from "@/lib/noteTemplates";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
@@ -55,6 +57,7 @@ export default function Notes() {
   const [previewNoteId, setPreviewNoteId] = useState<string | null>(null);
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hasSelection, setHasSelection] = useState(false);
 
   const load = async () => {
     try {
@@ -280,6 +283,59 @@ export default function Notes() {
     setSelectedNote(null);
   };
 
+  const handleApplyTemplate = async (template: NoteTemplate, action: "insert" | "organize") => {
+    if (!selectedNote) return;
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Replace mode encoded via id suffix from menu
+    const forceReplace = template.id.endsWith(":replace");
+    const templateContent = template.content;
+
+    if (action === "insert") {
+      if (forceReplace || editor.isEmpty()) {
+        editor.setHtml(templateContent);
+      } else {
+        editor.insertHtml(templateContent);
+      }
+      setDirty(true);
+      toast.success(`Template "${template.name.replace(/:replace$/, "")}" aplicado`);
+      return;
+    }
+
+    // organize: use selection if any, else full doc
+    const selected = editor.getSelectionText();
+    const sourceText = selected || editor.getDocText();
+    if (!sourceText) {
+      toast.info("Não há conteúdo para organizar");
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("improve-text", {
+        body: {
+          text: sourceText,
+          mode: "template",
+          templateName: template.name,
+          templateStructure: templateContent,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const html = (data?.improved || "").trim();
+      if (!html) throw new Error("Resposta vazia da IA");
+      if (selected) {
+        editor.replaceSelectionWithHtml(html);
+      } else {
+        editor.setHtml(html);
+      }
+      setDirty(true);
+      toast.success(`Conteúdo organizado com "${template.name}"`);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao organizar com template");
+    }
+  };
+
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
@@ -482,6 +538,11 @@ export default function Notes() {
                     {!dirty && autosaveEnabled && selectedNote && (
                       <span className="text-[10px] text-muted-foreground">Salvo ✓</span>
                     )}
+                    <NoteTemplatesMenu
+                      hasSelection={hasSelection}
+                      isEmpty={!editContent || !editContent.replace(/<[^>]+>/g, "").trim()}
+                      onApply={handleApplyTemplate}
+                    />
                     <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary"
                       onClick={() => setShareOpen(true)}>
                       <Share2 className="h-4 w-4" />
@@ -627,6 +688,7 @@ export default function Notes() {
                     className="border-0 rounded-none min-h-full"
                     allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
                     onLinkNote={() => setLinkNoteOpen(true)}
+                    onSelectionChange={setHasSelection}
                     onNoteLinkClick={(noteId) => {
                       setPreviewNoteId(noteId);
                     }}
