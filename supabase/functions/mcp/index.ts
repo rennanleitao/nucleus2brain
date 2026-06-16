@@ -198,7 +198,15 @@ const buildServer = (ctx: Ctx) => {
         .select("content").eq("id", input.id).single();
       if (gErr) return fail(gErr.message);
 
-      const today = new Date().toISOString().slice(0, 10);
+      // Today in BRT (America/Sao_Paulo), formatted DD-MM-YYYY.
+      const parts = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: "2-digit", month: "2-digit", year: "numeric",
+      }).formatToParts(new Date());
+      const dd = parts.find((p) => p.type === "day")!.value;
+      const mm = parts.find((p) => p.type === "month")!.value;
+      const yyyy = parts.find((p) => p.type === "year")!.value;
+      const today = `${dd}-${mm}-${yyyy}`;
       const h = "#".repeat(input.heading_level ?? 2);
       const lines: string[] = [];
       lines.push(`${h} ${input.heading}`);
