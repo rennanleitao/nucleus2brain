@@ -120,11 +120,22 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
 
   const handleAcceptPreview = () => {
     if (previewRange && previewImproved) {
-      editor.chain().focus().deleteRange(previewRange).insertContentAt(previewRange.from, previewImproved).run();
+      // Meeting mode returns Markdown; convert to HTML so TipTap parses it
+      // into real headings, lists and bold instead of inserting raw `**` and `*`.
+      const payload = previewMode === "meeting"
+        ? marked.parse(previewImproved, { async: false, breaks: true }) as string
+        : previewImproved;
+      editor
+        .chain()
+        .focus()
+        .deleteRange(previewRange)
+        .insertContentAt(previewRange.from, payload)
+        .run();
       toast.success("Texto atualizado");
     }
     setPreviewOpen(false);
   };
+
 
   const handleRejectPreview = () => {
     setPreviewOpen(false);
