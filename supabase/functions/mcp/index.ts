@@ -62,23 +62,14 @@ const buildServer = (ctx: Ctx) => {
   const s = new McpServer({ name: "nucleus-mcp", version: "0.1.0", schemaAdapter: (schema) => zodToJsonSchema(schema as any) });
   const db = ctx.supabase;
 
-  // Temporary isolation for ChatGPT discovery debugging: expose only one
-  // minimal tool so we can confirm whether the failure is in handshake/OAuth
-  // or in one of the full catalog schemas.
   s.tool("ping", {
     description: "Simple connectivity test",
     inputSchema: z.object({}),
     handler: async () => ({
-      content: [
-        {
-          type: "text" as const,
-          text: "pong",
-        },
-      ],
+      content: [{ type: "text" as const, text: "pong" }],
     }),
   });
 
-  return s;
 
   // ---------- NOTES ----------
   s.tool("create_note", {
