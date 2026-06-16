@@ -417,6 +417,10 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           active={editor.isActive("taskList")} title="Checklist">
           <CheckSquare className="h-3.5 w-3.5" />
         </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().setDetails().run()}
+          active={editor.isActive("details")} title="Toggle (lista colapsável)">
+          <ChevronRight className="h-3.5 w-3.5" />
+        </ToolbarButton>
 
         <Separator orientation="vertical" className="h-4 mx-1.5 bg-border/40" />
 
