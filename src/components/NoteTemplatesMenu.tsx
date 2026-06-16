@@ -10,7 +10,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileStack, Loader2, Pencil, Settings2, Sparkles, Trash2 } from "lucide-react";
+import { FileStack, Loader2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { BUILT_IN_TEMPLATES, type NoteTemplate } from "@/lib/noteTemplates";
 import { ManageTemplatesDialog } from "@/components/ManageTemplatesDialog";
 
@@ -25,8 +25,8 @@ interface Props {
 
 export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply, compact = false }: Props) {
   const [userTemplates, setUserTemplates] = useState<NoteTemplate[]>([]);
-  const [manageOpen, setManageOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<{ id?: string; name: string; content: string } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirmReplace, setConfirmReplace] = useState<NoteTemplate | null>(null);
 
@@ -42,6 +42,11 @@ export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply, compact = fa
   };
 
   useEffect(() => { load(); }, []);
+
+  const openEditor = (tpl: { id?: string; name: string; content: string } | null) => {
+    setEditingTemplate(tpl);
+    setDialogOpen(true);
+  };
 
   const handleSelect = async (t: NoteTemplate) => {
     if (hasSelection) {
@@ -59,21 +64,26 @@ export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply, compact = fa
     finally { setLoading(false); }
   };
 
-  const duplicateBuiltIn = async (t: NoteTemplate) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error("Faça login"); return; }
-      const { data, error } = await supabase
-        .from("note_templates")
-        .insert({ name: `${t.name} (cópia)`, content: t.content, user_id: user.id })
-        .select("id,name,content")
-        .single();
-      if (error) throw error;
-      toast.success("Template duplicado — agora você pode editá-lo");
-      await load();
-      setEditingTemplate({ id: data.id, name: data.name, content: data.content });
-    } catch (err: any) {
-      toast.error(err.message);
+  const editTemplate = async (t: NoteTemplate) => {
+    if (t.builtIn) {
+      // Duplicate built-in so user can edit their own copy
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { toast.error("Faça login"); return; }
+        const { data, error } = await supabase
+          .from("note_templates")
+          .insert({ name: `${t.name} (cópia)`, content: t.content, user_id: user.id })
+          .select("id,name,content")
+          .single();
+        if (error) throw error;
+        toast.success("Template duplicado — agora você pode editá-lo");
+        await load();
+        openEditor({ id: data.id, name: data.name, content: data.content });
+      } catch (err: any) {
+        toast.error(err.message);
+      }
+    } else {
+      openEditor({ id: t.id, name: t.name, content: t.content });
     }
   };
 
@@ -84,6 +94,8 @@ export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply, compact = fa
     toast.success("Template excluído");
     await load();
   };
+
+  const allTemplates: NoteTemplate[] = [...BUILT_IN_TEMPLATES, ...userTemplates];
 
   return (
     <>
@@ -114,73 +126,62 @@ export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply, compact = fa
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
-          <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            {hasSelection ? (
-              <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> Organizar seleção com…</span>
-            ) : (
-              "Inserir template"
-            )}
-          </DropdownMenuLabel>
-          {BUILT_IN_TEMPLATES.map(t => (
-            <div key={t.id} className="flex items-start gap-1 pr-1">
-              <DropdownMenuItem onClick={() => handleSelect(t)} className="text-xs flex-1 flex-col items-start gap-0.5">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground p-0">
+              {hasSelection ? (
+                <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> Organizar com…</span>
+              ) : (
+                "Templates"
+              )}
+            </DropdownMenuLabel>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground hover:text-foreground"
+              title="Novo template"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditor({ name: "", content: "" }); }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <DropdownMenuSeparator />
+          {allTemplates.map(t => (
+            <div key={t.id} className="flex items-center gap-1 pr-1">
+              <DropdownMenuItem
+                onClick={() => handleSelect(t)}
+                className="text-xs flex-1 flex-col items-start gap-0.5"
+              >
                 <span className="font-medium">{t.name}</span>
                 {t.description && <span className="text-[10px] text-muted-foreground">{t.description}</span>}
               </DropdownMenuItem>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 mt-1 flex-shrink-0 text-muted-foreground hover:text-foreground"
-                title="Editar template (duplica e abre edição)"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); duplicateBuiltIn(t); }}
+                className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                title="Editar template"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); editTemplate(t); }}
               >
                 <Pencil className="h-3 w-3" />
               </Button>
+              {!t.builtIn && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 flex-shrink-0 text-destructive hover:text-destructive"
+                  title="Excluir template"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteUserTemplate(t.id); }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           ))}
-          {userTemplates.length > 0 && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Meus templates
-              </DropdownMenuLabel>
-              {userTemplates.map(t => (
-                <div key={t.id} className="flex items-center gap-1 pr-1">
-                  <DropdownMenuItem onClick={() => handleSelect(t)} className="text-xs flex-1">
-                    {t.name}
-                  </DropdownMenuItem>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-foreground"
-                    title="Editar template"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingTemplate({ id: t.id, name: t.name, content: t.content }); }}
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 flex-shrink-0 text-destructive hover:text-destructive"
-                    title="Excluir template"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteUserTemplate(t.id); }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setManageOpen(true)} className="text-xs gap-2">
-            <Settings2 className="h-3 w-3" /> Gerenciar templates
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <ManageTemplatesDialog
-        open={manageOpen || !!editingTemplate}
-        onOpenChange={(o) => { if (!o) { setManageOpen(false); setEditingTemplate(null); } }}
+        open={dialogOpen}
+        onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingTemplate(null); }}
         onChanged={load}
         initialEditing={editingTemplate}
       />
