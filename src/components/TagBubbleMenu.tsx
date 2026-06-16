@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import { marked } from "marked";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
 import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw, ListTodo } from "lucide-react";
@@ -119,11 +120,22 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
 
   const handleAcceptPreview = () => {
     if (previewRange && previewImproved) {
-      editor.chain().focus().deleteRange(previewRange).insertContentAt(previewRange.from, previewImproved).run();
+      // Meeting mode returns Markdown; convert to HTML so TipTap parses it
+      // into real headings, lists and bold instead of inserting raw `**` and `*`.
+      const payload = previewMode === "meeting"
+        ? marked.parse(previewImproved, { async: false, breaks: true }) as string
+        : previewImproved;
+      editor
+        .chain()
+        .focus()
+        .deleteRange(previewRange)
+        .insertContentAt(previewRange.from, payload)
+        .run();
       toast.success("Texto atualizado");
     }
     setPreviewOpen(false);
   };
+
 
   const handleRejectPreview = () => {
     setPreviewOpen(false);
