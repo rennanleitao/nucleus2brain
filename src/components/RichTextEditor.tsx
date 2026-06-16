@@ -63,7 +63,7 @@ export interface RichTextEditorHandle {
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick, spaceId = null, onTaskCreated,
-  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote, onSelectionChange,
+  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote, onSelectionChange, toolbarExtra,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
