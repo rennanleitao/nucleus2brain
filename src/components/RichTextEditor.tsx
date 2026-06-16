@@ -10,6 +10,7 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
+import { Details, DetailsSummary, DetailsContent } from "@tiptap/extension-details";
 import { useEffect, useImperativeHandle, forwardRef, useCallback, useRef, useState } from "react";
 import { TagBubbleMenu } from "@/components/TagBubbleMenu";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +18,7 @@ import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code, FilePlus,
-  Table as TableIcon, Link2,
+  Table as TableIcon, Link2, ChevronRight,
 } from "lucide-react";
 import { TableFiltersPanel } from "@/components/editor/TableFiltersPanel";
 import { Iframe } from "@/components/editor/IframeExtension";
@@ -115,6 +116,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TableRow,
       TableHeader,
       TableCell,
+      Details.configure({
+        persist: true,
+        HTMLAttributes: { class: "note-toggle" },
+      }),
+      DetailsSummary,
+      DetailsContent,
       Mention.configure({
         HTMLAttributes: {
           class: "mention-note",
@@ -409,6 +416,10 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         <ToolbarButton onClick={() => editor.chain().focus().toggleTaskList().run()}
           active={editor.isActive("taskList")} title="Checklist">
           <CheckSquare className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().setDetails().run()}
+          active={editor.isActive("details")} title="Toggle (lista colapsável)">
+          <ChevronRight className="h-3.5 w-3.5" />
         </ToolbarButton>
 
         <Separator orientation="vertical" className="h-4 mx-1.5 bg-border/40" />
