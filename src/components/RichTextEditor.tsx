@@ -116,6 +116,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TableRow,
       TableHeader,
       TableCell,
+      Details.configure({
+        persist: true,
+        HTMLAttributes: { class: "note-toggle" },
+      }),
+      DetailsSummary,
+      DetailsContent,
       Mention.configure({
         HTMLAttributes: {
           class: "mention-note",
