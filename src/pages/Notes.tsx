@@ -282,6 +282,59 @@ export default function Notes() {
     setSelectedNote(null);
   };
 
+  const handleApplyTemplate = async (template: NoteTemplate, action: "insert" | "organize") => {
+    if (!selectedNote) return;
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Replace mode encoded via id suffix from menu
+    const forceReplace = template.id.endsWith(":replace");
+    const templateContent = template.content;
+
+    if (action === "insert") {
+      if (forceReplace || editor.isEmpty()) {
+        editor.setHtml(templateContent);
+      } else {
+        editor.insertHtml(templateContent);
+      }
+      setDirty(true);
+      toast.success(`Template "${template.name.replace(/:replace$/, "")}" aplicado`);
+      return;
+    }
+
+    // organize: use selection if any, else full doc
+    const selected = editor.getSelectionText();
+    const sourceText = selected || editor.getDocText();
+    if (!sourceText) {
+      toast.info("Não há conteúdo para organizar");
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("improve-text", {
+        body: {
+          text: sourceText,
+          mode: "template",
+          templateName: template.name,
+          templateStructure: templateContent,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const html = (data?.improved || "").trim();
+      if (!html) throw new Error("Resposta vazia da IA");
+      if (selected) {
+        editor.replaceSelectionWithHtml(html);
+      } else {
+        editor.setHtml(html);
+      }
+      setDirty(true);
+      toast.success(`Conteúdo organizado com "${template.name}"`);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao organizar com template");
+    }
+  };
+
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
