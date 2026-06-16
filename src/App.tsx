@@ -46,6 +46,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/shared/:token" element={<SharedNote />} />
+        <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
         <Route path="*" element={<Auth />} />
       </Routes>
     );
