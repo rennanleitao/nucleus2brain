@@ -105,9 +105,10 @@ const buildServer = (ctx: Ctx) => {
 
   s.tool("create_note", {
     description:
-      "Create a new note. tags is an array of plain strings. " +
-      "Write the body as well-structured Markdown so it renders cleanly in the " +
-      "Nucleus rich editor. " + NOTE_STYLE_GUIDE,
+      "Create a new note. tags is an array of plain strings. Write the body as " +
+      "clean Markdown organized in short, readable paragraphs. If the target " +
+      "Space has an established convention, mirror it; otherwise keep the " +
+      "structure light and let the content shape itself. " + NOTE_STYLE_GUIDE,
     inputSchema: z.object({
       title: z.string().min(1).max(500),
       content: z.string().optional(),
@@ -130,12 +131,13 @@ const buildServer = (ctx: Ctx) => {
   s.tool("update_note", {
     description:
       "Update fields of an existing note. Only provided fields change. " +
-      "IMPORTANT: passing `content` REPLACES the entire body. Before overwriting, " +
-      "ALWAYS call get_note first and preserve existing headings, lists, and " +
-      "structure — act as a co-author that enriches, never as a rewriter. " +
-      "Prefer `append_to_note` or `append_section_to_note` for incremental " +
-      "enrichment; only use `update_note.content` when you have re-emitted the " +
-      "full original content plus your additions. " + NOTE_STYLE_GUIDE,
+      "CRITICAL: passing `content` REPLACES the entire body. ALWAYS call " +
+      "get_note first, preserve the existing template/structure, headings and " +
+      "lists, and act as a co-author that enriches — never as a rewriter. " +
+      "If the user only asked to complement the note, do NOT use update_note.content; " +
+      "use append_to_note or append_section_to_note instead. Only fall back to " +
+      "update_note.content when you have re-emitted the full original content " +
+      "verbatim plus your additions. " + NOTE_STYLE_GUIDE,
     inputSchema: z.object({
       id: z.string().uuid(),
       title: z.string().min(1).max(500).optional(),
@@ -157,9 +159,12 @@ const buildServer = (ctx: Ctx) => {
   s.tool("append_to_note", {
     description:
       "Append Markdown to the end of a note, separated by a blank line. " +
-      "Preferred over update_note for incremental enrichment — preserves the " +
-      "existing structure. Start your addition with a heading (## or ###) so " +
-      "it visually separates from prior content. " + NOTE_STYLE_GUIDE,
+      "PREFERRED tool for incremental enrichment — it preserves the existing " +
+      "template and structure untouched. Before writing, read the note to match " +
+      "its tone and section conventions. Start your addition with a short " +
+      "heading (## or ###) or a clear paragraph lead so it visually separates " +
+      "from prior content, and keep paragraphs short with one idea each. " + NOTE_STYLE_GUIDE,
+
     inputSchema: z.object({
       id: z.string().uuid(),
       content: z.string().min(1),
