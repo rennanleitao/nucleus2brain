@@ -539,6 +539,167 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
+  // ---------- ALIASES & CHATGPT REQUIRED TOOLS ----------
+  s.tool({
+    name: "search",
+    description: "Global search across notes, tasks and spaces. Returns results with id, title, type and snippet.",
+    inputSchema: z.object({
+      query: z.string().min(1),
+      limit: z.number().int().min(1).max(50).optional(),
+    }),
+    handler: async (input) => {
+      const limit = input.limit ?? 10;
+      const q = input.query;
+      const [notesRes, tasksRes, spacesRes] = await Promise.all([
+        db.from("notes").select("id,title,content,updated_at").or(`title.ilike.%${q}%,content.ilike.%${q}%`).limit(limit),
+        db.from("tasks").select("id,title,description,status,due_date").is("deleted_at", null).or(`title.ilike.%${q}%,description.ilike.%${q}%`).limit(limit),
+        db.from("spaces").select("id,name,description").or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(limit),
+      ]);
+      const results: Array<{ id: string; title: string; type: string; url: string; snippet?: string }> = [];
+      (notesRes.data ?? []).forEach((n: any) => results.push({
+        id: `note:${n.id}`, title: n.title, type: "note", url: `nucleus://notes/${n.id}`,
+        snippet: (n.content ?? "").slice(0, 200),
+      }));
+      (tasksRes.data ?? []).forEach((t: any) => results.push({
+        id: `task:${t.id}`, title: t.title, type: "task", url: `nucleus://tasks/${t.id}`,
+        snippet: t.description ?? `status: ${t.status}${t.due_date ? `, due ${t.due_date}` : ""}`,
+      }));
+      (spacesRes.data ?? []).forEach((sp: any) => results.push({
+        id: `space:${sp.id}`, title: sp.name, type: "space", url: `nucleus://spaces/${sp.id}`,
+        snippet: sp.description ?? "",
+      }));
+      return ok({ results });
+    },
+  });
+
+  s.tool({
+    name: "fetch",
+    description: "Fetch a single entity by composite id ('note:<uuid>', 'task:<uuid>', or 'space:<uuid>').",
+    inputSchema: z.object({ id: z.string().min(1) }),
+    handler: async (input) => {
+      const [type, uuid] = input.id.split(":");
+      if (!type || !uuid) return fail("id must be 'type:uuid'");
+      const table = type === "note" ? "notes" : type === "task" ? "tasks" : type === "space" ? "spaces" : null;
+      if (!table) return fail(`unknown type ${type}`);
+      const { data, error } = await db.from(table).select("*").eq("id", uuid).single();
+      if (error) return fail(error.message);
+      return ok({ id: input.id, type, ...data });
+    },
+  });
+
+  s.tool({
+    name: "list_spaces",
+    description: "List all spaces the user can access, most recent first.",
+    inputSchema: z.object({ limit: z.number().int().min(1).max(200).optional() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("spaces").select("*")
+        .order("created_at", { ascending: false }).limit(input.limit ?? 100);
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool({
+    name: "list_notes",
+    description: "List notes (most recently updated first). Optionally filter by space_id.",
+    inputSchema: z.object({
+      space_id: z.string().uuid().nullable().optional(),
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("notes").select("id,title,content,space_id,tags,created_at,updated_at")
+        .order("updated_at", { ascending: false }).limit(input.limit ?? 50);
+      if (input.space_id !== undefined) {
+        if (input.space_id === null) q = q.is("space_id", null);
+        else q = q.eq("space_id", input.space_id);
+      }
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool({
+    name: "list_tasks",
+    description: "List tasks. Optionally filter by status, space_id, or include deleted.",
+    inputSchema: z.object({
+      status: taskStatus,
+      space_id: z.string().uuid().nullable().optional(),
+      include_deleted: z.boolean().optional(),
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("tasks").select("*")
+        .order("due_date", { ascending: true, nullsFirst: false })
+        .limit(input.limit ?? 50);
+      if (!input.include_deleted) q = q.is("deleted_at", null);
+      if (input.status) q = q.eq("status", input.status);
+      if (input.space_id !== undefined) {
+        if (input.space_id === null) q = q.is("space_id", null);
+        else q = q.eq("space_id", input.space_id);
+      }
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool({
+    name: "complete_task",
+    description: "Mark a task as done (sets status='done' and completed_at=now).",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("tasks")
+        .update({ status: "done", completed_at: new Date().toISOString() })
+        .eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  // ---------- MEETINGS ----------
+  // Meetings are modeled as notes tagged 'meeting' (Meeting Notes template).
+  s.tool({
+    name: "list_meetings",
+    description: "List meeting notes (notes tagged 'meeting'), most recent first.",
+    inputSchema: z.object({
+      space_id: z.string().uuid().nullable().optional(),
+      limit: z.number().int().min(1).max(100).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("notes").select("id,title,content,space_id,tags,created_at,updated_at")
+        .overlaps("tags", ["meeting", "meetings", "meeting-notes"])
+        .order("updated_at", { ascending: false })
+        .limit(input.limit ?? 25);
+      if (input.space_id !== undefined) {
+        if (input.space_id === null) q = q.is("space_id", null);
+        else q = q.eq("space_id", input.space_id);
+      }
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool({
+    name: "search_meetings",
+    description: "Search meeting notes by free-text query in title/content.",
+    inputSchema: z.object({
+      query: z.string().min(1),
+      limit: z.number().int().min(1).max(100).optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("notes")
+        .select("id,title,content,space_id,tags,created_at,updated_at")
+        .overlaps("tags", ["meeting", "meetings", "meeting-notes"])
+        .or(`title.ilike.%${input.query}%,content.ilike.%${input.query}%`)
+        .order("updated_at", { ascending: false })
+        .limit(input.limit ?? 25);
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
   return s;
 };
 
