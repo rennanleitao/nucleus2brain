@@ -81,13 +81,13 @@ const buildServer = (ctx: Ctx) => {
     "- Use ##/### headings and short paragraphs. Avoid long walls of text.",
     "- Prefer bullet/numbered lists for points, decisions, next steps.",
     "- Separate sections with a blank line. Bold key terms sparingly.",
-    "DATES: Always make dates explicit (YYYY-MM-DD). Never write vague refs",
-    "like 'this week' without an absolute date next to it.",
+    "DATES: Always make dates explicit in DD-MM-YYYY format (BRT). Never write",
+    "vague refs like 'this week' without an absolute date next to it.",
     "STRUCTURE: When relevant, organize content into clear sections such as",
     "Contexto / Principais pontos / Decisões / Próximos passos / Conhecimento",
     "relacionado. Keep historical context and action items in separate sections.",
     "SOURCES: When adding external knowledge, cite it: title, URL, captured_at",
-    "(YYYY-MM-DD), short summary, key insights — in a dedicated subsection.",
+    "(DD-MM-YYYY), short summary, key insights — in a dedicated subsection.",
   ].join(" ");
 
   s.tool("create_note", {
@@ -168,7 +168,7 @@ const buildServer = (ctx: Ctx) => {
       "The server renders a heading, an optional source citation block (title, " +
       "URL, captured_at), a summary, bullet insights, decisions, and next steps " +
       "— each as its own subsection so the note stays organized and scannable. " +
-      "Always provide explicit YYYY-MM-DD dates.",
+      "Always provide explicit dates in DD-MM-YYYY format.",
     inputSchema: z.object({
       id: z.string().uuid(),
       heading: z.string().min(1).max(200)
@@ -187,18 +187,26 @@ const buildServer = (ctx: Ctx) => {
         title: z.string().optional(),
         url: z.string().url().optional(),
         captured_at: z.string().optional()
-          .describe("Date the source was captured (YYYY-MM-DD). Defaults to today."),
+          .describe("Date the source was captured (DD-MM-YYYY). Defaults to today."),
       }).optional()
         .describe("Citation for external knowledge added to the note."),
       event_date: z.string().optional()
-        .describe("Date the underlying event/meeting happened (YYYY-MM-DD)."),
+        .describe("Date the underlying event/meeting happened (DD-MM-YYYY)."),
     }),
     handler: async (input) => {
       const { data: note, error: gErr } = await db.from("notes")
         .select("content").eq("id", input.id).single();
       if (gErr) return fail(gErr.message);
 
-      const today = new Date().toISOString().slice(0, 10);
+      // Today in BRT (America/Sao_Paulo), formatted DD-MM-YYYY.
+      const parts = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: "2-digit", month: "2-digit", year: "numeric",
+      }).formatToParts(new Date());
+      const dd = parts.find((p) => p.type === "day")!.value;
+      const mm = parts.find((p) => p.type === "month")!.value;
+      const yyyy = parts.find((p) => p.type === "year")!.value;
+      const today = `${dd}-${mm}-${yyyy}`;
       const h = "#".repeat(input.heading_level ?? 2);
       const lines: string[] = [];
       lines.push(`${h} ${input.heading}`);
