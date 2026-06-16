@@ -3,6 +3,7 @@
 import { Hono } from "npm:hono@4";
 import { McpServer, StreamableHttpTransport } from "npm:mcp-lite@^0.10.0";
 import { z } from "npm:zod@3";
+import { zodToJsonSchema } from "npm:zod-to-json-schema@3";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, getBaseUrl } from "../_shared/mcp-auth.ts";
 
@@ -58,13 +59,12 @@ function fail(message: string) {
 
 // Use Zod schemas for tool inputs; mcp-lite converts to JSON schema.
 const buildServer = (ctx: Ctx) => {
-  const s = new McpServer({ name: "nucleus-mcp", version: "0.1.0" });
+  const s = new McpServer({ name: "nucleus-mcp", version: "0.1.0", schemaAdapter: (schema) => zodToJsonSchema(schema as any) });
   const db = ctx.supabase;
 
   // ---------- NOTES ----------
-  s.tool({
-    name: "create_note",
-    description: "Create a new note. tags is an array of plain strings.",
+  s.tool("create_note", {
+        description: "Create a new note. tags is an array of plain strings.",
     inputSchema: z.object({
       title: z.string().min(1).max(500),
       content: z.string().optional(),
@@ -84,9 +84,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "update_note",
-    description: "Update fields of an existing note. Only provided fields change.",
+  s.tool("update_note", {
+        description: "Update fields of an existing note. Only provided fields change.",
     inputSchema: z.object({
       id: z.string().uuid(),
       title: z.string().min(1).max(500).optional(),
@@ -105,9 +104,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "append_to_note",
-    description: "Append text to the end of a note's content (with a newline separator).",
+  s.tool("append_to_note", {
+        description: "Append text to the end of a note's content (with a newline separator).",
     inputSchema: z.object({
       id: z.string().uuid(),
       content: z.string().min(1),
@@ -122,9 +120,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "delete_note",
-    description: "Delete a note permanently.",
+  s.tool("delete_note", {
+        description: "Delete a note permanently.",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const { error } = await db.from("notes").delete().eq("id", input.id);
@@ -133,9 +130,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "search_notes",
-    description: "Search notes by free-text query (title/content), space, or tags.",
+  s.tool("search_notes", {
+        description: "Search notes by free-text query (title/content), space, or tags.",
     inputSchema: z.object({
       query: z.string().optional(),
       space_id: z.string().uuid().nullable().optional(),
@@ -158,9 +154,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "get_note",
-    description: "Get a single note by id.",
+  s.tool("get_note", {
+        description: "Get a single note by id.",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("notes").select("*").eq("id", input.id).single();
@@ -173,9 +168,8 @@ const buildServer = (ctx: Ctx) => {
   const taskStatus = z.enum(["todo", "in_progress", "done", "cancelled"]).optional();
   const taskPriority = z.enum(["low", "medium", "high", "urgent"]).optional();
 
-  s.tool({
-    name: "create_task",
-    description: "Create a new task. due_date is an ISO date (YYYY-MM-DD).",
+  s.tool("create_task", {
+        description: "Create a new task. due_date is an ISO date (YYYY-MM-DD).",
     inputSchema: z.object({
       title: z.string().min(1).max(500),
       description: z.string().optional(),
@@ -203,9 +197,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "update_task",
-    description: "Update fields of a task. Pass only fields you want to change.",
+  s.tool("update_task", {
+        description: "Update fields of a task. Pass only fields you want to change.",
     inputSchema: z.object({
       id: z.string().uuid(),
       title: z.string().min(1).max(500).optional(),
@@ -232,9 +225,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "delete_task",
-    description: "Soft-delete a task (sets deleted_at, purged after 1 day).",
+  s.tool("delete_task", {
+        description: "Soft-delete a task (sets deleted_at, purged after 1 day).",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const { error } = await db.from("tasks").update({ deleted_at: new Date().toISOString() }).eq("id", input.id);
@@ -243,9 +235,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "search_tasks",
-    description: "Search tasks by query, status, date range, space, note or tag.",
+  s.tool("search_tasks", {
+        description: "Search tasks by query, status, date range, space, note or tag.",
     inputSchema: z.object({
       query: z.string().optional(),
       status: taskStatus,
@@ -278,9 +269,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "get_task",
-    description: "Get a task with its subtasks and materials.",
+  s.tool("get_task", {
+        description: "Get a task with its subtasks and materials.",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const [{ data: task, error: tErr }, { data: subs }, { data: mats }] = await Promise.all([
@@ -294,9 +284,8 @@ const buildServer = (ctx: Ctx) => {
   });
 
   // ---------- SPACES ----------
-  s.tool({
-    name: "create_space",
-    description: "Create a new space (workspace).",
+  s.tool("create_space", {
+        description: "Create a new space (workspace).",
     inputSchema: z.object({
       name: z.string().min(1).max(200),
       description: z.string().optional(),
@@ -314,9 +303,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "update_space",
-    description: "Update fields of a space.",
+  s.tool("update_space", {
+        description: "Update fields of a space.",
     inputSchema: z.object({
       id: z.string().uuid(),
       name: z.string().min(1).max(200).optional(),
@@ -334,9 +322,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "search_spaces",
-    description: "Search spaces by name/description.",
+  s.tool("search_spaces", {
+        description: "Search spaces by name/description.",
     inputSchema: z.object({
       query: z.string().optional(),
       limit: z.number().int().min(1).max(100).optional(),
@@ -350,9 +337,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "get_space",
-    description: "Get a single space by id.",
+  s.tool("get_space", {
+        description: "Get a single space by id.",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("spaces").select("*").eq("id", input.id).single();
@@ -362,9 +348,8 @@ const buildServer = (ctx: Ctx) => {
   });
 
   // ---------- TAGS ----------
-  s.tool({
-    name: "create_tag",
-    description: "Idempotently 'create' a tag. Tags are not entities — this validates and normalizes the name.",
+  s.tool("create_tag", {
+        description: "Idempotently 'create' a tag. Tags are not entities — this validates and normalizes the name.",
     inputSchema: z.object({ name: z.string().min(1).max(50) }),
     handler: async (input) => {
       const normalized = input.name.trim().toLowerCase().replace(/^#+/, "").replace(/\s+/g, "-");
@@ -373,9 +358,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "search_tags",
-    description: "List distinct tags currently in use across notes and tasks (optionally filtered).",
+  s.tool("search_tags", {
+        description: "List distinct tags currently in use across notes and tasks (optionally filtered).",
     inputSchema: z.object({
       query: z.string().optional(),
       limit: z.number().int().min(1).max(200).optional(),
@@ -397,9 +381,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "assign_tag_to_note",
-    description: "Add a tag to a note's tag array if not already present.",
+  s.tool("assign_tag_to_note", {
+        description: "Add a tag to a note's tag array if not already present.",
     inputSchema: z.object({ note_id: z.string().uuid(), tag: z.string().min(1) }),
     handler: async (input) => {
       const { data: note, error: gErr } = await db.from("notes").select("tags").eq("id", input.note_id).single();
@@ -411,9 +394,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "assign_tag_to_task",
-    description: "Set the tag on a task (tasks currently support a single tag).",
+  s.tool("assign_tag_to_task", {
+        description: "Set the tag on a task (tasks currently support a single tag).",
     inputSchema: z.object({ task_id: z.string().uuid(), tag: z.string().min(1) }),
     handler: async (input) => {
       const { data, error } = await db.from("tasks").update({ tag: input.tag }).eq("id", input.task_id).select().single();
@@ -424,9 +406,8 @@ const buildServer = (ctx: Ctx) => {
 
   // ---------- LINKS ----------
   const linkTaskNote = z.object({ task_id: z.string().uuid(), note_id: z.string().uuid() });
-  s.tool({
-    name: "link_task_to_note",
-    description: "Associate a task with a note.",
+  s.tool("link_task_to_note", {
+        description: "Associate a task with a note.",
     inputSchema: linkTaskNote,
     handler: async (input) => {
       const { data, error } = await db.from("tasks").update({ note_id: input.note_id }).eq("id", input.task_id).select().single();
@@ -434,9 +415,8 @@ const buildServer = (ctx: Ctx) => {
       return ok(data);
     },
   });
-  s.tool({
-    name: "unlink_task_from_note",
-    description: "Remove the note association from a task.",
+  s.tool("unlink_task_from_note", {
+        description: "Remove the note association from a task.",
     inputSchema: z.object({ task_id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("tasks").update({ note_id: null }).eq("id", input.task_id).select().single();
@@ -444,9 +424,8 @@ const buildServer = (ctx: Ctx) => {
       return ok(data);
     },
   });
-  s.tool({
-    name: "link_note_to_space",
-    description: "Move a note into a space.",
+  s.tool("link_note_to_space", {
+        description: "Move a note into a space.",
     inputSchema: z.object({ note_id: z.string().uuid(), space_id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("notes").update({ space_id: input.space_id }).eq("id", input.note_id).select().single();
@@ -454,9 +433,8 @@ const buildServer = (ctx: Ctx) => {
       return ok(data);
     },
   });
-  s.tool({
-    name: "unlink_note_from_space",
-    description: "Remove a note from any space.",
+  s.tool("unlink_note_from_space", {
+        description: "Remove a note from any space.",
     inputSchema: z.object({ note_id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("notes").update({ space_id: null }).eq("id", input.note_id).select().single();
@@ -464,9 +442,8 @@ const buildServer = (ctx: Ctx) => {
       return ok(data);
     },
   });
-  s.tool({
-    name: "link_task_to_space",
-    description: "Move a task into a space.",
+  s.tool("link_task_to_space", {
+        description: "Move a task into a space.",
     inputSchema: z.object({ task_id: z.string().uuid(), space_id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("tasks").update({ space_id: input.space_id }).eq("id", input.task_id).select().single();
@@ -474,9 +451,8 @@ const buildServer = (ctx: Ctx) => {
       return ok(data);
     },
   });
-  s.tool({
-    name: "unlink_task_from_space",
-    description: "Remove a task from any space.",
+  s.tool("unlink_task_from_space", {
+        description: "Remove a task from any space.",
     inputSchema: z.object({ task_id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("tasks").update({ space_id: null }).eq("id", input.task_id).select().single();
@@ -486,9 +462,8 @@ const buildServer = (ctx: Ctx) => {
   });
 
   // ---------- CONTEXTS ----------
-  s.tool({
-    name: "get_note_context",
-    description: "Return a note with its tags, linked tasks, and parent space.",
+  s.tool("get_note_context", {
+        description: "Return a note with its tags, linked tasks, and parent space.",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const { data: note, error } = await db.from("notes").select("*").eq("id", input.id).single();
@@ -501,9 +476,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "get_space_context",
-    description: "Return a space with its notes, tasks, tags in use, and statistics.",
+  s.tool("get_space_context", {
+        description: "Return a space with its notes, tasks, tags in use, and statistics.",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
@@ -540,9 +514,8 @@ const buildServer = (ctx: Ctx) => {
   });
 
   // ---------- ALIASES & CHATGPT REQUIRED TOOLS ----------
-  s.tool({
-    name: "search",
-    description: "Global search across notes, tasks and spaces. Returns results with id, title, type and snippet.",
+  s.tool("search", {
+        description: "Global search across notes, tasks and spaces. Returns results with id, title, type and snippet.",
     inputSchema: z.object({
       query: z.string().min(1),
       limit: z.number().int().min(1).max(50).optional(),
@@ -572,9 +545,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "fetch",
-    description: "Fetch a single entity by composite id ('note:<uuid>', 'task:<uuid>', or 'space:<uuid>').",
+  s.tool("fetch", {
+        description: "Fetch a single entity by composite id ('note:<uuid>', 'task:<uuid>', or 'space:<uuid>').",
     inputSchema: z.object({ id: z.string().min(1) }),
     handler: async (input) => {
       const [type, uuid] = input.id.split(":");
@@ -587,9 +559,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "list_spaces",
-    description: "List all spaces the user can access, most recent first.",
+  s.tool("list_spaces", {
+        description: "List all spaces the user can access, most recent first.",
     inputSchema: z.object({ limit: z.number().int().min(1).max(200).optional() }),
     handler: async (input) => {
       const { data, error } = await db.from("spaces").select("*")
@@ -599,9 +570,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "list_notes",
-    description: "List notes (most recently updated first). Optionally filter by space_id.",
+  s.tool("list_notes", {
+        description: "List notes (most recently updated first). Optionally filter by space_id.",
     inputSchema: z.object({
       space_id: z.string().uuid().nullable().optional(),
       limit: z.number().int().min(1).max(200).optional(),
@@ -619,9 +589,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "list_tasks",
-    description: "List tasks. Optionally filter by status, space_id, or include deleted.",
+  s.tool("list_tasks", {
+        description: "List tasks. Optionally filter by status, space_id, or include deleted.",
     inputSchema: z.object({
       status: taskStatus,
       space_id: z.string().uuid().nullable().optional(),
@@ -644,9 +613,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "complete_task",
-    description: "Mark a task as done (sets status='done' and completed_at=now).",
+  s.tool("complete_task", {
+        description: "Mark a task as done (sets status='done' and completed_at=now).",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("tasks")
@@ -659,9 +627,8 @@ const buildServer = (ctx: Ctx) => {
 
   // ---------- MEETINGS ----------
   // Meetings are modeled as notes tagged 'meeting' (Meeting Notes template).
-  s.tool({
-    name: "list_meetings",
-    description: "List meeting notes (notes tagged 'meeting'), most recent first.",
+  s.tool("list_meetings", {
+        description: "List meeting notes (notes tagged 'meeting'), most recent first.",
     inputSchema: z.object({
       space_id: z.string().uuid().nullable().optional(),
       limit: z.number().int().min(1).max(100).optional(),
@@ -681,9 +648,8 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
-  s.tool({
-    name: "search_meetings",
-    description: "Search meeting notes by free-text query in title/content.",
+  s.tool("search_meetings", {
+        description: "Search meeting notes by free-text query in title/content.",
     inputSchema: z.object({
       query: z.string().min(1),
       limit: z.number().int().min(1).max(100).optional(),
