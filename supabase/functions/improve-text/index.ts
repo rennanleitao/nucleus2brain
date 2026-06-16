@@ -14,11 +14,22 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // For the inline modes (improve/simplify/expand/formal) the result REPLACES
+    // a selection inside a rich-text editor, so the model must return PLAIN text
+    // only — no markdown markers like **, __, ##, *, -, > or backticks. Otherwise
+    // the literal characters end up rendered in the note.
+    const plainTextRule =
+      "REGRAS DE FORMATO (obrigatórias):\n" +
+      "- Retorne SOMENTE texto puro.\n" +
+      "- NÃO use Markdown: nada de **, __, ##, #, *, -, >, backticks, links em [](), tabelas ou HTML.\n" +
+      "- Para destacar algo, use apenas as palavras; o editor cuida do estilo.\n" +
+      "- Preserve quebras de parágrafo do texto original quando fizer sentido.\n\n";
+
     const prompts: Record<string, string> = {
-      improve: `Melhore o texto a seguir, tornando-o mais claro, conciso e profissional. Mantenha o mesmo idioma e tom. Retorne APENAS o texto melhorado, sem explicações ou aspas:\n\n${text}`,
-      simplify: `Simplifique o texto a seguir, usando linguagem mais direta e fácil de entender. Mantenha o mesmo idioma. Retorne APENAS o texto simplificado, sem explicações ou aspas:\n\n${text}`,
-      expand: `Expanda o texto a seguir, adicionando mais detalhes e contexto sem alterar o sentido original. Mantenha o mesmo idioma. Retorne APENAS o texto expandido, sem explicações ou aspas:\n\n${text}`,
-      formal: `Reescreva o texto a seguir em tom mais formal e profissional. Mantenha o mesmo idioma. Retorne APENAS o texto reescrito, sem explicações ou aspas:\n\n${text}`,
+      improve: `Melhore o texto a seguir, tornando-o mais claro, conciso e profissional. Mantenha o mesmo idioma e tom. ${plainTextRule}Retorne APENAS o texto melhorado, sem explicações ou aspas:\n\n${text}`,
+      simplify: `Simplifique o texto a seguir, usando linguagem mais direta e fácil de entender. Mantenha o mesmo idioma. ${plainTextRule}Retorne APENAS o texto simplificado, sem explicações ou aspas:\n\n${text}`,
+      expand: `Expanda o texto a seguir, adicionando mais detalhes e contexto sem alterar o sentido original. Mantenha o mesmo idioma. ${plainTextRule}Retorne APENAS o texto expandido, sem explicações ou aspas:\n\n${text}`,
+      formal: `Reescreva o texto a seguir em tom mais formal e profissional. Mantenha o mesmo idioma. ${plainTextRule}Retorne APENAS o texto reescrito, sem explicações ou aspas:\n\n${text}`,
       meeting: `Você é um especialista em organizar notas de reunião. Analise o texto abaixo e reorganize-o em formato estruturado usando o mesmo idioma do texto original. Use formatação Markdown.
 
 A estrutura DEVE conter estas seções, SEPARADAS POR LINHAS HORIZONTAIS (---):

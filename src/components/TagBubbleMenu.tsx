@@ -120,11 +120,17 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
 
   const handleAcceptPreview = () => {
     if (previewRange && previewImproved) {
-      // Meeting mode returns Markdown; convert to HTML so TipTap parses it
-      // into real headings, lists and bold instead of inserting raw `**` and `*`.
-      const payload = previewMode === "meeting"
-        ? marked.parse(previewImproved, { async: false, breaks: true }) as string
-        : previewImproved;
+      // The AI returns Markdown (e.g. **bold**, ##, lists). TipTap does not
+      // parse Markdown, so we must convert it to HTML before inserting —
+      // otherwise the raw characters show up in the note.
+      // - meeting mode → full block markdown (headings, lists, hr).
+      // - inline modes (improve/simplify/expand/formal) → parseInline so we
+      //   don't wrap short selections in extra <p> tags but still resolve
+      //   **bold**, *italic*, `code`, [links], etc.
+      const isBlock = previewMode === "meeting";
+      const payload = isBlock
+        ? (marked.parse(previewImproved, { async: false, breaks: true }) as string)
+        : (marked.parseInline(previewImproved, { async: false }) as string);
       editor
         .chain()
         .focus()
@@ -135,6 +141,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
     }
     setPreviewOpen(false);
   };
+
 
 
   const handleRejectPreview = () => {
