@@ -1,6 +1,11 @@
 // OAuth 2.0 Authorization endpoint with PKCE (RFC 7636).
-// Renders a minimal HTML consent screen, authenticates the user via
-// Supabase email/password, then redirects to the client with an auth code.
+//
+// Supabase Edge Functions strip/sandbox HTML responses (force text/plain + CSP
+// sandbox + nosniff), so we cannot render the consent page from the edge
+// function. Instead:
+//   GET  -> 302 redirect to the React app at /oauth/authorize?<params>
+//   POST -> JSON API: { access_token, ...authParams } -> { redirect_url }
+//          (the React page handles login + consent, then POSTs here)
 import { corsHeaders, randomToken, serviceClient } from "../_shared/mcp-auth.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -14,9 +19,14 @@ interface AuthParams {
   scope: string;
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+const APP_URL =
+  Deno.env.get("APP_URL") ?? "https://nucleus2brain.lovable.app";
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 function paramsFromUrl(url: URL): AuthParams {
@@ -45,119 +55,76 @@ async function validateClient(p: AuthParams): Promise<string | null> {
     .eq("client_id", p.client_id)
     .maybeSingle();
   if (error || !data) return "Unknown client_id";
-  if (!data.redirect_uris.includes(p.redirect_uri)) return "redirect_uri not registered for this client";
+  if (!data.redirect_uris.includes(p.redirect_uri)) {
+    return "redirect_uri not registered for this client";
+  }
   return null;
 }
 
-function renderPage(p: AuthParams, errorMsg?: string): Response {
-  const fields = Object.entries(p)
-    .map(([k, v]) => `<input type="hidden" name="${k}" value="${escapeHtml(v)}"/>`)
-    .join("");
-  const err = errorMsg
-    ? `<div class="err">${escapeHtml(errorMsg)}</div>`
-    : "";
-  const html = `<!doctype html>
-<html lang="pt-BR"><head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Autorizar Nucleus</title>
-<style>
-  *{box-sizing:border-box}
-  body{font-family:-apple-system,system-ui,sans-serif;background:#fafbfc;color:#0f172a;
-       display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px}
-  .card{background:#fff;border:1px solid #e8ecf1;border-radius:12px;padding:32px;max-width:420px;width:100%;
-        box-shadow:0 8px 24px -8px rgba(15,23,42,.08)}
-  h1{margin:0 0 4px;font-size:22px;font-weight:600;letter-spacing:-.01em}
-  p{margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.5}
-  label{display:block;font-size:13px;font-weight:500;margin:14px 0 6px;color:#334155}
-  input[type=email],input[type=password]{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;
-        font-size:14px;font-family:inherit;background:#fff}
-  input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
-  button{margin-top:20px;width:100%;padding:11px;background:#0f172a;color:#fff;border:0;border-radius:8px;
-         font-size:14px;font-weight:600;cursor:pointer}
-  button:hover{background:#1e293b}
-  .scope{background:#f1f5f9;border-radius:8px;padding:12px;margin:16px 0;font-size:13px;color:#475569}
-  .scope strong{color:#0f172a}
-  .err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:12px}
-  .foot{margin-top:18px;font-size:12px;color:#94a3b8;text-align:center}
-</style></head><body>
-<form class="card" method="POST" action="">
-  <h1>Autorizar acesso</h1>
-  <p>O ChatGPT está pedindo permissão para acessar seu Nucleus.</p>
-  <div class="scope">
-    <strong>Permissões solicitadas:</strong><br/>
-    Ler e escrever suas notas, tarefas e spaces.
-  </div>
-  ${err}
-  <label>Email</label>
-  <input type="email" name="email" required autocomplete="email"/>
-  <label>Senha</label>
-  <input type="password" name="password" required autocomplete="current-password"/>
-  ${fields}
-  <button type="submit">Entrar e autorizar</button>
-  <div class="foot">Use a mesma conta do Nucleus.</div>
-</form>
-</body></html>`;
-  return new Response(html, {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
-  });
-}
-
-function buildRedirect(p: AuthParams, params: Record<string, string>): Response {
+function buildRedirectUrl(p: AuthParams, code: string): string {
   const target = new URL(p.redirect_uri);
-  for (const [k, v] of Object.entries(params)) target.searchParams.set(k, v);
+  target.searchParams.set("code", code);
   if (p.state) target.searchParams.set("state", p.state);
-  return new Response(null, {
-    status: 302,
-    headers: { ...corsHeaders, Location: target.toString() },
-  });
+  return target.toString();
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const url = new URL(req.url);
 
+  // GET: bounce browser to the React consent page in the app.
   if (req.method === "GET") {
-    const p = paramsFromUrl(url);
-    const err = await validateClient(p);
-    if (err) {
-      return new Response(`<h1>Erro</h1><p>${escapeHtml(err)}</p>`, {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
-    return renderPage(p);
+    const target = new URL("/oauth/authorize", APP_URL);
+    url.searchParams.forEach((v, k) => target.searchParams.set(k, v));
+    return new Response(null, {
+      status: 302,
+      headers: { ...corsHeaders, Location: target.toString() },
+    });
   }
 
+  // POST: consume access_token + auth params, mint authorization code.
   if (req.method !== "POST") {
-    return new Response("method not allowed", { status: 405, headers: corsHeaders });
+    return json({ error: "method_not_allowed" }, 405);
   }
 
-  const form = await req.formData();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid_request", error_description: "Body must be JSON" }, 400);
+  }
+
+  const accessToken = String(body.access_token ?? "");
+  const refreshToken = String(body.refresh_token ?? "");
   const p: AuthParams = {
-    client_id: String(form.get("client_id") ?? ""),
-    redirect_uri: String(form.get("redirect_uri") ?? ""),
-    response_type: String(form.get("response_type") ?? "code"),
-    code_challenge: String(form.get("code_challenge") ?? ""),
-    code_challenge_method: String(form.get("code_challenge_method") ?? "S256"),
-    state: String(form.get("state") ?? ""),
-    scope: String(form.get("scope") ?? "notes:rw tasks:rw spaces:rw"),
+    client_id: String(body.client_id ?? ""),
+    redirect_uri: String(body.redirect_uri ?? ""),
+    response_type: String(body.response_type ?? "code"),
+    code_challenge: String(body.code_challenge ?? ""),
+    code_challenge_method: String(body.code_challenge_method ?? "S256"),
+    state: String(body.state ?? ""),
+    scope: String(body.scope ?? "notes:rw tasks:rw spaces:rw"),
   };
-  const email = String(form.get("email") ?? "");
-  const password = String(form.get("password") ?? "");
+
+  if (!accessToken) {
+    return json({ error: "invalid_request", error_description: "access_token required" }, 400);
+  }
+  if (!refreshToken) {
+    return json({ error: "invalid_request", error_description: "refresh_token required" }, 400);
+  }
 
   const validationErr = await validateClient(p);
-  if (validationErr) return renderPage(p, validationErr);
+  if (validationErr) return json({ error: "invalid_request", error_description: validationErr }, 400);
 
+  // Verify the access token corresponds to a real user.
   const anon = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
-  const { data, error } = await anon.auth.signInWithPassword({ email, password });
-  if (error || !data.session || !data.user) {
-    return renderPage(p, "Email ou senha inválidos.");
+  const { data: userRes, error: userErr } = await anon.auth.getUser(accessToken);
+  if (userErr || !userRes.user) {
+    return json({ error: "invalid_grant", error_description: "Invalid session" }, 401);
   }
 
   const code = await randomToken(32);
@@ -165,18 +132,18 @@ Deno.serve(async (req) => {
   const { error: insErr } = await svc.from("oauth_codes").insert({
     code,
     client_id: p.client_id,
-    user_id: data.user.id,
+    user_id: userRes.user.id,
     redirect_uri: p.redirect_uri,
     code_challenge: p.code_challenge,
     code_challenge_method: p.code_challenge_method,
     scope: p.scope,
-    supabase_refresh_token: data.session.refresh_token,
+    supabase_refresh_token: refreshToken,
     expires_at: new Date(Date.now() + 60_000).toISOString(),
   });
   if (insErr) {
     console.error("oauth-authorize insert code error", insErr);
-    return renderPage(p, "Erro interno. Tente novamente.");
+    return json({ error: "server_error", error_description: "Failed to issue code" }, 500);
   }
 
-  return buildRedirect(p, { code });
+  return json({ redirect_url: buildRedirectUrl(p, code) });
 });
