@@ -694,7 +694,10 @@ app.all("*", async (c) => {
   const supabase = clientFor(auth.token);
   const server = buildServer({ userId: auth.user.id, supabase });
   const transport = new StreamableHttpTransport();
-  const res = await transport.handleRequest(req, server);
+  const handleMcpRequest = transport.bind(server);
+  const res = await handleMcpRequest(req, {
+    authInfo: { token: auth.token, clientId: auth.user.id, scopes: [] },
+  });
   // Merge CORS headers into response
   const headers = new Headers(res.headers);
   for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
