@@ -168,7 +168,7 @@ const buildServer = (ctx: Ctx) => {
       "The server renders a heading, an optional source citation block (title, " +
       "URL, captured_at), a summary, bullet insights, decisions, and next steps " +
       "— each as its own subsection so the note stays organized and scannable. " +
-      "Always provide explicit YYYY-MM-DD dates.",
+      "Always provide explicit dates in DD-MM-YYYY format.",
     inputSchema: z.object({
       id: z.string().uuid(),
       heading: z.string().min(1).max(200)
