@@ -25,6 +25,7 @@ import SharedNote from "./pages/SharedNote";
 import MaterialsPage from "./pages/MaterialsPage";
 import NotFound from "./pages/NotFound";
 import ChatGPTIntegration from "./pages/ChatGPTIntegration";
+import OAuthAuthorize from "./pages/OAuthAuthorize";
 
 
 const queryClient = new QueryClient();
