@@ -12,9 +12,10 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onChanged?: () => void;
+  initialEditing?: { id?: string; name: string; content: string } | null;
 }
 
-export function ManageTemplatesDialog({ open, onOpenChange, onChanged }: Props) {
+export function ManageTemplatesDialog({ open, onOpenChange, onChanged, initialEditing }: Props) {
   const [templates, setTemplates] = useState<any[]>([]);
   const [editing, setEditing] = useState<{ id?: string; name: string; content: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -28,7 +29,14 @@ export function ManageTemplatesDialog({ open, onOpenChange, onChanged }: Props) 
     setTemplates(data || []);
   };
 
-  useEffect(() => { if (open) load(); }, [open]);
+  useEffect(() => {
+    if (open) {
+      load();
+      if (initialEditing) setEditing(initialEditing);
+    } else {
+      setEditing(null);
+    }
+  }, [open, initialEditing]);
 
   const handleSave = async () => {
     if (!editing || !editing.name.trim()) {

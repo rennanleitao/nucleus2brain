@@ -44,7 +44,11 @@ export const BUILT_IN_TEMPLATES: NoteTemplate[] = [
 </ul>
 <hr/>
 <h2>Próximos passos</h2>
-<p>O que acontece depois desta reunião.</p>
+<ol>
+  <li>Passo — <strong>Responsável:</strong> — <strong>Data:</strong> --/--/----</li>
+  <li>Passo — <strong>Responsável:</strong> — <strong>Data:</strong> --/--/----</li>
+  <li>Passo — <strong>Responsável:</strong> — <strong>Data:</strong> --/--/----</li>
+</ol>
 `.trim(),
   },
   {

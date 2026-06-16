@@ -538,11 +538,6 @@ export default function Notes() {
                     {!dirty && autosaveEnabled && selectedNote && (
                       <span className="text-[10px] text-muted-foreground">Salvo ✓</span>
                     )}
-                    <NoteTemplatesMenu
-                      hasSelection={hasSelection}
-                      isEmpty={!editContent || !editContent.replace(/<[^>]+>/g, "").trim()}
-                      onApply={handleApplyTemplate}
-                    />
                     <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary"
                       onClick={() => setShareOpen(true)}>
                       <Share2 className="h-4 w-4" />
@@ -684,6 +679,14 @@ export default function Notes() {
                     existingTags={allTags}
                     spaceId={editSpaceId || null}
                     onTaskCreated={() => { if (selectedNote?.id) loadLinkedTasks(selectedNote.id); }}
+                    toolbarExtra={
+                      <NoteTemplatesMenu
+                        compact
+                        hasSelection={hasSelection}
+                        isEmpty={!editContent || !editContent.replace(/<[^>]+>/g, "").trim()}
+                        onApply={handleApplyTemplate}
+                      />
+                    }
                     placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
                     className="border-0 rounded-none min-h-full"
                     allNotes={notes.map(n => ({ id: n.id, title: n.title }))}

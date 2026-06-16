@@ -47,6 +47,7 @@ interface RichTextEditorProps {
   onCreateSubNote?: (title: string) => void;
   onLinkNote?: () => void;
   onSelectionChange?: (hasSelection: boolean) => void;
+  toolbarExtra?: React.ReactNode;
 }
 
 export interface RichTextEditorHandle {
@@ -62,7 +63,7 @@ export interface RichTextEditorHandle {
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick, spaceId = null, onTaskCreated,
-  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote, onSelectionChange,
+  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote, onSelectionChange, toolbarExtra,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -446,6 +447,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           <ToolbarButton onClick={handleInsertSubNote} title="Criar sub-nota">
             <FilePlus className="h-3.5 w-3.5" />
           </ToolbarButton>
+        )}
+        {toolbarExtra && (
+          <>
+            <Separator orientation="vertical" className="h-4 mx-1.5 bg-border/40" />
+            {toolbarExtra}
+          </>
         )}
       </div>
 
