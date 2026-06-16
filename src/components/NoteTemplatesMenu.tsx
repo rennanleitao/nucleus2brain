@@ -64,13 +64,14 @@ export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply }: Props) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            size="icon"
+            size="sm"
             variant="ghost"
-            className="h-8 w-8 text-muted-foreground hover:text-primary"
+            className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-primary"
             title={hasSelection ? "Organizar seleção com template" : "Aplicar template"}
             disabled={loading}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileStack className="h-4 w-4" />}
+            <span className="hidden sm:inline">Templates</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
