@@ -46,6 +46,7 @@ interface RichTextEditorProps {
   onNoteLinkClick?: (noteId: string) => void;
   onCreateSubNote?: (title: string) => void;
   onLinkNote?: () => void;
+  onSelectionChange?: (hasSelection: boolean) => void;
 }
 
 export interface RichTextEditorHandle {
@@ -61,7 +62,7 @@ export interface RichTextEditorHandle {
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick, spaceId = null, onTaskCreated,
-  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote,
+  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote, onSelectionChange,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -142,6 +143,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         const tagMatches = text.match(/#(\w[\w-]*)(?=[\s,.;:!?\n])/g);
         const tags = tagMatches ? [...new Set(tagMatches.map(t => t.slice(1)))] : [];
         onTagsDetected(tags);
+      }
+    },
+    onSelectionUpdate: ({ editor }) => {
+      if (onSelectionChange) {
+        const { from, to } = editor.state.selection;
+        onSelectionChange(from !== to);
       }
     },
     editorProps: {
