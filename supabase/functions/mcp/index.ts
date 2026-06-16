@@ -72,8 +72,29 @@ const buildServer = (ctx: Ctx) => {
 
 
   // ---------- NOTES ----------
+  // Editorial guidance shared across note tools. The Nucleus editor renders rich
+  // Markdown (headings, lists, bold, blockquotes). Agents must write like
+  // co-authors: preserve structure, format for human reading, and date every
+  // contribution.
+  const NOTE_STYLE_GUIDE = [
+    "FORMAT: Write Markdown ready for a rich-text editor.",
+    "- Use ##/### headings and short paragraphs. Avoid long walls of text.",
+    "- Prefer bullet/numbered lists for points, decisions, next steps.",
+    "- Separate sections with a blank line. Bold key terms sparingly.",
+    "DATES: Always make dates explicit (YYYY-MM-DD). Never write vague refs",
+    "like 'this week' without an absolute date next to it.",
+    "STRUCTURE: When relevant, organize content into clear sections such as",
+    "Contexto / Principais pontos / Decisões / Próximos passos / Conhecimento",
+    "relacionado. Keep historical context and action items in separate sections.",
+    "SOURCES: When adding external knowledge, cite it: title, URL, captured_at",
+    "(YYYY-MM-DD), short summary, key insights — in a dedicated subsection.",
+  ].join(" ");
+
   s.tool("create_note", {
-        description: "Create a new note. tags is an array of plain strings.",
+    description:
+      "Create a new note. tags is an array of plain strings. " +
+      "Write the body as well-structured Markdown so it renders cleanly in the " +
+      "Nucleus rich editor. " + NOTE_STYLE_GUIDE,
     inputSchema: z.object({
       title: z.string().min(1).max(500),
       content: z.string().optional(),
@@ -94,7 +115,14 @@ const buildServer = (ctx: Ctx) => {
   });
 
   s.tool("update_note", {
-        description: "Update fields of an existing note. Only provided fields change.",
+    description:
+      "Update fields of an existing note. Only provided fields change. " +
+      "IMPORTANT: passing `content` REPLACES the entire body. Before overwriting, " +
+      "ALWAYS call get_note first and preserve existing headings, lists, and " +
+      "structure — act as a co-author that enriches, never as a rewriter. " +
+      "Prefer `append_to_note` or `append_section_to_note` for incremental " +
+      "enrichment; only use `update_note.content` when you have re-emitted the " +
+      "full original content plus your additions. " + NOTE_STYLE_GUIDE,
     inputSchema: z.object({
       id: z.string().uuid(),
       title: z.string().min(1).max(500).optional(),
@@ -114,7 +142,11 @@ const buildServer = (ctx: Ctx) => {
   });
 
   s.tool("append_to_note", {
-        description: "Append text to the end of a note's content (with a newline separator).",
+    description:
+      "Append Markdown to the end of a note, separated by a blank line. " +
+      "Preferred over update_note for incremental enrichment — preserves the " +
+      "existing structure. Start your addition with a heading (## or ###) so " +
+      "it visually separates from prior content. " + NOTE_STYLE_GUIDE,
     inputSchema: z.object({
       id: z.string().uuid(),
       content: z.string().min(1),
@@ -124,6 +156,86 @@ const buildServer = (ctx: Ctx) => {
       if (gErr) return fail(gErr.message);
       const merged = `${note.content ?? ""}${note.content ? "\n\n" : ""}${input.content}`;
       const { data, error } = await db.from("notes").update({ content: merged }).eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("append_section_to_note", {
+    description:
+      "Append a well-formatted section to a note. Use this when enriching a " +
+      "note with external knowledge, meeting outcomes, decisions, or next steps. " +
+      "The server renders a heading, an optional source citation block (title, " +
+      "URL, captured_at), a summary, bullet insights, decisions, and next steps " +
+      "— each as its own subsection so the note stays organized and scannable. " +
+      "Always provide explicit YYYY-MM-DD dates.",
+    inputSchema: z.object({
+      id: z.string().uuid(),
+      heading: z.string().min(1).max(200)
+        .describe("Section title rendered as an H2."),
+      heading_level: z.number().int().min(2).max(4).optional()
+        .describe("Markdown heading level for the section title (2-4). Default 2."),
+      summary: z.string().optional()
+        .describe("Short paragraph (1-3 sentences) summarizing the addition."),
+      key_points: z.array(z.string()).optional()
+        .describe("Bullet list of main points / insights."),
+      decisions: z.array(z.string()).optional()
+        .describe("Bullet list of decisions made."),
+      next_steps: z.array(z.string()).optional()
+        .describe("Bullet list of action items / next steps. Include owner + date when known."),
+      source: z.object({
+        title: z.string().optional(),
+        url: z.string().url().optional(),
+        captured_at: z.string().optional()
+          .describe("Date the source was captured (YYYY-MM-DD). Defaults to today."),
+      }).optional()
+        .describe("Citation for external knowledge added to the note."),
+      event_date: z.string().optional()
+        .describe("Date the underlying event/meeting happened (YYYY-MM-DD)."),
+    }),
+    handler: async (input) => {
+      const { data: note, error: gErr } = await db.from("notes")
+        .select("content").eq("id", input.id).single();
+      if (gErr) return fail(gErr.message);
+
+      const today = new Date().toISOString().slice(0, 10);
+      const h = "#".repeat(input.heading_level ?? 2);
+      const lines: string[] = [];
+      lines.push(`${h} ${input.heading}`);
+
+      const metaBits: string[] = [];
+      if (input.event_date) metaBits.push(`Data do evento: ${input.event_date}`);
+      metaBits.push(`Atualizado em: ${today}`);
+      lines.push("", `_${metaBits.join(" · ")}_`);
+
+      if (input.summary) {
+        lines.push("", input.summary.trim());
+      }
+      if (input.key_points?.length) {
+        lines.push("", `${h}# Principais pontos`);
+        for (const p of input.key_points) lines.push(`- ${p.trim()}`);
+      }
+      if (input.decisions?.length) {
+        lines.push("", `${h}# Decisões`);
+        for (const d of input.decisions) lines.push(`- ${d.trim()}`);
+      }
+      if (input.next_steps?.length) {
+        lines.push("", `${h}# Próximos passos`);
+        for (const n of input.next_steps) lines.push(`- [ ] ${n.trim()}`);
+      }
+      if (input.source && (input.source.title || input.source.url)) {
+        lines.push("", `${h}# Fonte`);
+        if (input.source.title) lines.push(`- **Título:** ${input.source.title}`);
+        if (input.source.url) lines.push(`- **URL:** <${input.source.url}>`);
+        lines.push(`- **Capturado em:** ${input.source.captured_at ?? today}`);
+      }
+
+      const section = lines.join("\n");
+      const prev = note.content ?? "";
+      const merged = prev ? `${prev}\n\n---\n\n${section}` : section;
+
+      const { data, error } = await db.from("notes")
+        .update({ content: merged }).eq("id", input.id).select().single();
       if (error) return fail(error.message);
       return ok(data);
     },
@@ -164,7 +276,9 @@ const buildServer = (ctx: Ctx) => {
   });
 
   s.tool("get_note", {
-        description: "Get a single note by id.",
+    description:
+      "Get a single note by id. ALWAYS call this before updating a note's " +
+      "content so you can preserve existing headings, lists, and structure.",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("notes").select("*").eq("id", input.id).single();
