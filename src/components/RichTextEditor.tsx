@@ -448,6 +448,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
             <FilePlus className="h-3.5 w-3.5" />
           </ToolbarButton>
         )}
+        {toolbarExtra && (
+          <>
+            <Separator orientation="vertical" className="h-4 mx-1.5 bg-border/40" />
+            {toolbarExtra}
+          </>
+        )}
       </div>
 
 
