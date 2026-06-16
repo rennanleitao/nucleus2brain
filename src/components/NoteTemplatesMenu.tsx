@@ -131,10 +131,10 @@ export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply, compact = fa
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 mt-1 flex-shrink-0 text-muted-foreground hover:text-foreground"
-                title="Duplicar como meu template (editável)"
+                title="Editar template (duplica e abre edição)"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); duplicateBuiltIn(t); }}
               >
-                <Copy className="h-3 w-3" />
+                <Pencil className="h-3 w-3" />
               </Button>
             </div>
           ))}
