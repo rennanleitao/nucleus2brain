@@ -19,6 +19,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
 import { LinkNoteDialog } from "@/components/LinkNoteDialog";
 import { NotePreviewDialog } from "@/components/NotePreviewDialog";
+import { NoteTemplatesMenu } from "@/components/NoteTemplatesMenu";
+import type { NoteTemplate } from "@/lib/noteTemplates";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
