@@ -28,6 +28,7 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
   const updateTopic = useUpdateTopic();
   const [, setParams] = useSearchParams();
   const [editTopic, setEditTopic] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
   const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry }>({ open: false });
 
   // Inline free-form annotations — autosaved with debounce
