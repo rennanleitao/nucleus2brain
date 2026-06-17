@@ -90,6 +90,12 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {onToggleFocus && (
+                <Button variant="ghost" size="sm" onClick={onToggleFocus} title={focusMode ? "Sair do modo leitura (Esc)" : "Modo leitura"}>
+                  {focusMode ? <Minimize2 className="h-3.5 w-3.5 mr-1.5" /> : <Maximize2 className="h-3.5 w-3.5 mr-1.5" />}
+                  {focusMode ? "Sair" : "Leitura"}
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
               </Button>
