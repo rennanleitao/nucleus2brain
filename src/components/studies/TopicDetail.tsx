@@ -5,16 +5,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2, ChevronDown, ArrowRightLeft, Copy } from "lucide-react";
 import {
   useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic, useDeleteTopic,
+  useMoveEntry, useDuplicateEntry,
   type StudyTopic, type StudyEntry,
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
 import { StudyResearchChat } from "./StudyResearchChat";
+import { PickTopicDialog } from "./PickTopicDialog";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
+import { toast } from "sonner";
 
 
 interface Props { topic: StudyTopic; focusMode?: boolean; onToggleFocus?: () => void }
@@ -27,10 +30,13 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
   const deleteEntry = useDeleteEntry();
   const deleteTopic = useDeleteTopic();
   const updateTopic = useUpdateTopic();
+  const moveEntry = useMoveEntry();
+  const duplicateEntry = useDuplicateEntry();
   const [, setParams] = useSearchParams();
   const [editTopic, setEditTopic] = useState(false);
   const [descOpen, setDescOpen] = useState(false);
   const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry }>({ open: false });
+  const [pickDialog, setPickDialog] = useState<{ open: boolean; mode: "move" | "duplicate"; entry?: StudyEntry }>({ open: false, mode: "move" });
 
   // Inline free-form annotations — autosaved with debounce
   const [notesDraft, setNotesDraft] = useState(topic.notes ?? "");
@@ -207,9 +213,25 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEntryDialog({ open: true, edit: e })}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (confirm("Remover registro?")) deleteEntry.mutate(e.id); }}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setPickDialog({ open: true, mode: "move", entry: e })}>
+                              <ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Mover para outro tema
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setPickDialog({ open: true, mode: "duplicate", entry: e })}>
+                              <Copy className="h-3.5 w-3.5 mr-2" /> Duplicar em outro tema
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm("Remover registro?")) deleteEntry.mutate(e.id); }}>
+                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                     <p className={focusMode ? "text-base text-foreground/80 leading-[1.75] whitespace-pre-wrap" : "text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap"}>{e.summary}</p>
@@ -248,6 +270,22 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
         entry={entryDialog.edit}
       />
       <TopicFormDialog open={editTopic} onOpenChange={setEditTopic} topic={topic} />
+      <PickTopicDialog
+        open={pickDialog.open}
+        mode={pickDialog.mode}
+        currentTopicId={topic.id}
+        onOpenChange={(o) => setPickDialog((p) => ({ ...p, open: o }))}
+        onConfirm={async (topicId) => {
+          if (!pickDialog.entry) return;
+          if (pickDialog.mode === "move") {
+            await moveEntry.mutateAsync({ id: pickDialog.entry.id, topic_id: topicId });
+            toast.success("Registro movido");
+          } else {
+            await duplicateEntry.mutateAsync({ entry: pickDialog.entry, topic_id: topicId });
+            toast.success("Registro duplicado");
+          }
+        }}
+      />
     </div>
   );
 }

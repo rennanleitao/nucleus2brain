@@ -256,3 +256,47 @@ export function useDeleteEntry() {
     },
   });
 }
+
+export function useMoveEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, topic_id }: { id: string; topic_id: string }) => {
+      const { data, error } = await db
+        .from("study_entries")
+        .update({ topic_id })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as StudyEntry;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["study_entries"] });
+      qc.invalidateQueries({ queryKey: ["study_entries_recent"] });
+      qc.invalidateQueries({ queryKey: ["study_topics"] });
+    },
+  });
+}
+
+export function useDuplicateEntry() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ entry, topic_id }: { entry: StudyEntry; topic_id: string }) => {
+      const { id, created_at, updated_at, user_id, topic_id: _t, ...rest } = entry;
+      const { data, error } = await db
+        .from("study_entries")
+        .insert({ ...rest, topic_id, user_id: user!.id })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as StudyEntry;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["study_entries"] });
+      qc.invalidateQueries({ queryKey: ["study_entries_recent"] });
+      qc.invalidateQueries({ queryKey: ["study_topics"] });
+    },
+  });
+}
+
