@@ -85,6 +85,31 @@ export function TopicDetail({ topic }: Props) {
               <Button size="sm" onClick={() => setEntryDialog({ open: true })}>
                 <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar registro
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm(`Remover tema "${topic.title}" e todos os registros?`)) {
+                        deleteTopic.mutate(topic.id, {
+                          onSuccess: () => {
+                            const p = new URLSearchParams(window.location.search);
+                            p.delete("topic");
+                            setParams(p, { replace: true });
+                          },
+                        });
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover tema
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
