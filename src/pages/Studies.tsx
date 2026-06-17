@@ -106,7 +106,7 @@ export default function Studies() {
                   <div key={a.id} className="group flex items-center gap-1">
                     <button
                       onClick={() => setSelection({ area: a.id })}
-                      className="flex-1 flex items-center gap-3 px-4 py-3 bg-background border border-border rounded-xl hover:border-foreground/20 hover:shadow-sm transition-all text-left animate-fade-in touch-manipulation active:scale-[0.99] min-w-0"
+                      className="flex-1 flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-xl hover:border-foreground/20 hover:shadow-sm transition-all text-left animate-fade-in touch-manipulation active:scale-[0.99] min-w-0"
                     >
                       <FolderOpen className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0">
