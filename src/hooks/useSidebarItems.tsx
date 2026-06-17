@@ -19,6 +19,9 @@ const STORAGE_KEY = "sidebar_visible_items_v1";
 const EVENT_NAME = "sidebar-visible-items-changed";
 
 const ALL_KEYS = SIDEBAR_ITEMS.map((i) => i.key) as SidebarItemKey[];
+// Keys added after the storage key was first introduced — auto-enable so users
+// who already have a stored visibility list still see new modules.
+const AUTO_ENABLE_NEW_KEYS: SidebarItemKey[] = ["studies"];
 
 function readStored(): SidebarItemKey[] {
   try {
@@ -29,11 +32,24 @@ function readStored(): SidebarItemKey[] {
     const filtered = parsed.filter((k): k is SidebarItemKey =>
       ALL_KEYS.includes(k as SidebarItemKey)
     );
-    return filtered.length > 0 ? filtered : ALL_KEYS;
+    if (filtered.length === 0) return ALL_KEYS;
+    // Inject any newly-introduced keys the user hasn't seen yet.
+    let mutated = false;
+    for (const key of AUTO_ENABLE_NEW_KEYS) {
+      if (!filtered.includes(key)) {
+        filtered.push(key);
+        mutated = true;
+      }
+    }
+    if (mutated) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered)); } catch {}
+    }
+    return filtered;
   } catch {
     return ALL_KEYS;
   }
 }
+
 
 export function useSidebarItems() {
   const [visible, setVisible] = useState<SidebarItemKey[]>(() => readStored());
