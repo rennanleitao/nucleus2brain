@@ -270,6 +270,22 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
         entry={entryDialog.edit}
       />
       <TopicFormDialog open={editTopic} onOpenChange={setEditTopic} topic={topic} />
+      <PickTopicDialog
+        open={pickDialog.open}
+        mode={pickDialog.mode}
+        currentTopicId={topic.id}
+        onOpenChange={(o) => setPickDialog((p) => ({ ...p, open: o }))}
+        onConfirm={async (topicId) => {
+          if (!pickDialog.entry) return;
+          if (pickDialog.mode === "move") {
+            await moveEntry.mutateAsync({ id: pickDialog.entry.id, topic_id: topicId });
+            toast.success("Registro movido");
+          } else {
+            await duplicateEntry.mutateAsync({ entry: pickDialog.entry, topic_id: topicId });
+            toast.success("Registro duplicado");
+          }
+        }}
+      />
     </div>
   );
 }
