@@ -14,7 +14,7 @@ import {
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
-import { StudyResearchChat } from "./StudyResearchChat";
+import { EntryAIAssist } from "./EntryAIAssist";
 import { PickTopicDialog } from "./PickTopicDialog";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
 import { toast } from "sonner";
