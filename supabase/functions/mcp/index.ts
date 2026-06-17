@@ -1412,8 +1412,10 @@ app.all("*", async (c) => {
   const auth = await authenticate(req);
   if (!auth && !allowAnon) return unauthorized();
 
-  const supabase = clientFor(auth.token);
-  const server = buildServer({ userId: auth.user.id, supabase });
+  const effectiveUserId = auth?.user.id ?? "00000000-0000-0000-0000-000000000000";
+  const effectiveToken = auth?.token ?? ANON_KEY;
+  const supabase = clientFor(effectiveToken);
+  const server = buildServer({ userId: effectiveUserId, supabase });
   const transport = new StreamableHttpTransport();
   const handleMcpRequest = transport.bind(server);
 
