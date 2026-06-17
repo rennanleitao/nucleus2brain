@@ -6,13 +6,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, FolderOpen, ArrowLeft, MoreHorizontal, Trash2, Pencil, GraduationCap } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
-  useStudyAreas, useStudyTopics, useAllRecentUpdates, useDeleteArea, useDeleteTopic,
+  useStudyAreas, useStudyTopics, useAllRecentEntries, useDeleteArea, useDeleteTopic,
   type StudyArea, type StudyTopic,
 } from "@/hooks/useStudies";
 import { AreaFormDialog } from "@/components/studies/AreaFormDialog";
 import { TopicFormDialog } from "@/components/studies/TopicFormDialog";
 import { TopicDetail } from "@/components/studies/TopicDetail";
-import { StatusBadge } from "@/components/studies/StatusBadge";
 import { formatRelative, formatDateBR } from "@/lib/studyDate";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -26,7 +25,7 @@ export default function Studies() {
   const { data: areas = [], isLoading: areasLoading } = useStudyAreas();
   const { data: topics = [] } = useStudyTopics(areaId);
   const { data: allTopics = [] } = useStudyTopics(null);
-  const { data: recentUpdates = [] } = useAllRecentUpdates(8);
+  const { data: recentEntries = [] } = useAllRecentEntries(8);
 
   const [areaDialog, setAreaDialog] = useState<{ open: boolean; edit?: StudyArea }>({ open: false });
   const [topicDialog, setTopicDialog] = useState<{ open: boolean; edit?: StudyTopic }>({ open: false });
@@ -59,11 +58,10 @@ export default function Studies() {
     const total = allTopics.length;
     const oneWeekAgo = Date.now() - 7 * 86400000;
     const twoWeeksAgo = Date.now() - 14 * 86400000;
-    const updatesThisWeek = recentUpdates.filter((u) => new Date(u.date).getTime() >= oneWeekAgo).length;
+    const entriesThisWeek = recentEntries.filter((u) => new Date(u.entry_date).getTime() >= oneWeekAgo).length;
     const stale = allTopics.filter((t) => !t.last_updated_at || new Date(t.last_updated_at).getTime() < twoWeeksAgo).length;
-    const moving = allTopics.filter((t) => t.status === "em_mudanca").length;
-    return { total, updatesThisWeek, stale, moving };
-  }, [allTopics, recentUpdates]);
+    return { total, entriesThisWeek, stale };
+  }, [allTopics, recentEntries]);
 
   // ---------------- Empty home view ----------------
   if (!areaId && !topicId) {
@@ -72,9 +70,9 @@ export default function Studies() {
         <div className="max-w-6xl mx-auto p-6 md:p-8 space-y-8">
           <header className="flex items-start justify-between gap-4 flex-wrap">
             <div className="space-y-1">
-              <h1 className="text-3xl font-semibold tracking-tight">Estudos</h1>
+              <h1 className="text-3xl font-semibold tracking-tight">Conhecimentos Gerais</h1>
               <p className="text-sm text-muted-foreground max-w-xl">
-                Acompanhe temas de interesse, notícias relevantes, leituras e a evolução da sua interpretação.
+                Acompanhe temas de interesse com uma cronologia simples de registros.
               </p>
             </div>
             <div className="flex gap-2">
@@ -87,19 +85,14 @@ export default function Studies() {
             </div>
           </header>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <StatCard label="Temas acompanhados" value={stats.total} />
-            <StatCard label="Atualizações esta semana" value={stats.updatesThisWeek} />
+            <StatCard label="Registros esta semana" value={stats.entriesThisWeek} />
             <StatCard label="Sem atualização" value={stats.stale} hint="14+ dias" />
-            <StatCard label="Em mudança" value={stats.moving} />
           </div>
 
-          {/* Areas */}
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Áreas de estudo</h2>
-            </div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Áreas</h2>
             {areasLoading ? (
               <p className="text-sm text-muted-foreground">Carregando...</p>
             ) : areas.length === 0 ? (
@@ -107,8 +100,8 @@ export default function Studies() {
                 <CardContent className="p-10 text-center space-y-3">
                   <GraduationCap className="h-8 w-8 mx-auto text-muted-foreground" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Comece criando uma área de estudo</p>
-                    <p className="text-xs text-muted-foreground">Ex.: Brasil, Análise Concorrencial, Inteligência Artificial.</p>
+                    <p className="text-sm font-medium">Comece criando uma área</p>
+                    <p className="text-xs text-muted-foreground">Ex.: Brasil, IA, ServiceNow, Geopolítica.</p>
                   </div>
                   <Button onClick={() => setAreaDialog({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Criar primeira área</Button>
                 </CardContent>
@@ -135,13 +128,12 @@ export default function Studies() {
             )}
           </section>
 
-          {/* Recent updates */}
-          {recentUpdates.length > 0 && (
+          {recentEntries.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Últimas atualizações</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Últimos registros</h2>
               <Card>
                 <CardContent className="p-0 divide-y divide-border">
-                  {recentUpdates.map((u) => {
+                  {recentEntries.map((u) => {
                     const topic = allTopics.find((t) => t.id === u.topic_id);
                     return (
                       <button
@@ -149,7 +141,7 @@ export default function Studies() {
                         className="w-full text-left p-4 hover:bg-muted/50 transition-colors flex items-start gap-3"
                         onClick={() => topic && setSelection({ area: topic.area_id, topic: topic.id })}
                       >
-                        <span className="text-[11px] font-mono text-muted-foreground shrink-0 w-20 pt-0.5">{formatDateBR(u.date)}</span>
+                        <span className="text-[11px] font-mono text-muted-foreground shrink-0 w-20 pt-0.5">{formatDateBR(u.entry_date)}</span>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{u.title}</p>
                           <p className="text-xs text-muted-foreground truncate">{topic?.title ?? "—"}</p>
@@ -169,14 +161,12 @@ export default function Studies() {
     );
   }
 
-  // ---------------- 3-column workspace ----------------
   const showAreasCol = !isMobile || (!areaId && !topicId);
   const showTopicsCol = !isMobile || (!!areaId && !topicId);
-  const showTopicCol = !isMobile ? !!selectedTopic : !!selectedTopic;
+  const showTopicCol = !!selectedTopic;
 
   return (
     <div className="flex-1 flex min-h-0 bg-background">
-      {/* Areas */}
       {showAreasCol && (
         <aside className={cn("w-full md:w-64 border-r border-border flex flex-col shrink-0", isMobile && (areaId || topicId) ? "hidden" : "")}>
           <div className="p-4 border-b border-border flex items-center justify-between">
@@ -191,7 +181,7 @@ export default function Studies() {
                 onClick={() => setSelection({ area: null, topic: null })}
                 className="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors text-muted-foreground"
               >
-                ← Voltar para Estudos
+                ← Voltar
               </button>
               {areas.map((a) => (
                 <div key={a.id} className="group flex items-center">
@@ -230,7 +220,6 @@ export default function Studies() {
         </aside>
       )}
 
-      {/* Topics list */}
       {showTopicsCol && areaId && (
         <aside className={cn("w-full md:w-80 border-r border-border flex flex-col shrink-0", isMobile && topicId ? "hidden" : "")}>
           <div className="p-4 border-b border-border space-y-2">
@@ -259,17 +248,12 @@ export default function Studies() {
                   key={t.id}
                   onClick={() => setSelection({ topic: t.id })}
                   className={cn(
-                    "w-full text-left p-3 rounded-md hover:bg-muted transition-colors space-y-1.5 group",
+                    "w-full text-left p-3 rounded-md hover:bg-muted transition-colors space-y-1.5",
                     topicId === t.id && "bg-muted"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm font-medium leading-snug">{t.title}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <StatusBadge status={t.status} />
-                    <span className="text-[10px] text-muted-foreground">{formatRelative(t.last_updated_at ?? t.updated_at)}</span>
-                  </div>
+                  <span className="text-sm font-medium leading-snug block">{t.title}</span>
+                  <span className="text-[10px] text-muted-foreground block">{formatRelative(t.last_updated_at ?? t.updated_at)}</span>
                 </button>
               ))}
             </div>
@@ -277,7 +261,6 @@ export default function Studies() {
         </aside>
       )}
 
-      {/* Topic detail */}
       {showTopicCol && selectedTopic ? (
         <div className="flex-1 flex flex-col min-w-0">
           {isMobile && (
