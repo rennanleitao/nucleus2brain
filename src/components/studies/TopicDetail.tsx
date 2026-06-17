@@ -16,9 +16,9 @@ import { TopicFormDialog } from "./TopicFormDialog";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
 
 
-interface Props { topic: StudyTopic }
+interface Props { topic: StudyTopic; focusMode?: boolean; onToggleFocus?: () => void }
 
-export function TopicDetail({ topic }: Props) {
+export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) {
   const { data: areas = [] } = useStudyAreas();
   const { data: entries = [] } = useStudyEntries(topic.id);
   const area = areas.find((a) => a.id === topic.area_id);
