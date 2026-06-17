@@ -1174,6 +1174,16 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
+  s.tool("get_study_area", {
+    description: "Get a single study area by id.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_areas").select("*").eq("id", input.id).single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
   s.tool("create_study_area", {
     description: "Create a study area (Conhecimentos Gerais top-level).",
     inputSchema: z.object({
