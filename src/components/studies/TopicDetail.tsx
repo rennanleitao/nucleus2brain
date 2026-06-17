@@ -5,16 +5,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2, ChevronDown, ArrowRightLeft, Copy } from "lucide-react";
 import {
   useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic, useDeleteTopic,
+  useMoveEntry, useDuplicateEntry,
   type StudyTopic, type StudyEntry,
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
 import { StudyResearchChat } from "./StudyResearchChat";
+import { PickTopicDialog } from "./PickTopicDialog";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
+import { toast } from "sonner";
 
 
 interface Props { topic: StudyTopic; focusMode?: boolean; onToggleFocus?: () => void }
