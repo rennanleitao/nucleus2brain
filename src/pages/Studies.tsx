@@ -21,6 +21,13 @@ export default function Studies() {
   const isMobile = useIsMobile();
   const areaId = params.get("area");
   const topicId = params.get("topic");
+  const focusMode = params.get("focus") === "1";
+
+  const toggleFocus = () => {
+    const p = new URLSearchParams(params);
+    focusMode ? p.delete("focus") : p.set("focus", "1");
+    setParams(p, { replace: true });
+  };
 
   const { data: areas = [], isLoading: areasLoading } = useStudyAreas();
   const { data: topics = [] } = useStudyTopics(areaId);
