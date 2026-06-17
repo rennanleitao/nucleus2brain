@@ -112,12 +112,32 @@ export default function Studies() {
                   <Card
                     key={a.id}
                     onClick={() => setSelection({ area: a.id })}
-                    className="cursor-pointer hover:border-foreground/30 transition-colors group"
+                    className="cursor-pointer hover:border-foreground/30 transition-colors group relative"
                   >
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setAreaDialog({ open: true, edit: a })}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => { if (confirm(`Remover área "${a.name}" e todos os temas?`)) deleteArea.mutate(a.id); }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                     <CardContent className="p-5 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <FolderOpen className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-[11px] text-muted-foreground">{topicsByArea.get(a.id) ?? 0} temas</span>
+                        <span className="text-[11px] text-muted-foreground pr-7">{topicsByArea.get(a.id) ?? 0} temas</span>
                       </div>
                       <h3 className="text-base font-medium leading-tight">{a.name}</h3>
                       {a.description && <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>}
