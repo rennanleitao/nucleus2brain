@@ -72,63 +72,82 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
         ? "max-w-6xl mx-auto px-8 md:px-16 lg:px-24 py-10 md:py-16 space-y-10"
         : "max-w-4xl mx-auto p-6 md:p-8 space-y-8"}>
 
-        <header className="space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2 min-w-0">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{area?.name ?? "—"}</span>
-                <span>·</span>
-                <span>Última atualização {formatRelative(topic.last_updated_at ?? topic.updated_at)}</span>
-              </div>
-              <h1 className={focusMode ? "text-3xl md:text-4xl font-semibold tracking-tight" : "text-2xl font-semibold tracking-tight"}>{topic.title}</h1>
-              {topic.description && <p className={focusMode ? "text-base text-muted-foreground leading-relaxed" : "text-sm text-muted-foreground"}>{topic.description}</p>}
-              {topic.tags && topic.tags.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {topic.tags.map((t) => (
-                    <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>
-                  ))}
-                </div>
+        <header className="space-y-5 text-center">
+          <div className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span>{area?.name ?? "—"}</span>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="normal-case tracking-normal">Atualizado {formatRelative(topic.last_updated_at ?? topic.updated_at)}</span>
+          </div>
+
+          <h1 className={focusMode
+            ? "text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1] max-w-3xl mx-auto"
+            : "text-3xl md:text-4xl font-semibold tracking-tight leading-[1.15] max-w-2xl mx-auto"}>
+            {topic.title}
+          </h1>
+
+          {topic.description && (
+            <div className="max-w-2xl mx-auto">
+              <button
+                onClick={() => setDescOpen((v) => !v)}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {descOpen ? "Ocultar descrição" : "Mostrar descrição"}
+                <ChevronDown className={`h-3 w-3 transition-transform ${descOpen ? "rotate-180" : ""}`} />
+              </button>
+              {descOpen && (
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed animate-fade-in">
+                  {topic.description}
+                </p>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {onToggleFocus && (
-                <Button variant="ghost" size="sm" onClick={onToggleFocus} title={focusMode ? "Sair do modo leitura (Esc)" : "Modo leitura"}>
-                  {focusMode ? <Minimize2 className="h-3.5 w-3.5 mr-1.5" /> : <Maximize2 className="h-3.5 w-3.5 mr-1.5" />}
-                  {focusMode ? "Sair" : "Leitura"}
+          )}
+
+          {topic.tags && topic.tags.length > 0 && (
+            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+              {topic.tags.map((t) => (
+                <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-center gap-2 pt-2">
+            {onToggleFocus && (
+              <Button variant="ghost" size="sm" onClick={onToggleFocus} title={focusMode ? "Sair do modo leitura (Esc)" : "Modo leitura"}>
+                {focusMode ? <Minimize2 className="h-3.5 w-3.5 mr-1.5" /> : <Maximize2 className="h-3.5 w-3.5 mr-1.5" />}
+                {focusMode ? "Sair" : "Leitura"}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
+              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+            </Button>
+            <Button size="sm" onClick={() => setEntryDialog({ open: true })}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar registro
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-9 w-9">
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
-                <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
-              </Button>
-              <Button size="sm" onClick={() => setEntryDialog({ open: true })}>
-                <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar registro
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => {
-                      if (confirm(`Remover tema "${topic.title}" e todos os registros?`)) {
-                        deleteTopic.mutate(topic.id, {
-                          onSuccess: () => {
-                            const p = new URLSearchParams(window.location.search);
-                            p.delete("topic");
-                            setParams(p, { replace: true });
-                          },
-                        });
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover tema
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => {
+                    if (confirm(`Remover tema "${topic.title}" e todos os registros?`)) {
+                      deleteTopic.mutate(topic.id, {
+                        onSuccess: () => {
+                          const p = new URLSearchParams(window.location.search);
+                          p.delete("topic");
+                          setParams(p, { replace: true });
+                        },
+                      });
+                    }
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover tema
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
