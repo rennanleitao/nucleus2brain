@@ -26,6 +26,7 @@ import MaterialsPage from "./pages/MaterialsPage";
 import NotFound from "./pages/NotFound";
 import ChatGPTIntegration from "./pages/ChatGPTIntegration";
 import OAuthAuthorize from "./pages/OAuthAuthorize";
+import Studies from "./pages/Studies";
 
 
 const queryClient = new QueryClient();
