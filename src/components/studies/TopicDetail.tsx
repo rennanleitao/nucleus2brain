@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2 } from "lucide-react";
 import {
   useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic, useDeleteTopic,
   type StudyTopic, type StudyEntry,
@@ -16,9 +16,9 @@ import { TopicFormDialog } from "./TopicFormDialog";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
 
 
-interface Props { topic: StudyTopic }
+interface Props { topic: StudyTopic; focusMode?: boolean; onToggleFocus?: () => void }
 
-export function TopicDetail({ topic }: Props) {
+export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) {
   const { data: areas = [] } = useStudyAreas();
   const { data: entries = [] } = useStudyEntries(topic.id);
   const area = areas.find((a) => a.id === topic.area_id);
@@ -56,9 +56,20 @@ export function TopicDetail({ topic }: Props) {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [notesDraft, topic.id, updateTopic]);
 
+  useEffect(() => {
+    if (!focusMode || !onToggleFocus) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onToggleFocus(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusMode, onToggleFocus]);
+
   return (
-    <div className="flex-1 overflow-y-auto bg-background">
-      <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-8">
+    <div className={focusMode
+      ? "fixed inset-0 z-50 overflow-y-auto bg-background animate-fade-in"
+      : "flex-1 overflow-y-auto bg-background"}>
+      <div className={focusMode
+        ? "max-w-3xl mx-auto px-6 md:px-10 py-10 md:py-16 space-y-10"
+        : "max-w-4xl mx-auto p-6 md:p-8 space-y-8"}>
 
         <header className="space-y-3">
           <div className="flex items-start justify-between gap-4">
@@ -79,6 +90,12 @@ export function TopicDetail({ topic }: Props) {
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {onToggleFocus && (
+                <Button variant="ghost" size="sm" onClick={onToggleFocus} title={focusMode ? "Sair do modo leitura (Esc)" : "Modo leitura"}>
+                  {focusMode ? <Minimize2 className="h-3.5 w-3.5 mr-1.5" /> : <Maximize2 className="h-3.5 w-3.5 mr-1.5" />}
+                  {focusMode ? "Sair" : "Leitura"}
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
               </Button>
