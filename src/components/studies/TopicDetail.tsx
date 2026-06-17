@@ -68,7 +68,7 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
       ? "fixed inset-0 z-50 overflow-y-auto bg-background animate-fade-in"
       : "flex-1 overflow-y-auto bg-background"}>
       <div className={focusMode
-        ? "max-w-3xl mx-auto px-6 md:px-10 py-10 md:py-16 space-y-10"
+        ? "max-w-6xl mx-auto px-8 md:px-16 lg:px-24 py-10 md:py-16 space-y-10"
         : "max-w-4xl mx-auto p-6 md:p-8 space-y-8"}>
 
         <header className="space-y-3">
