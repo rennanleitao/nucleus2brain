@@ -87,6 +87,27 @@ export function TopicDetail({ topic }: Props) {
 
         <Separator />
 
+        {/* Anotações livres do tema */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <NotebookPen className="h-4 w-4" /> Anotações
+            </h2>
+            <span className="text-[11px] text-muted-foreground">
+              {notesSaving ? "Salvando..." : notesDraft && notesDraft === lastSavedRef.current ? "Salvo" : ""}
+            </span>
+          </div>
+          <Textarea
+            value={notesDraft}
+            onChange={(e) => setNotesDraft(e.target.value)}
+            placeholder="Espaço livre para suas reflexões, ideias soltas, perguntas, conexões..."
+            rows={5}
+            className="resize-y bg-muted/30 border-border/50 focus-visible:bg-background"
+          />
+        </section>
+
+
+
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h2>
