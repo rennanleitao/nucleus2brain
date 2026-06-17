@@ -1429,7 +1429,7 @@ app.all("*", async (c) => {
     })()
     : req;
   const res = await handleMcpRequest(mcpReq, {
-    authInfo: { token: auth.token, clientId: auth.user.id, scopes: [] },
+    authInfo: { token: effectiveToken, clientId: effectiveUserId, scopes: [] },
   });
   // Merge CORS headers into response
   const headers = new Headers(res.headers);
