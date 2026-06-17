@@ -1,0 +1,1 @@
+ALTER TABLE public.study_topics ADD COLUMN IF NOT EXISTS notes TEXT;

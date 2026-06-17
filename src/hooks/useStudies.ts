@@ -20,11 +20,13 @@ export interface StudyTopic {
   area_id: string;
   title: string;
   description: string | null;
+  notes: string | null;
   tags: string[] | null;
   last_updated_at: string | null;
   created_at: string;
   updated_at: string;
 }
+
 
 export interface StudyEntry {
   id: string;

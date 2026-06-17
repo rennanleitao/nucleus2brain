@@ -781,6 +781,7 @@ export type Database = {
           description: string | null
           id: string
           last_updated_at: string | null
+          notes: string | null
           tags: string[]
           title: string
           updated_at: string
@@ -792,6 +793,7 @@ export type Database = {
           description?: string | null
           id?: string
           last_updated_at?: string | null
+          notes?: string | null
           tags?: string[]
           title: string
           updated_at?: string
@@ -803,6 +805,7 @@ export type Database = {
           description?: string | null
           id?: string
           last_updated_at?: string | null
+          notes?: string | null
           tags?: string[]
           title?: string
           updated_at?: string
