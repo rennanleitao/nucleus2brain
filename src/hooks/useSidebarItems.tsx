@@ -6,6 +6,7 @@ export const SIDEBAR_ITEMS = [
   { key: "spaces", title: "Spaces", url: "/spaces" },
   { key: "notes", title: "Notes", url: "/notes" },
   { key: "tasks", title: "Tasks", url: "/tasks" },
+  { key: "studies", title: "Estudos", url: "/estudos" },
   { key: "materials", title: "Materials", url: "/materials" },
   { key: "tags", title: "Tags", url: "/tags" },
   { key: "calendar", title: "Calendar", url: "/calendar" },
