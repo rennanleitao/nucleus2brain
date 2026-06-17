@@ -897,6 +897,436 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
+  // ---------- SPACES (delete) ----------
+  s.tool("delete_space", {
+    description: "Permanently delete a space. Notes/tasks linked to it have their space_id cleared depending on FK rules.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("spaces").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
+  // ---------- TAGS (remove) ----------
+  s.tool("remove_tag_from_note", {
+    description: "Remove a tag from a note's tag array.",
+    inputSchema: z.object({ note_id: z.string().uuid(), tag: z.string().min(1) }),
+    handler: async (input) => {
+      const { data: note, error: gErr } = await db.from("notes").select("tags").eq("id", input.note_id).single();
+      if (gErr) return fail(gErr.message);
+      const tags = (note.tags ?? []).filter((t: string) => t !== input.tag);
+      const { data, error } = await db.from("notes").update({ tags }).eq("id", input.note_id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("remove_tag_from_task", {
+    description: "Clear the tag from a task.",
+    inputSchema: z.object({ task_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("tasks").update({ tag: null }).eq("id", input.task_id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  // ---------- SUBTASKS ----------
+  const subtaskStatus = z.enum(["todo", "completed"]).optional();
+
+  s.tool("list_subtasks", {
+    description: "List subtasks for a given task.",
+    inputSchema: z.object({ task_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("subtasks").select("*").eq("task_id", input.task_id).order("created_at");
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("create_subtask", {
+    description: "Create a subtask under a task.",
+    inputSchema: z.object({
+      task_id: z.string().uuid(),
+      title: z.string().min(1).max(500),
+      status: subtaskStatus,
+      due_date: z.string().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("subtasks").insert({
+        user_id: ctx.userId,
+        task_id: input.task_id,
+        title: input.title,
+        status: input.status ?? "todo",
+        due_date: input.due_date ?? null,
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("update_subtask", {
+    description: "Update a subtask. Setting status='completed' also stamps completed_at.",
+    inputSchema: z.object({
+      id: z.string().uuid(),
+      title: z.string().min(1).max(500).optional(),
+      status: subtaskStatus,
+      due_date: z.string().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const patch: Record<string, unknown> = {};
+      for (const k of ["title", "status", "due_date"] as const) {
+        if (input[k] !== undefined) patch[k] = input[k];
+      }
+      if (patch.status === "completed") patch.completed_at = new Date().toISOString();
+      if (patch.status === "todo") patch.completed_at = null;
+      const { data, error } = await db.from("subtasks").update(patch).eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("delete_subtask", {
+    description: "Delete a subtask permanently.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("subtasks").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
+  // ---------- TASK MATERIALS ----------
+  s.tool("list_task_materials", {
+    description: "List materials. Filter by task_id or space_id.",
+    inputSchema: z.object({
+      task_id: z.string().uuid().nullable().optional(),
+      space_id: z.string().uuid().nullable().optional(),
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("task_materials").select("*").order("created_at", { ascending: false }).limit(input.limit ?? 100);
+      if (input.task_id !== undefined) {
+        if (input.task_id === null) q = q.is("task_id", null); else q = q.eq("task_id", input.task_id);
+      }
+      if (input.space_id !== undefined) {
+        if (input.space_id === null) q = q.is("space_id", null); else q = q.eq("space_id", input.space_id);
+      }
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("create_task_material", {
+    description: "Create a reference material (URL) linked to a task and/or space.",
+    inputSchema: z.object({
+      title: z.string().min(1).max(500),
+      url: z.string().url(),
+      description: z.string().nullable().optional(),
+      task_id: z.string().uuid().nullable().optional(),
+      space_id: z.string().uuid().nullable().optional(),
+      tag: z.string().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("task_materials").insert({
+        user_id: ctx.userId,
+        title: input.title,
+        url: input.url,
+        description: input.description ?? null,
+        task_id: input.task_id ?? null,
+        space_id: input.space_id ?? null,
+        tag: input.tag ?? null,
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("update_task_material", {
+    description: "Update fields of a material.",
+    inputSchema: z.object({
+      id: z.string().uuid(),
+      title: z.string().min(1).max(500).optional(),
+      url: z.string().url().optional(),
+      description: z.string().nullable().optional(),
+      task_id: z.string().uuid().nullable().optional(),
+      space_id: z.string().uuid().nullable().optional(),
+      tag: z.string().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const patch: Record<string, unknown> = {};
+      for (const k of ["title", "url", "description", "task_id", "space_id", "tag"] as const) {
+        if (input[k] !== undefined) patch[k] = input[k];
+      }
+      const { data, error } = await db.from("task_materials").update(patch).eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("delete_task_material", {
+    description: "Delete a material permanently.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("task_materials").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
+  // ---------- LINKS ----------
+  s.tool("list_links", {
+    description: "List bookmark links. Optionally filter by space_id.",
+    inputSchema: z.object({
+      space_id: z.string().uuid().nullable().optional(),
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("links").select("*").order("created_at", { ascending: false }).limit(input.limit ?? 100);
+      if (input.space_id !== undefined) {
+        if (input.space_id === null) q = q.is("space_id", null); else q = q.eq("space_id", input.space_id);
+      }
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("search_links", {
+    description: "Search bookmark links by title/description/url.",
+    inputSchema: z.object({
+      query: z.string().min(1),
+      limit: z.number().int().min(1).max(100).optional(),
+    }),
+    handler: async (input) => {
+      const v = input.query;
+      const { data, error } = await db.from("links").select("*")
+        .or(`title.ilike.%${v}%,description.ilike.%${v}%,url.ilike.%${v}%`)
+        .order("created_at", { ascending: false })
+        .limit(input.limit ?? 25);
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("create_link", {
+    description: "Create a bookmark link, optionally inside a space.",
+    inputSchema: z.object({
+      title: z.string().min(1).max(500),
+      url: z.string().url(),
+      description: z.string().nullable().optional(),
+      space_id: z.string().uuid().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("links").insert({
+        user_id: ctx.userId,
+        title: input.title,
+        url: input.url,
+        description: input.description ?? null,
+        space_id: input.space_id ?? null,
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("update_link", {
+    description: "Update fields of a bookmark link.",
+    inputSchema: z.object({
+      id: z.string().uuid(),
+      title: z.string().min(1).max(500).optional(),
+      url: z.string().url().optional(),
+      description: z.string().nullable().optional(),
+      space_id: z.string().uuid().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const patch: Record<string, unknown> = {};
+      for (const k of ["title", "url", "description", "space_id"] as const) {
+        if (input[k] !== undefined) patch[k] = input[k];
+      }
+      const { data, error } = await db.from("links").update(patch).eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("delete_link", {
+    description: "Delete a bookmark link permanently.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("links").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
+  // ---------- STUDY AREAS ----------
+  s.tool("list_study_areas", {
+    description: "List study areas (top-level Estudos categories).",
+    inputSchema: z.object({ limit: z.number().int().min(1).max(200).optional() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_areas").select("*")
+        .order("created_at", { ascending: false }).limit(input.limit ?? 100);
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("create_study_area", {
+    description: "Create a study area (Conhecimentos Gerais top-level).",
+    inputSchema: z.object({
+      name: z.string().min(1).max(200),
+      description: z.string().nullable().optional(),
+      icon: z.string().nullable().optional(),
+      color: z.string().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_areas").insert({
+        user_id: ctx.userId,
+        name: input.name,
+        description: input.description ?? null,
+        icon: input.icon ?? null,
+        color: input.color ?? null,
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("update_study_area", {
+    description: "Update a study area.",
+    inputSchema: z.object({
+      id: z.string().uuid(),
+      name: z.string().min(1).max(200).optional(),
+      description: z.string().nullable().optional(),
+      icon: z.string().nullable().optional(),
+      color: z.string().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const patch: Record<string, unknown> = {};
+      for (const k of ["name", "description", "icon", "color"] as const) {
+        if (input[k] !== undefined) patch[k] = input[k];
+      }
+      const { data, error } = await db.from("study_areas").update(patch).eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("delete_study_area", {
+    description: "Delete a study area (cascades to its topics and entries).",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("study_areas").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
+  // ---------- STUDY TOPICS ----------
+  s.tool("get_study_topic", {
+    description: "Get a study topic with its entries.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const [{ data: topic, error }, { data: entries }] = await Promise.all([
+        db.from("study_topics").select("*").eq("id", input.id).single(),
+        db.from("study_entries").select("*").eq("topic_id", input.id).order("entry_date", { ascending: false }),
+      ]);
+      if (error) return fail(error.message);
+      return ok({ ...topic, entries: entries ?? [] });
+    },
+  });
+
+  s.tool("create_study_topic", {
+    description: "Create a study topic under an area.",
+    inputSchema: z.object({
+      area_id: z.string().uuid(),
+      title: z.string().min(1).max(500),
+      description: z.string().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+      notes: z.string().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_topics").insert({
+        user_id: ctx.userId,
+        area_id: input.area_id,
+        title: input.title,
+        description: input.description ?? null,
+        tags: input.tags ?? [],
+        notes: input.notes ?? null,
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("update_study_topic", {
+    description: "Update a study topic (title, description, free-form notes, tags, or move to another area).",
+    inputSchema: z.object({
+      id: z.string().uuid(),
+      area_id: z.string().uuid().optional(),
+      title: z.string().min(1).max(500).optional(),
+      description: z.string().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+      notes: z.string().nullable().optional(),
+    }),
+    handler: async (input) => {
+      const patch: Record<string, unknown> = {};
+      for (const k of ["area_id", "title", "description", "tags", "notes"] as const) {
+        if (input[k] !== undefined) patch[k] = input[k];
+      }
+      const { data, error } = await db.from("study_topics").update(patch).eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("delete_study_topic", {
+    description: "Delete a study topic (cascades to its entries).",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("study_topics").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
+  // ---------- STUDY ENTRIES (update / delete) ----------
+  s.tool("update_study_entry", {
+    description: "Update a study entry.",
+    inputSchema: z.object({
+      id: z.string().uuid(),
+      entry_date: z.string().optional(),
+      title: z.string().min(1).max(500).optional(),
+      summary: z.string().optional(),
+      source_url: z.string().url().nullable().optional(),
+      highlight: z.string().nullable().optional(),
+      notes: z.string().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+    }),
+    handler: async (input) => {
+      const patch: Record<string, unknown> = {};
+      for (const k of ["entry_date", "title", "summary", "source_url", "highlight", "notes", "tags"] as const) {
+        if (input[k] !== undefined) patch[k] = input[k];
+      }
+      const { data, error } = await db.from("study_entries").update(patch).eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("delete_study_entry", {
+    description: "Delete a study entry permanently.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("study_entries").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
   return s;
 };
 
