@@ -815,6 +815,88 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
+  // ---------- STUDY ENTRIES (Conhecimentos Gerais) ----------
+  s.tool("add_study_entry", {
+    description:
+      "Add a chronological entry to a study topic (Conhecimentos Gerais). " +
+      "Simple timeline format — no type, no source name. The URL itself, when " +
+      "provided, indicates the nature of the content.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      entry_date: z.string().describe("ISO date YYYY-MM-DD"),
+      title: z.string().min(1).max(500),
+      summary: z.string().min(1),
+      source_url: z.string().url().nullable().optional(),
+      highlight: z.string().nullable().optional(),
+      notes: z.string().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_entries").insert({
+        user_id: ctx.userId,
+        topic_id: input.topic_id,
+        entry_date: input.entry_date,
+        title: input.title,
+        summary: input.summary,
+        source_url: input.source_url ?? null,
+        highlight: input.highlight ?? null,
+        notes: input.notes ?? null,
+        tags: input.tags ?? [],
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("search_study_entries", {
+    description:
+      "Search chronological study entries by free-text across title, summary, " +
+      "source_url, highlight, notes, and tags. Optional date range on entry_date.",
+    inputSchema: z.object({
+      query: z.string().optional(),
+      topic_id: z.string().uuid().optional(),
+      tag: z.string().optional(),
+      date_from: z.string().optional().describe("ISO date YYYY-MM-DD"),
+      date_to: z.string().optional().describe("ISO date YYYY-MM-DD"),
+      limit: z.number().int().min(1).max(100).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("study_entries").select("*")
+        .order("entry_date", { ascending: false })
+        .limit(input.limit ?? 25);
+      if (input.topic_id) q = q.eq("topic_id", input.topic_id);
+      if (input.tag) q = q.contains("tags", [input.tag]);
+      if (input.date_from) q = q.gte("entry_date", input.date_from);
+      if (input.date_to) q = q.lte("entry_date", input.date_to);
+      if (input.query) {
+        const v = input.query.replace(/[,()]/g, " ");
+        q = q.or(
+          `title.ilike.%${v}%,summary.ilike.%${v}%,source_url.ilike.%${v}%,highlight.ilike.%${v}%,notes.ilike.%${v}%`
+        );
+      }
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("list_study_topics", {
+    description: "List study topics (Conhecimentos Gerais). Optionally filter by area_id.",
+    inputSchema: z.object({
+      area_id: z.string().uuid().optional(),
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("study_topics").select("*")
+        .order("updated_at", { ascending: false })
+        .limit(input.limit ?? 100);
+      if (input.area_id) q = q.eq("area_id", input.area_id);
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
   return s;
 };
 

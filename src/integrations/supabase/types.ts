@@ -82,68 +82,6 @@ export type Database = {
           },
         ]
       }
-      book_summaries: {
-        Row: {
-          author: string | null
-          created_at: string
-          executive_summary: string | null
-          id: string
-          key_concepts: string | null
-          main_ideas: string | null
-          notebooklm_url: string | null
-          practical_applications: string | null
-          relevant_quotes: string | null
-          review_questions: string | null
-          title: string
-          topic_id: string | null
-          updated_at: string
-          user_id: string
-          year: number | null
-        }
-        Insert: {
-          author?: string | null
-          created_at?: string
-          executive_summary?: string | null
-          id?: string
-          key_concepts?: string | null
-          main_ideas?: string | null
-          notebooklm_url?: string | null
-          practical_applications?: string | null
-          relevant_quotes?: string | null
-          review_questions?: string | null
-          title: string
-          topic_id?: string | null
-          updated_at?: string
-          user_id: string
-          year?: number | null
-        }
-        Update: {
-          author?: string | null
-          created_at?: string
-          executive_summary?: string | null
-          id?: string
-          key_concepts?: string | null
-          main_ideas?: string | null
-          notebooklm_url?: string | null
-          practical_applications?: string | null
-          relevant_quotes?: string | null
-          review_questions?: string | null
-          title?: string
-          topic_id?: string | null
-          updated_at?: string
-          user_id?: string
-          year?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "book_summaries_topic_id_fkey"
-            columns: ["topic_id"]
-            isOneToOne: false
-            referencedRelation: "study_topics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       google_calendar_selections: {
         Row: {
           calendar_color: string | null
@@ -783,46 +721,52 @@ export type Database = {
         }
         Relationships: []
       }
-      study_sources: {
+      study_entries: {
         Row: {
-          captured_at: string
           created_at: string
+          entry_date: string
+          highlight: string | null
           id: string
-          name: string
           notes: string | null
-          source_type: Database["public"]["Enums"]["study_source_type"]
+          source_url: string | null
+          summary: string
+          tags: string[]
+          title: string
           topic_id: string
           updated_at: string
-          url: string | null
           user_id: string
         }
         Insert: {
-          captured_at?: string
           created_at?: string
+          entry_date?: string
+          highlight?: string | null
           id?: string
-          name: string
           notes?: string | null
-          source_type?: Database["public"]["Enums"]["study_source_type"]
+          source_url?: string | null
+          summary: string
+          tags?: string[]
+          title: string
           topic_id: string
           updated_at?: string
-          url?: string | null
           user_id: string
         }
         Update: {
-          captured_at?: string
           created_at?: string
+          entry_date?: string
+          highlight?: string | null
           id?: string
-          name?: string
           notes?: string | null
-          source_type?: Database["public"]["Enums"]["study_source_type"]
+          source_url?: string | null
+          summary?: string
+          tags?: string[]
+          title?: string
           topic_id?: string
           updated_at?: string
-          url?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "study_sources_topic_id_fkey"
+            foreignKeyName: "study_entries_topic_id_fkey"
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "study_topics"
@@ -834,42 +778,33 @@ export type Database = {
         Row: {
           area_id: string
           created_at: string
-          current_reading: string | null
           description: string | null
           id: string
           last_updated_at: string | null
-          status: Database["public"]["Enums"]["study_topic_status"]
           tags: string[]
           title: string
-          tracking_points: Json
           updated_at: string
           user_id: string
         }
         Insert: {
           area_id: string
           created_at?: string
-          current_reading?: string | null
           description?: string | null
           id?: string
           last_updated_at?: string | null
-          status?: Database["public"]["Enums"]["study_topic_status"]
           tags?: string[]
           title: string
-          tracking_points?: Json
           updated_at?: string
           user_id: string
         }
         Update: {
           area_id?: string
           created_at?: string
-          current_reading?: string | null
           description?: string | null
           id?: string
           last_updated_at?: string | null
-          status?: Database["public"]["Enums"]["study_topic_status"]
           tags?: string[]
           title?: string
-          tracking_points?: Json
           updated_at?: string
           user_id?: string
         }
@@ -879,65 +814,6 @@ export type Database = {
             columns: ["area_id"]
             isOneToOne: false
             referencedRelation: "study_areas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      study_updates: {
-        Row: {
-          created_at: string
-          date: string
-          id: string
-          source_name: string | null
-          source_url: string | null
-          summary: string
-          tags: string[]
-          title: string
-          topic_id: string
-          type: Database["public"]["Enums"]["study_update_type"]
-          updated_at: string
-          user_id: string
-          what_changed: string | null
-          why_it_matters: string | null
-        }
-        Insert: {
-          created_at?: string
-          date?: string
-          id?: string
-          source_name?: string | null
-          source_url?: string | null
-          summary: string
-          tags?: string[]
-          title: string
-          topic_id: string
-          type?: Database["public"]["Enums"]["study_update_type"]
-          updated_at?: string
-          user_id: string
-          what_changed?: string | null
-          why_it_matters?: string | null
-        }
-        Update: {
-          created_at?: string
-          date?: string
-          id?: string
-          source_name?: string | null
-          source_url?: string | null
-          summary?: string
-          tags?: string[]
-          title?: string
-          topic_id?: string
-          type?: Database["public"]["Enums"]["study_update_type"]
-          updated_at?: string
-          user_id?: string
-          what_changed?: string | null
-          why_it_matters?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "study_updates_topic_id_fkey"
-            columns: ["topic_id"]
-            isOneToOne: false
-            referencedRelation: "study_topics"
             referencedColumns: ["id"]
           },
         ]
@@ -1386,31 +1262,6 @@ export type Database = {
     }
     Enums: {
       space_role: "owner" | "editor" | "viewer"
-      study_source_type:
-        | "noticia"
-        | "blog_oficial"
-        | "relatorio"
-        | "paper"
-        | "livro"
-        | "video"
-        | "podcast"
-        | "documento_oficial"
-      study_topic_status:
-        | "monitorar"
-        | "em_mudanca"
-        | "estavel"
-        | "pressionado"
-        | "critico"
-        | "arquivado"
-      study_update_type:
-        | "noticia"
-        | "artigo"
-        | "livro"
-        | "relatorio"
-        | "video"
-        | "paper"
-        | "insight"
-        | "reuniao"
       task_priority: "low" | "medium" | "high"
       task_status:
         | "todo"
@@ -1546,34 +1397,6 @@ export const Constants = {
   public: {
     Enums: {
       space_role: ["owner", "editor", "viewer"],
-      study_source_type: [
-        "noticia",
-        "blog_oficial",
-        "relatorio",
-        "paper",
-        "livro",
-        "video",
-        "podcast",
-        "documento_oficial",
-      ],
-      study_topic_status: [
-        "monitorar",
-        "em_mudanca",
-        "estavel",
-        "pressionado",
-        "critico",
-        "arquivado",
-      ],
-      study_update_type: [
-        "noticia",
-        "artigo",
-        "livro",
-        "relatorio",
-        "video",
-        "paper",
-        "insight",
-        "reuniao",
-      ],
       task_priority: ["low", "medium", "high"],
       task_status: ["todo", "in_progress", "waiting", "completed", "cancelled"],
     },
