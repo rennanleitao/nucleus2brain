@@ -1327,6 +1327,40 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
+  s.tool("list_study_entries", {
+    description: "List study entries, optionally filtered by topic_id or area_id, newest first.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid().optional(),
+      area_id: z.string().uuid().optional(),
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("study_entries").select("*")
+        .order("entry_date", { ascending: false })
+        .limit(input.limit ?? 100);
+      if (input.topic_id) q = q.eq("topic_id", input.topic_id);
+      if (input.area_id) {
+        const { data: topics } = await db.from("study_topics").select("id").eq("area_id", input.area_id);
+        const ids = (topics ?? []).map((t: { id: string }) => t.id);
+        if (ids.length === 0) return ok([]);
+        q = q.in("topic_id", ids);
+      }
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("get_study_entry", {
+    description: "Get a single study entry by id.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_entries").select("*").eq("id", input.id).single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
   s.tool("delete_study_entry", {
     description: "Delete a study entry permanently.",
     inputSchema: z.object({ id: z.string().uuid() }),
