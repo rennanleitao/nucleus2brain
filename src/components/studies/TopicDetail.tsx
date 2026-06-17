@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen } from "lucide-react";
 import {
-  useStudyEntries, useDeleteEntry, useStudyAreas,
+  useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic,
   type StudyTopic, type StudyEntry,
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
+
 
 interface Props { topic: StudyTopic }
 
