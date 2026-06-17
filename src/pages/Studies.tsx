@@ -317,72 +317,74 @@ export default function Studies() {
       {/* Topic open: narrow topics list + spacious detail */}
       {inTopic && selectedTopic && (
         <>
-          <aside className={cn("md:w-60 border-r border-border flex flex-col shrink-0", isMobile ? "hidden" : "flex")}>
-            <div className="p-3 border-b border-border space-y-2">
-              <button
-                onClick={() => setSelection({ topic: null })}
-                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-              >
-                <ArrowLeft className="h-3 w-3" /> {currentArea?.name ?? "Áreas"}
-              </button>
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Temas</p>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setTopicDialog({ open: true })}>
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
+          {!focusMode && (
+            <aside className={cn("md:w-60 border-r border-border flex flex-col shrink-0", isMobile ? "hidden" : "flex")}>
+              <div className="p-3 border-b border-border space-y-2">
+                <button
+                  onClick={() => setSelection({ topic: null })}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <ArrowLeft className="h-3 w-3" /> {currentArea?.name ?? "Áreas"}
+                </button>
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Temas</p>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setTopicDialog({ open: true })}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            <ScrollArea className="flex-1">
-              <div className="p-2 space-y-0.5">
-                {topics.map((t) => (
-                  <div key={t.id} className="group flex items-center">
-                    <button
-                      onClick={() => setSelection({ topic: t.id })}
-                      className={cn(
-                        "flex-1 text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors truncate min-w-0",
-                        topicId === t.id && "bg-muted font-medium"
-                      )}
-                    >
-                      {t.title}
-                    </button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">
-                          <MoreHorizontal className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setTopicDialog({ open: true, edit: t })}>
-                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => {
-                            if (confirm(`Remover tema "${t.title}" e todos os registros?`)) {
-                              deleteTopic.mutate(t.id);
-                              if (topicId === t.id) setSelection({ topic: null });
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </aside>
+              <ScrollArea className="flex-1">
+                <div className="p-2 space-y-0.5">
+                  {topics.map((t) => (
+                    <div key={t.id} className="group flex items-center">
+                      <button
+                        onClick={() => setSelection({ topic: t.id })}
+                        className={cn(
+                          "flex-1 text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors truncate min-w-0",
+                          topicId === t.id && "bg-muted font-medium"
+                        )}
+                      >
+                        {t.title}
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">
+                            <MoreHorizontal className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setTopicDialog({ open: true, edit: t })}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => {
+                              if (confirm(`Remover tema "${t.title}" e todos os registros?`)) {
+                                deleteTopic.mutate(t.id);
+                                if (topicId === t.id) setSelection({ topic: null });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </aside>
+          )}
 
           <div className="flex-1 flex flex-col min-w-0">
-            {isMobile && (
+            {isMobile && !focusMode && (
               <div className="p-2 border-b border-border flex items-center gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setSelection({ topic: null })}>
                   <ArrowLeft className="h-3.5 w-3.5 mr-1" /> {currentArea?.name ?? "Voltar"}
                 </Button>
               </div>
             )}
-            <TopicDetail topic={selectedTopic} />
+            <TopicDetail topic={selectedTopic} focusMode={focusMode} onToggleFocus={toggleFocus} />
           </div>
         </>
       )}
