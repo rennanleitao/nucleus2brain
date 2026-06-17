@@ -14,7 +14,7 @@ import {
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
-import { StudyResearchChat } from "./StudyResearchChat";
+import { EntryAIAssist } from "./EntryAIAssist";
 import { PickTopicDialog } from "./PickTopicDialog";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
 import { toast } from "sonner";
@@ -178,11 +178,6 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
             className="resize-y bg-muted/30 border-border/50 focus-visible:bg-background"
           />
         </section>
-
-
-
-        <StudyResearchChat topic={topic} entries={entries} />
-
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h2>
@@ -255,6 +250,9 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                         {e.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>)}
                       </div>
                     )}
+                    <div className="pt-1">
+                      <EntryAIAssist topic={topic} entry={e} />
+                    </div>
                   </CardContent>
                 </Card>
               ))}
