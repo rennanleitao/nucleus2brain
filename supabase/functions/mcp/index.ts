@@ -1393,11 +1393,29 @@ app.all("*", async (c) => {
     }
   }
 
-  const auth = await authenticate(req);
-  if (!auth) return unauthorized();
+  // Allow unauthenticated discovery (initialize / tools/list) so clients can
+  // fetch the tool catalog before completing OAuth. Tool *invocation* still
+  // requires auth at the per-tool level via Supabase RLS.
+  let allowAnon = false;
+  let bodyText: string | null = null;
+  if (req.method === "POST") {
+    try {
+      bodyText = await req.clone().text();
+      const parsed = JSON.parse(bodyText);
+      const method = Array.isArray(parsed) ? parsed[0]?.method : parsed?.method;
+      if (method === "initialize" || method === "tools/list" || method === "notifications/initialized") {
+        allowAnon = true;
+      }
+    } catch { /* ignore */ }
+  }
 
-  const supabase = clientFor(auth.token);
-  const server = buildServer({ userId: auth.user.id, supabase });
+  const auth = await authenticate(req);
+  if (!auth && !allowAnon) return unauthorized();
+
+  const effectiveUserId = auth?.user.id ?? "00000000-0000-0000-0000-000000000000";
+  const effectiveToken = auth?.token ?? ANON_KEY;
+  const supabase = clientFor(effectiveToken);
+  const server = buildServer({ userId: effectiveUserId, supabase });
   const transport = new StreamableHttpTransport();
   const handleMcpRequest = transport.bind(server);
 
@@ -1411,7 +1429,7 @@ app.all("*", async (c) => {
     })()
     : req;
   const res = await handleMcpRequest(mcpReq, {
-    authInfo: { token: auth.token, clientId: auth.user.id, scopes: [] },
+    authInfo: { token: effectiveToken, clientId: effectiveUserId, scopes: [] },
   });
   // Merge CORS headers into response
   const headers = new Headers(res.headers);
