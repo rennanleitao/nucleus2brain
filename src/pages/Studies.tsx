@@ -256,10 +256,32 @@ export default function Studies() {
                   <Card
                     key={t.id}
                     onClick={() => setSelection({ topic: t.id })}
-                    className="cursor-pointer hover:border-foreground/30 transition-colors"
+                    className="cursor-pointer hover:border-foreground/30 transition-colors group relative"
                   >
                     <CardContent className="p-4 space-y-2">
-                      <h3 className="text-sm font-medium leading-snug">{t.title}</h3>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-medium leading-snug flex-1 min-w-0">{t.title}</h3>
+                        <div onClick={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 -mt-1 -mr-1">
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setTopicDialog({ open: true, edit: t })}>
+                                <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => { if (confirm(`Remover tema "${t.title}" e todos os registros?`)) deleteTopic.mutate(t.id); }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
                       {t.description && <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>}
                       <p className="text-[10px] text-muted-foreground">{formatRelative(t.last_updated_at ?? t.updated_at)}</p>
                     </CardContent>
@@ -299,16 +321,40 @@ export default function Studies() {
             <ScrollArea className="flex-1">
               <div className="p-2 space-y-0.5">
                 {topics.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelection({ topic: t.id })}
-                    className={cn(
-                      "w-full text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors truncate",
-                      topicId === t.id && "bg-muted font-medium"
-                    )}
-                  >
-                    {t.title}
-                  </button>
+                  <div key={t.id} className="group flex items-center">
+                    <button
+                      onClick={() => setSelection({ topic: t.id })}
+                      className={cn(
+                        "flex-1 text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors truncate min-w-0",
+                        topicId === t.id && "bg-muted font-medium"
+                      )}
+                    >
+                      {t.title}
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">
+                          <MoreHorizontal className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setTopicDialog({ open: true, edit: t })}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => {
+                            if (confirm(`Remover tema "${t.title}" e todos os registros?`)) {
+                              deleteTopic.mutate(t.id);
+                              if (topicId === t.id) setSelection({ topic: null });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 ))}
               </div>
             </ScrollArea>

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, ExternalLink, NotebookPen } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal } from "lucide-react";
 import {
-  useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic,
+  useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic, useDeleteTopic,
   type StudyTopic, type StudyEntry,
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
@@ -22,7 +24,9 @@ export function TopicDetail({ topic }: Props) {
   const area = areas.find((a) => a.id === topic.area_id);
 
   const deleteEntry = useDeleteEntry();
+  const deleteTopic = useDeleteTopic();
   const updateTopic = useUpdateTopic();
+  const [, setParams] = useSearchParams();
   const [editTopic, setEditTopic] = useState(false);
   const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry }>({ open: false });
 
@@ -81,6 +85,31 @@ export function TopicDetail({ topic }: Props) {
               <Button size="sm" onClick={() => setEntryDialog({ open: true })}>
                 <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar registro
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm(`Remover tema "${topic.title}" e todos os registros?`)) {
+                        deleteTopic.mutate(topic.id, {
+                          onSuccess: () => {
+                            const p = new URLSearchParams(window.location.search);
+                            p.delete("topic");
+                            setParams(p, { replace: true });
+                          },
+                        });
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover tema
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
