@@ -178,7 +178,7 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                           <span className="font-mono">{formatDateBR(e.entry_date)}</span>
                         </div>
-                        <h3 className="text-sm font-medium leading-snug">{e.title}</h3>
+                        <h3 className={focusMode ? "text-base font-medium leading-snug" : "text-sm font-medium leading-snug"}>{e.title}</h3>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shrink-0">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEntryDialog({ open: true, edit: e })}>
@@ -189,14 +189,14 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                         </Button>
                       </div>
                     </div>
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{e.summary}</p>
+                    <p className={focusMode ? "text-base text-foreground/80 leading-[1.75] whitespace-pre-wrap" : "text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap"}>{e.summary}</p>
                     {e.highlight && (
-                      <div className="text-sm text-foreground/90 border-l-2 border-foreground/30 pl-3 italic">
+                      <div className={focusMode ? "text-base text-foreground/90 border-l-2 border-foreground/30 pl-3 italic leading-[1.75]" : "text-sm text-foreground/90 border-l-2 border-foreground/30 pl-3 italic"}>
                         {e.highlight}
                       </div>
                     )}
                     {e.notes && (
-                      <div className="text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap">
+                      <div className={focusMode ? "text-sm text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap leading-[1.7]" : "text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap"}>
                         <span className="font-medium text-foreground/70">Observações: </span>{e.notes}
                       </div>
                     )}
