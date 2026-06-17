@@ -250,6 +250,9 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                         {e.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>)}
                       </div>
                     )}
+                    <div className="pt-1">
+                      <EntryAIAssist topic={topic} entry={e} />
+                    </div>
                   </CardContent>
                 </Card>
               ))}
