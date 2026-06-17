@@ -22,12 +22,40 @@ export function TopicDetail({ topic }: Props) {
   const area = areas.find((a) => a.id === topic.area_id);
 
   const deleteEntry = useDeleteEntry();
+  const updateTopic = useUpdateTopic();
   const [editTopic, setEditTopic] = useState(false);
   const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry }>({ open: false });
 
+  // Inline free-form annotations — autosaved with debounce
+  const [notesDraft, setNotesDraft] = useState(topic.notes ?? "");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const lastSavedRef = useRef(topic.notes ?? "");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setNotesDraft(topic.notes ?? "");
+    lastSavedRef.current = topic.notes ?? "";
+  }, [topic.id]);
+
+  useEffect(() => {
+    if (notesDraft === lastSavedRef.current) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setNotesSaving(true);
+      try {
+        await updateTopic.mutateAsync({ id: topic.id, notes: notesDraft.trim() ? notesDraft : null });
+        lastSavedRef.current = notesDraft;
+      } finally {
+        setNotesSaving(false);
+      }
+    }, 700);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [notesDraft, topic.id, updateTopic]);
+
   return (
     <div className="flex-1 overflow-y-auto bg-background">
-      <div className="max-w-3xl mx-auto p-6 md:p-8 space-y-8">
+      <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-8">
+
         <header className="space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2 min-w-0">
