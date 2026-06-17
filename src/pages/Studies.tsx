@@ -161,14 +161,18 @@ export default function Studies() {
     );
   }
 
-  const showAreasCol = !isMobile || (!areaId && !topicId);
-  const showTopicsCol = !isMobile || (!!areaId && !topicId);
-  const showTopicCol = !!selectedTopic;
+  // ---------------- Workspace ----------------
+  // Layout strategy:
+  //  - area selected, no topic: [areas rail] [topics grid]  → grid uses all remaining space
+  //  - topic open: [topics list 240px] [topic detail flex] → no areas column, max space for detail
+  const inTopic = !!selectedTopic;
+  const currentArea = areas.find((a) => a.id === areaId);
 
   return (
     <div className="flex-1 flex min-h-0 bg-background">
-      {showAreasCol && (
-        <aside className={cn("w-full md:w-64 border-r border-border flex flex-col shrink-0", isMobile && (areaId || topicId) ? "hidden" : "")}>
+      {/* Areas rail — only visible when browsing an area (no topic open) */}
+      {!inTopic && (
+        <aside className={cn("w-full md:w-56 border-r border-border flex flex-col shrink-0", isMobile && areaId ? "hidden" : "")}>
           <div className="p-4 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-semibold">Áreas</h2>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setAreaDialog({ open: true })}>
@@ -220,65 +224,109 @@ export default function Studies() {
         </aside>
       )}
 
-      {showTopicsCol && areaId && (
-        <aside className={cn("w-full md:w-80 border-r border-border flex flex-col shrink-0", isMobile && topicId ? "hidden" : "")}>
-          <div className="p-4 border-b border-border space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0">
+      {/* Area selected, no topic → topics as full-width card grid */}
+      {!inTopic && areaId && (
+        <main className={cn("flex-1 overflow-y-auto", isMobile && !areaId ? "hidden" : "")}>
+          <div className="max-w-5xl mx-auto p-6 md:p-8 space-y-6">
+            <header className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="space-y-1 min-w-0">
                 {isMobile && (
-                  <Button variant="ghost" size="sm" className="mb-1 -ml-2" onClick={() => setSelection({ area: null })}>
+                  <Button variant="ghost" size="sm" className="-ml-2" onClick={() => setSelection({ area: null })}>
                     <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Áreas
                   </Button>
                 )}
-                <h2 className="text-sm font-semibold truncate">{areas.find((a) => a.id === areaId)?.name}</h2>
-                <p className="text-[11px] text-muted-foreground">{topics.length} temas</p>
+                <h1 className="text-2xl font-semibold tracking-tight truncate">{currentArea?.name}</h1>
+                <p className="text-xs text-muted-foreground">{topics.length} {topics.length === 1 ? "tema" : "temas"}</p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setTopicDialog({ open: true })}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Tema
+              <Button onClick={() => setTopicDialog({ open: true })}>
+                <Plus className="h-4 w-4 mr-1.5" /> Novo tema
               </Button>
-            </div>
+            </header>
+
+            {topics.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="p-10 text-center text-sm text-muted-foreground space-y-3">
+                  <p>Nenhum tema nesta área.</p>
+                  <Button onClick={() => setTopicDialog({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Criar primeiro tema</Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {topics.map((t) => (
+                  <Card
+                    key={t.id}
+                    onClick={() => setSelection({ topic: t.id })}
+                    className="cursor-pointer hover:border-foreground/30 transition-colors"
+                  >
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="text-sm font-medium leading-snug">{t.title}</h3>
+                      {t.description && <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>}
+                      <p className="text-[10px] text-muted-foreground">{formatRelative(t.last_updated_at ?? t.updated_at)}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
-              {topics.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center p-6">Nenhum tema. Crie o primeiro.</p>
-              )}
-              {topics.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setSelection({ topic: t.id })}
-                  className={cn(
-                    "w-full text-left p-3 rounded-md hover:bg-muted transition-colors space-y-1.5",
-                    topicId === t.id && "bg-muted"
-                  )}
-                >
-                  <span className="text-sm font-medium leading-snug block">{t.title}</span>
-                  <span className="text-[10px] text-muted-foreground block">{formatRelative(t.last_updated_at ?? t.updated_at)}</span>
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
-        </aside>
+        </main>
       )}
 
-      {showTopicCol && selectedTopic ? (
-        <div className="flex-1 flex flex-col min-w-0">
-          {isMobile && (
-            <div className="p-2 border-b border-border">
-              <Button variant="ghost" size="sm" onClick={() => setSelection({ topic: null })}>
-                <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Temas
-              </Button>
-            </div>
-          )}
-          <TopicDetail topic={selectedTopic} />
+      {/* Empty state for desktop when no area picked */}
+      {!inTopic && !areaId && !isMobile && (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+          Selecione uma área
         </div>
-      ) : (
-        !isMobile && (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            {areaId ? "Selecione um tema" : "Selecione uma área"}
-          </div>
-        )
       )}
+
+      {/* Topic open: narrow topics list + spacious detail */}
+      {inTopic && selectedTopic && (
+        <>
+          <aside className={cn("md:w-60 border-r border-border flex flex-col shrink-0", isMobile ? "hidden" : "flex")}>
+            <div className="p-3 border-b border-border space-y-2">
+              <button
+                onClick={() => setSelection({ topic: null })}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <ArrowLeft className="h-3 w-3" /> {currentArea?.name ?? "Áreas"}
+              </button>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Temas</p>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setTopicDialog({ open: true })}>
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-0.5">
+                {topics.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelection({ topic: t.id })}
+                    className={cn(
+                      "w-full text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors truncate",
+                      topicId === t.id && "bg-muted font-medium"
+                    )}
+                  >
+                    {t.title}
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </aside>
+
+          <div className="flex-1 flex flex-col min-w-0">
+            {isMobile && (
+              <div className="p-2 border-b border-border flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelection({ topic: null })}>
+                  <ArrowLeft className="h-3.5 w-3.5 mr-1" /> {currentArea?.name ?? "Voltar"}
+                </Button>
+              </div>
+            )}
+            <TopicDetail topic={selectedTopic} />
+          </div>
+        </>
+      )}
+
 
       <AreaFormDialog open={areaDialog.open} onOpenChange={(o) => setAreaDialog({ open: o })} area={areaDialog.edit} />
       <TopicFormDialog
