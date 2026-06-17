@@ -31,7 +31,7 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
       <button
         ref={ref}
         onClick={handleClick}
-        className="flex items-center gap-3 w-full px-4 py- ="text-4xl"
+        className="flex items-center gap-3 w-full px-4 py-3 bg-card border border-border rounded-xl hover:border-foreground/20 hover:shadow-sm transition-all text-left animate-fade-in touch-manipulation active:scale-[0.99] group"
       >
         <SpaceIcon iconKey={space.icon} className="h-5 w-5 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0">
