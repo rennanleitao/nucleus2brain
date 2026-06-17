@@ -68,7 +68,7 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
       ? "fixed inset-0 z-50 overflow-y-auto bg-background animate-fade-in"
       : "flex-1 overflow-y-auto bg-background"}>
       <div className={focusMode
-        ? "max-w-3xl mx-auto px-6 md:px-10 py-10 md:py-16 space-y-10"
+        ? "max-w-6xl mx-auto px-8 md:px-16 lg:px-24 py-10 md:py-16 space-y-10"
         : "max-w-4xl mx-auto p-6 md:p-8 space-y-8"}>
 
         <header className="space-y-3">
@@ -79,8 +79,8 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                 <span>·</span>
                 <span>Última atualização {formatRelative(topic.last_updated_at ?? topic.updated_at)}</span>
               </div>
-              <h1 className="text-2xl font-semibold tracking-tight">{topic.title}</h1>
-              {topic.description && <p className="text-sm text-muted-foreground">{topic.description}</p>}
+              <h1 className={focusMode ? "text-3xl md:text-4xl font-semibold tracking-tight" : "text-2xl font-semibold tracking-tight"}>{topic.title}</h1>
+              {topic.description && <p className={focusMode ? "text-base text-muted-foreground leading-relaxed" : "text-sm text-muted-foreground"}>{topic.description}</p>}
               {topic.tags && topic.tags.length > 0 && (
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {topic.tags.map((t) => (
@@ -178,7 +178,7 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                           <span className="font-mono">{formatDateBR(e.entry_date)}</span>
                         </div>
-                        <h3 className="text-sm font-medium leading-snug">{e.title}</h3>
+                        <h3 className={focusMode ? "text-base font-medium leading-snug" : "text-sm font-medium leading-snug"}>{e.title}</h3>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shrink-0">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEntryDialog({ open: true, edit: e })}>
@@ -189,14 +189,14 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                         </Button>
                       </div>
                     </div>
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{e.summary}</p>
+                    <p className={focusMode ? "text-base text-foreground/80 leading-[1.75] whitespace-pre-wrap" : "text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap"}>{e.summary}</p>
                     {e.highlight && (
-                      <div className="text-sm text-foreground/90 border-l-2 border-foreground/30 pl-3 italic">
+                      <div className={focusMode ? "text-base text-foreground/90 border-l-2 border-foreground/30 pl-3 italic leading-[1.75]" : "text-sm text-foreground/90 border-l-2 border-foreground/30 pl-3 italic"}>
                         {e.highlight}
                       </div>
                     )}
                     {e.notes && (
-                      <div className="text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap">
+                      <div className={focusMode ? "text-sm text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap leading-[1.7]" : "text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap"}>
                         <span className="font-medium text-foreground/70">Observações: </span>{e.notes}
                       </div>
                     )}
