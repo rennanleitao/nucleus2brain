@@ -17,6 +17,7 @@ import {
   Paperclip,
   Play,
   Pause,
+  GraduationCap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,6 +43,7 @@ const navItemsAll = [
   { key: "spaces", title: "Spaces", url: "/spaces", icon: FolderOpen },
   { key: "notes", title: "Notes", url: "/notes", icon: FileText },
   { key: "tasks", title: "Tasks", url: "/tasks", icon: CheckSquare },
+  { key: "studies", title: "Estudos", url: "/estudos", icon: GraduationCap },
   { key: "materials", title: "Materials", url: "/materials", icon: Paperclip },
   { key: "tags", title: "Tags", url: "/tags", icon: Tag },
   { key: "calendar", title: "Calendar", url: "/calendar", icon: Calendar },
