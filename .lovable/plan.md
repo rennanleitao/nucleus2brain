@@ -1,125 +1,76 @@
+## Módulo Estudos - Plano de Implementação
 
-# Integração ChatGPT ↔ Nucleus via MCP Server
+Nova área no Nucleus para curadoria de conhecimento: **Áreas → Temas → Atualizações/Fontes/Livros**.
 
-Vou expor o Nucleus como um **MCP Server remoto** (Streamable HTTP) hospedado em Supabase Edge Functions, com **OAuth 2.1 + PKCE** para autenticar o usuário do ChatGPT contra o Supabase Auth. Toda a UI atual fica intacta.
+### 1. Banco de dados (migration única)
 
-## 1. Arquitetura
+Cinco tabelas com RLS por `user_id` (auth.uid()), GRANTs para `authenticated`/`service_role`, trigger `updated_at`:
 
-```text
-ChatGPT (Connectors)
-   │  1. OAuth 2.1 (auth code + PKCE)
-   ▼
-/functions/v1/oauth-authorize  ── tela de consentimento (login Supabase)
-/functions/v1/oauth-token      ── troca code por access_token (JWT Supabase)
-/functions/v1/oauth-register   ── Dynamic Client Registration (RFC 7591)
-/.well-known/oauth-authorization-server (servido pela edge fn metadata)
-   │
-   │  2. POST JSON-RPC (Authorization: Bearer <token>)
-   ▼
-/functions/v1/mcp  ── MCP server (mcp-lite + Hono)
-   │
-   │  3. tool handlers chamam Supabase com JWT do usuário
-   ▼
-Postgres (RLS já garante isolamento por user_id)
-```
+- **study_areas** — `id, user_id, name, description, icon, color, created_at, updated_at`
+- **study_topics** — `id, user_id, area_id (FK→areas), title, description, current_reading, status (enum), tags text[], last_updated_at, created_at, updated_at`
+- **study_updates** — `id, user_id, topic_id (FK→topics), type (enum), date, title, summary, why_it_matters, what_changed, source_name, source_url, tags text[], created_at, updated_at`
+- **study_sources** — `id, user_id, topic_id, name, url, source_type, captured_at, notes, created_at, updated_at`
+- **book_summaries** — `id, user_id, topic_id, title, author, year, executive_summary, main_ideas, key_concepts, relevant_quotes, practical_applications, review_questions, notebooklm_url, created_at, updated_at`
 
-- **MCP transport:** Streamable HTTP (POST único `/mcp`), compatível com ChatGPT Connectors e Claude.
-- **Auth:** OAuth 2.1 + PKCE. O Nucleus age como **Authorization Server**. Tela de consentimento reusa Supabase Auth (email/senha + Google). Access token devolvido é o próprio JWT do Supabase → RLS continua aplicando.
-- **Sem migração de schema** (Tags ficam como `text[]` / `text`).
+Enums: `study_topic_status` (monitorar, em_mudanca, estavel, pressionado, critico, arquivado), `study_update_type` (noticia, artigo, livro, relatorio, video, paper, insight, reuniao), `study_source_type` (noticia, blog_oficial, relatorio, paper, livro, video, podcast, documento_oficial).
 
-## 2. Endpoints OAuth (novos edge functions)
+Política: cada CASCADE on delete da hierarquia. Apagar área apaga temas, etc.
 
-| Função | Rota | Função |
-|---|---|---|
-| `oauth-metadata` | `GET /.well-known/oauth-authorization-server` (via edge) | Anuncia issuer, endpoints, PKCE S256, scopes. |
-| `oauth-register` | `POST /oauth-register` | Dynamic Client Registration (ChatGPT registra-se automaticamente). |
-| `oauth-authorize` | `GET /oauth-authorize` | Renderiza HTML mínimo: login + botão "Autorizar ChatGPT a acessar seu Nucleus". |
-| `oauth-token` | `POST /oauth-token` | Troca `code` → access token + refresh token (JWT do Supabase). |
+### 2. Navegação
 
-Tabelas novas (migration):
-- `oauth_clients` (client_id, client_secret_hash, redirect_uris[], name)
-- `oauth_codes` (code, client_id, user_id, code_challenge, redirect_uri, expires_at, scopes)
-- `oauth_refresh_tokens` (token_hash, user_id, client_id, expires_at, revoked_at)
+- Adicionar item **Estudos** (ícone `BookOpen` ou `GraduationCap`) no `AppSidebar`, respeitando a ordem vertical já memorizada (rule: sidebar order).
+- Nova rota `/estudos` em `App.tsx`, com sub-rotas opcionais via query (`?area=...&topic=...`) para manter URL compartilhável sem explodir o roteamento.
 
-Todas com RLS bloqueando acesso do cliente; só service role lê.
+### 3. Hooks (React Query)
 
-## 3. MCP Server (edge function `mcp`)
+`src/hooks/useStudyAreas.ts`, `useStudyTopics.ts`, `useStudyUpdates.ts`, `useStudySources.ts`, `useBookSummaries.ts` — padrão dos hooks existentes (`useNotes`/`useTasks`), com mutations que invalidam queries e atualizam `last_updated_at` no topic quando uma update/fonte é criada.
 
-- Stack: `mcp-lite` + `Hono` (Deno via `npm:` specifiers).
-- Cada request lê `Authorization: Bearer`, valida via `supabase.auth.getUser(token)` e cria um `supabase` client **com o JWT do usuário** → reaproveita RLS automaticamente.
-- Schemas das tools com Zod, descrições otimizadas para LLM.
+### 4. Telas/Componentes
 
-### Tools expostas (todas de uma vez)
+Pasta `src/components/studies/` e `src/pages/Studies.tsx`.
 
-**Notes**
-- `create_note` `{title, content?, space_id?, tags?[]}` → Note
-- `update_note` `{id, title?, content?, space_id?, tags?[]}`
-- `append_to_note` `{id, content}` → concatena ao `content`
-- `delete_note` `{id}`
-- `search_notes` `{query?, space_id?, tags?[], limit?}` → ILIKE em title/content + filtro por space/tag
-- `get_note` `{id}` → nota completa
+**Tela inicial (`/estudos` sem seleção):**
+- Header: título "Estudos", subtítulo, botões `+ Novo tema` / `Nova área`.
+- 4 stat cards: Temas acompanhados, Atualizações esta semana, Sem atualização (>14d), Em mudança.
+- Grid de cards de áreas (com contagem de temas).
+- Lista "Temas recentes" + "Últimas atualizações" + "Temas em mudança".
 
-**Tasks**
-- `create_task` `{title, description?, due_date?, status?, priority?, note_id?, space_id?, tag?}`
-- `update_task` `{id, ...campos parciais}`
-- `delete_task` `{id}` (soft delete via `deleted_at`)
-- `search_tasks` `{query?, status?, due_before?, due_after?, space_id?, note_id?, tag?, limit?}`
-- `get_task` `{id}` → task + subtasks + materials
+**Layout 3 colunas (quando uma área é aberta):**
+- Coluna 1 (`AreasColumn`): lista de áreas, item ativo destacado, botão `+ Nova área`.
+- Coluna 2 (`TopicsColumn`): cards de temas da área selecionada (título, status badge, última atualização, contagem). Botão `+ Novo tema`.
+- Coluna 3 (`TopicDetail`): blocos:
+  1. **Leitura atual** (texto editável inline).
+  2. **Atualizações recentes** (cards cronologia inversa, modal de criação).
+  3. **O que mudou** (lista derivada do campo `what_changed` das updates recentes).
+  4. **Pontos para acompanhar** (checklist — guardado em `study_topics.tracking_points jsonb`).
+  5. **Fontes principais** (lista com URL, tipo, captured_at).
 
-**Spaces**
-- `create_space` `{name, description?, icon?}`
-- `update_space` `{id, name?, description?, icon?}`
-- `search_spaces` `{query?, limit?}`
-- `get_space` `{id}`
+Em telas pequenas (mobile/393px): colapsar para uma coluna por vez com navegação back.
 
-**Tags (array-based)**
-- `create_tag` `{name}` → no-op idempotente; valida formato e retorna nome normalizado
-- `search_tags` `{query?, limit?}` → agrega `DISTINCT unnest(notes.tags)` ∪ `DISTINCT tasks.tag`
-- `assign_tag_to_note` `{note_id, tag}` → `array_append` se ainda não existir
-- `assign_tag_to_task` `{task_id, tag}` → seta `tasks.tag` (campo único hoje)
+### 5. Modais/Forms
 
-**Links**
-- `link_task_to_note` `{task_id, note_id}` → `update tasks set note_id=$2`
-- `unlink_task_from_note` `{task_id}`
-- `link_note_to_space` `{note_id, space_id}`
-- `unlink_note_from_space` `{note_id}`
-- `link_task_to_space` `{task_id, space_id}`
-- `unlink_task_from_space` `{task_id}`
+- `AreaFormDialog` — nome, descrição, cor/ícone opcionais.
+- `TopicFormDialog` — área, título, descrição, status, tags, leitura atual.
+- `UpdateFormDialog` — obrigatórios: data (DD-MM-YYYY via `@/lib/timezone`), tipo, título, resumo, por que importa. Opcionais: fonte, URL, o que mudou, tags. Se tipo=Livro, mostra link para `BookSummaryFormDialog`.
+- `BookSummaryFormDialog` — formulário completo (todos opcionais exceto título), com link NotebookLM.
+- `SourceFormDialog` — nome, URL, tipo, observações.
 
-**Contextos compostos**
-- `get_note_context` `{id}` → `{ note, tags, tasks: [...tasks where note_id=$id], space }`
-- `get_space_context` `{id}` → `{ space, notes_count, tasks_count, tags_used: [], recent_notes, recent_tasks, stats: { tasks_by_status, overdue, completed_last_7d } }`
+Adicionar `tracking_points jsonb default '[]'` em `study_topics` para o checklist.
 
-### Tratamento de erro padrão
+### 6. Design
 
-Cada handler retorna `content: [{type:"text", text: JSON.stringify(result)}]`. Erros viram MCP errors com código `invalid_params`, `not_found`, `permission_denied`, `internal_error`. Validação Zod → mensagem amigável para o LLM corrigir.
+Seguir o design system existente (minimal, light-mode, Inter, tokens semânticos). Cards `rounded-lg border bg-card shadow-sm`, badges de status com cores semânticas (não hardcoded). Sem emojis na UI. Espaçamento generoso, hover sutil.
 
-## 4. UI mínima (sem mexer no app principal)
+### 7. Escopo fora
 
-- Adiciono **uma página** `/settings/integrations/chatgpt` com:
-  - Botão "Conectar ChatGPT" → mostra a URL do MCP server (`https://<project>.functions.supabase.co/mcp`) e instruções de colar no ChatGPT (Settings → Connectors → Add custom connector).
-  - Lista de "Sessões autorizadas" (linhas de `oauth_refresh_tokens` por client) com botão **Revogar**.
-- Tela `oauth-authorize` é HTML puro renderizado pela edge function (não conta como mexer na UI do app).
+Sem IA automática, sem grafo, sem integração com módulo Notas, sem dashboard avançado — só CRUD limpo e visual.
 
-## 5. Segurança
+### Detalhes técnicos
 
-- PKCE S256 obrigatório, `code` single-use com TTL 60s.
-- Refresh tokens rotacionados a cada uso, hash SHA-256 no banco.
-- Scopes: `notes:rw`, `tasks:rw`, `spaces:rw`. Por enquanto pedimos os três; estrutura pronta para granularizar.
-- Rate limit simples por user_id no edge (in-memory).
-- RLS continua sendo a fronteira real — todas as queries usam o JWT do usuário.
+- Migration única com enums + 5 tabelas + grants + RLS + triggers `updated_at` + trigger que atualiza `study_topics.last_updated_at` quando insere em `study_updates`.
+- Cascade delete em toda hierarquia.
+- Rota `/estudos` adicionada antes do catch-all em `App.tsx`.
+- Item de sidebar inserido na posição correta conforme regra de ordenação memorizada (vou verificar `mem://features/navigation/sidebar` antes de editar).
+- Persistência de seleção de área/tema via querystring para deep-linking.
 
-## 6. Entregáveis (ordem de implementação)
-
-1. Migration: tabelas OAuth + grants + RLS.
-2. Edge function `_shared/mcp-auth.ts` (valida bearer → user).
-3. Edge functions OAuth (`oauth-metadata`, `oauth-register`, `oauth-authorize`, `oauth-token`).
-4. Edge function `mcp` com mcp-lite, registrando as ~22 tools.
-5. Página `/settings/integrations/chatgpt` (somente leitura + revogação).
-6. Teste end-to-end com MCP Inspector (`npx @modelcontextprotocol/inspector`) e depois conectando no ChatGPT.
-
-## 7. Notas sobre a sua proposta original
-
-- **MCP > OpenAPI Actions:** confirmado. MCP é o padrão emergente do ChatGPT Connectors, descobre tools dinamicamente e o ChatGPT já entende JSON-RPC nativo. OpenAPI exigiria manter spec separada.
-- **Tags como tabela:** evitamos porque (a) você pediu "não modificar a interface" e a UI hoje lê `notes.tags text[]` + `tasks.tag text`, (b) o ganho prático para o assistente é zero — `search_tags` agrega via `unnest`. Se um dia quiser normalizar, é uma segunda fase.
-- **`tasks.tag` é singular hoje** — `assign_tag_to_task` substitui em vez de adicionar. Posso mudar para multi-tag depois (vira `text[]`), mas isso sim afetaria UI.
+Posso prosseguir?
