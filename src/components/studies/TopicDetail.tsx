@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, ExternalLink, NotebookPen } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal } from "lucide-react";
 import {
-  useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic,
+  useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic, useDeleteTopic,
   type StudyTopic, type StudyEntry,
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
