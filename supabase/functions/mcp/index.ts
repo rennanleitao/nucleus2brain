@@ -1393,8 +1393,24 @@ app.all("*", async (c) => {
     }
   }
 
+  // Allow unauthenticated discovery (initialize / tools/list) so clients can
+  // fetch the tool catalog before completing OAuth. Tool *invocation* still
+  // requires auth at the per-tool level via Supabase RLS.
+  let allowAnon = false;
+  let bodyText: string | null = null;
+  if (req.method === "POST") {
+    try {
+      bodyText = await req.clone().text();
+      const parsed = JSON.parse(bodyText);
+      const method = Array.isArray(parsed) ? parsed[0]?.method : parsed?.method;
+      if (method === "initialize" || method === "tools/list" || method === "notifications/initialized") {
+        allowAnon = true;
+      }
+    } catch { /* ignore */ }
+  }
+
   const auth = await authenticate(req);
-  if (!auth) return unauthorized();
+  if (!auth && !allowAnon) return unauthorized();
 
   const supabase = clientFor(auth.token);
   const server = buildServer({ userId: auth.user.id, supabase });
