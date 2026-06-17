@@ -178,11 +178,6 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
             className="resize-y bg-muted/30 border-border/50 focus-visible:bg-background"
           />
         </section>
-
-
-
-        <StudyResearchChat topic={topic} entries={entries} />
-
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h2>
