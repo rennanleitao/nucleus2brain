@@ -79,8 +79,8 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
                 <span>·</span>
                 <span>Última atualização {formatRelative(topic.last_updated_at ?? topic.updated_at)}</span>
               </div>
-              <h1 className="text-2xl font-semibold tracking-tight">{topic.title}</h1>
-              {topic.description && <p className="text-sm text-muted-foreground">{topic.description}</p>}
+              <h1 className={focusMode ? "text-3xl md:text-4xl font-semibold tracking-tight" : "text-2xl font-semibold tracking-tight"}>{topic.title}</h1>
+              {topic.description && <p className={focusMode ? "text-base text-muted-foreground leading-relaxed" : "text-sm text-muted-foreground"}>{topic.description}</p>}
               {topic.tags && topic.tags.length > 0 && (
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {topic.tags.map((t) => (
