@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2 } from "lucide-react";
 import {
   useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic, useDeleteTopic,
   type StudyTopic, type StudyEntry,
