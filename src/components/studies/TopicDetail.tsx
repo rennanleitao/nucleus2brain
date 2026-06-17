@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen } from "lucide-react";
 import {
-  useStudyEntries, useDeleteEntry, useStudyAreas,
+  useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic,
   type StudyTopic, type StudyEntry,
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
+
 
 interface Props { topic: StudyTopic }
 
@@ -20,12 +22,40 @@ export function TopicDetail({ topic }: Props) {
   const area = areas.find((a) => a.id === topic.area_id);
 
   const deleteEntry = useDeleteEntry();
+  const updateTopic = useUpdateTopic();
   const [editTopic, setEditTopic] = useState(false);
   const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry }>({ open: false });
 
+  // Inline free-form annotations — autosaved with debounce
+  const [notesDraft, setNotesDraft] = useState(topic.notes ?? "");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const lastSavedRef = useRef(topic.notes ?? "");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setNotesDraft(topic.notes ?? "");
+    lastSavedRef.current = topic.notes ?? "";
+  }, [topic.id]);
+
+  useEffect(() => {
+    if (notesDraft === lastSavedRef.current) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setNotesSaving(true);
+      try {
+        await updateTopic.mutateAsync({ id: topic.id, notes: notesDraft.trim() ? notesDraft : null });
+        lastSavedRef.current = notesDraft;
+      } finally {
+        setNotesSaving(false);
+      }
+    }, 700);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [notesDraft, topic.id, updateTopic]);
+
   return (
     <div className="flex-1 overflow-y-auto bg-background">
-      <div className="max-w-3xl mx-auto p-6 md:p-8 space-y-8">
+      <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-8">
+
         <header className="space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2 min-w-0">
@@ -56,6 +86,27 @@ export function TopicDetail({ topic }: Props) {
         </header>
 
         <Separator />
+
+        {/* Anotações livres do tema */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <NotebookPen className="h-4 w-4" /> Anotações
+            </h2>
+            <span className="text-[11px] text-muted-foreground">
+              {notesSaving ? "Salvando..." : notesDraft && notesDraft === lastSavedRef.current ? "Salvo" : ""}
+            </span>
+          </div>
+          <Textarea
+            value={notesDraft}
+            onChange={(e) => setNotesDraft(e.target.value)}
+            placeholder="Espaço livre para suas reflexões, ideias soltas, perguntas, conexões..."
+            rows={5}
+            className="resize-y bg-muted/30 border-border/50 focus-visible:bg-background"
+          />
+        </section>
+
+
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
