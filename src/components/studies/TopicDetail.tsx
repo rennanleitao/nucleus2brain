@@ -13,6 +13,7 @@ import {
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
+import { StudyResearchChat } from "./StudyResearchChat";
 import { formatDateBR, formatRelative } from "@/lib/studyDate";
 
 
@@ -173,6 +174,8 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
         </section>
 
 
+
+        <StudyResearchChat topic={topic} entries={entries} />
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
