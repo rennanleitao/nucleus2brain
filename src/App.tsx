@@ -67,6 +67,7 @@ function AppRoutes() {
         <Route path="/pomodoro" element={<Pomodoro />} />
         <Route path="/materials" element={<MaterialsPage />} />
         <Route path="/assistant" element={<Assistant />} />
+        <Route path="/estudos" element={<Studies />} />
             <Route path="/import" element={<ImportPage />} />
             
             <Route path="/settings" element={<SettingsPage />} />
