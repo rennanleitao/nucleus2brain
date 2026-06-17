@@ -24,7 +24,9 @@ export function TopicDetail({ topic }: Props) {
   const area = areas.find((a) => a.id === topic.area_id);
 
   const deleteEntry = useDeleteEntry();
+  const deleteTopic = useDeleteTopic();
   const updateTopic = useUpdateTopic();
+  const [, setParams] = useSearchParams();
   const [editTopic, setEditTopic] = useState(false);
   const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry }>({ open: false });
 
