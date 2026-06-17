@@ -59,7 +59,7 @@ export default function Spaces() {
       </div>
 
       {filtered.length > 0 ? (
-        <div className="space-y-1">
+        <div className="space-y-2">
           {filtered.map(s => (
             <div key={s.id} onDoubleClick={() => setEditingSpace(s)} title="Duplo clique para editar">
               <SpaceCard space={s} variant="list" />
