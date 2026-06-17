@@ -321,16 +321,40 @@ export default function Studies() {
             <ScrollArea className="flex-1">
               <div className="p-2 space-y-0.5">
                 {topics.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelection({ topic: t.id })}
-                    className={cn(
-                      "w-full text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors truncate",
-                      topicId === t.id && "bg-muted font-medium"
-                    )}
-                  >
-                    {t.title}
-                  </button>
+                  <div key={t.id} className="group flex items-center">
+                    <button
+                      onClick={() => setSelection({ topic: t.id })}
+                      className={cn(
+                        "flex-1 text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors truncate min-w-0",
+                        topicId === t.id && "bg-muted font-medium"
+                      )}
+                    >
+                      {t.title}
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">
+                          <MoreHorizontal className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setTopicDialog({ open: true, edit: t })}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => {
+                            if (confirm(`Remover tema "${t.title}" e todos os registros?`)) {
+                              deleteTopic.mutate(t.id);
+                              if (topicId === t.id) setSelection({ topic: null });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 ))}
               </div>
             </ScrollArea>
