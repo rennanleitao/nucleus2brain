@@ -192,94 +192,24 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
             className="resize-y bg-muted/30 border-border/50 focus-visible:bg-background"
           />
         </section>
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h2>
-            <span className="text-xs text-muted-foreground">{entries.length} registros</span>
-          </div>
-          {entries.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                Nenhum registro ainda.{" "}
-                <button className="text-foreground underline" onClick={() => setEntryDialog({ open: true })}>
-                  Adicionar o primeiro
-                </button>.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {entries.map((e) => (
-                <Card key={e.id} className="hover:border-foreground/20 transition-colors group">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span className="font-mono">{formatDateBR(e.entry_date)}</span>
-                        </div>
-                        <h3 className={focusMode ? "text-base font-medium leading-snug" : "text-sm font-medium leading-snug"}>{e.title}</h3>
-                      </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEntryDialog({ open: true, edit: e })}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreHorizontal className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setPickDialog({ open: true, mode: "move", entry: e })}>
-                              <ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Mover para outro tema
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setPickDialog({ open: true, mode: "duplicate", entry: e })}>
-                              <Copy className="h-3.5 w-3.5 mr-2" /> Duplicar em outro tema
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm("Remover registro?")) deleteEntry.mutate(e.id); }}>
-                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                    <p className={focusMode ? "text-base text-foreground/80 leading-[1.75] whitespace-pre-wrap" : "text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap"}>{e.summary}</p>
-                    {e.highlight && (
-                      <div className={focusMode ? "text-base text-foreground/90 border-l-2 border-foreground/30 pl-3 italic leading-[1.75]" : "text-sm text-foreground/90 border-l-2 border-foreground/30 pl-3 italic"}>
-                        {e.highlight}
-                      </div>
-                    )}
-                    {e.notes && (
-                      <div className={focusMode ? "text-sm text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap leading-[1.7]" : "text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap"}>
-                        <span className="font-medium text-foreground/70">Observações: </span>{e.notes}
-                      </div>
-                    )}
-                    {(e.source_url || (e.tags && e.tags.length > 0)) && (
-                      <div className="flex items-center gap-2 flex-wrap pt-1">
-                        {e.source_url && (
-                          <a href={e.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-                            <ExternalLink className="h-3 w-3" /> Fonte
-                          </a>
-                        )}
-                        {e.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>)}
-                      </div>
-                    )}
-                    <div className="pt-1">
-                      <EntryAIAssist topic={topic} entry={e} />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+        <EntriesTabs
+          topic={topic}
+          entries={entries}
+          focusMode={focusMode}
+          onEdit={(e) => setEntryDialog({ open: true, edit: e })}
+          onMove={(e) => setPickDialog({ open: true, mode: "move", entry: e })}
+          onDuplicate={(e) => setPickDialog({ open: true, mode: "duplicate", entry: e })}
+          onDelete={(id) => { if (confirm("Remover registro?")) deleteEntry.mutate(id); }}
+          onAdd={(kind) => setEntryDialog({ open: true, kind })}
+        />
       </div>
 
       <EntryFormDialog
         open={entryDialog.open}
-        onOpenChange={(o) => setEntryDialog({ open: o, edit: o ? entryDialog.edit : undefined })}
+        onOpenChange={(o) => setEntryDialog({ open: o, edit: o ? entryDialog.edit : undefined, kind: o ? entryDialog.kind : undefined })}
         topicId={topic.id}
         entry={entryDialog.edit}
+        defaultKind={entryDialog.kind ?? entryDialog.edit?.kind ?? "event"}
       />
       <TopicFormDialog open={editTopic} onOpenChange={setEditTopic} topic={topic} />
       <PickTopicDialog
