@@ -128,9 +128,22 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
             <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
             </Button>
-            <Button size="sm" onClick={() => setEntryDialog({ open: true })}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar registro
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
+                  <ChevronDown className="h-3 w-3 ml-1.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEntryDialog({ open: true, kind: "event" })}>
+                  <Calendar className="h-3.5 w-3.5 mr-2" /> Evento relevante
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEntryDialog({ open: true, kind: "knowledge" })}>
+                  <BookOpen className="h-3.5 w-3.5 mr-2" /> Knowledge Base
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="h-9 w-9">
