@@ -210,7 +210,7 @@ export function useCreateEntry() {
   const { user } = useAuth();
   return useMutation({
     mutationFn: async (
-      input: Partial<StudyEntry> & { topic_id: string; title: string; summary: string; entry_date: string }
+      input: Partial<StudyEntry> & { topic_id: string; title: string; summary: string }
     ) => {
       const { data, error } = await db
         .from("study_entries")
