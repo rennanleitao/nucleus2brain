@@ -28,15 +28,20 @@ export interface StudyTopic {
 }
 
 
+export type StudyEntryKind = "event" | "knowledge";
+
 export interface StudyEntry {
   id: string;
   user_id: string;
   topic_id: string;
-  entry_date: string; // YYYY-MM-DD
+  kind: StudyEntryKind;
+  entry_date: string | null; // YYYY-MM-DD (required for events, optional for knowledge)
   title: string;
   summary: string;
+  category: string | null;       // knowledge: Framework, Conceito, Livro, Playbook, Prompt...
+  content: string | null;        // knowledge: long-form main content
   source_url: string | null;
-  highlight: string | null;
+  highlight: string | null;      // events: highlight quote/data
   notes: string | null;
   tags: string[];
   created_at: string;
@@ -205,7 +210,7 @@ export function useCreateEntry() {
   const { user } = useAuth();
   return useMutation({
     mutationFn: async (
-      input: Partial<StudyEntry> & { topic_id: string; title: string; summary: string; entry_date: string }
+      input: Partial<StudyEntry> & { topic_id: string; title: string; summary: string }
     ) => {
       const { data, error } = await db
         .from("study_entries")

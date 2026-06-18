@@ -155,7 +155,7 @@ export default function Studies() {
                         className="w-full text-left p-4 hover:bg-muted/50 transition-colors flex items-start gap-3"
                         onClick={() => topic && setSelection({ area: topic.area_id, topic: topic.id })}
                       >
-                        <span className="text-[11px] font-mono text-muted-foreground shrink-0 w-20 pt-0.5">{formatDateBR(u.entry_date)}</span>
+                        <span className="text-[11px] font-mono text-muted-foreground shrink-0 w-20 pt-0.5">{u.entry_date ? formatDateBR(u.entry_date) : "—"}</span>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{u.title}</p>
                           <p className="text-xs text-muted-foreground truncate">{topic?.title ?? "—"}</p>

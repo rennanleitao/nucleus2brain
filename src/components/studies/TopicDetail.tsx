@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2, ChevronDown, ArrowRightLeft, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2, ChevronDown, ChevronRight, ArrowRightLeft, Copy, Calendar, BookOpen } from "lucide-react";
 import {
   useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic, useDeleteTopic,
   useMoveEntry, useDuplicateEntry,
-  type StudyTopic, type StudyEntry,
+  type StudyTopic, type StudyEntry, type StudyEntryKind,
 } from "@/hooks/useStudies";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
@@ -35,7 +36,7 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
   const [, setParams] = useSearchParams();
   const [editTopic, setEditTopic] = useState(false);
   const [descOpen, setDescOpen] = useState(false);
-  const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry }>({ open: false });
+  const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry; kind?: StudyEntryKind }>({ open: false });
   const [pickDialog, setPickDialog] = useState<{ open: boolean; mode: "move" | "duplicate"; entry?: StudyEntry }>({ open: false, mode: "move" });
 
   // Inline free-form annotations — autosaved with debounce
@@ -127,9 +128,22 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
             <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
             </Button>
-            <Button size="sm" onClick={() => setEntryDialog({ open: true })}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar registro
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
+                  <ChevronDown className="h-3 w-3 ml-1.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEntryDialog({ open: true, kind: "event" })}>
+                  <Calendar className="h-3.5 w-3.5 mr-2" /> Evento relevante
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEntryDialog({ open: true, kind: "knowledge" })}>
+                  <BookOpen className="h-3.5 w-3.5 mr-2" /> Knowledge Base
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="h-9 w-9">
@@ -178,94 +192,24 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
             className="resize-y bg-muted/30 border-border/50 focus-visible:bg-background"
           />
         </section>
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Timeline</h2>
-            <span className="text-xs text-muted-foreground">{entries.length} registros</span>
-          </div>
-          {entries.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                Nenhum registro ainda.{" "}
-                <button className="text-foreground underline" onClick={() => setEntryDialog({ open: true })}>
-                  Adicionar o primeiro
-                </button>.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {entries.map((e) => (
-                <Card key={e.id} className="hover:border-foreground/20 transition-colors group">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span className="font-mono">{formatDateBR(e.entry_date)}</span>
-                        </div>
-                        <h3 className={focusMode ? "text-base font-medium leading-snug" : "text-sm font-medium leading-snug"}>{e.title}</h3>
-                      </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEntryDialog({ open: true, edit: e })}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreHorizontal className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setPickDialog({ open: true, mode: "move", entry: e })}>
-                              <ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Mover para outro tema
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setPickDialog({ open: true, mode: "duplicate", entry: e })}>
-                              <Copy className="h-3.5 w-3.5 mr-2" /> Duplicar em outro tema
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm("Remover registro?")) deleteEntry.mutate(e.id); }}>
-                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                    <p className={focusMode ? "text-base text-foreground/80 leading-[1.75] whitespace-pre-wrap" : "text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap"}>{e.summary}</p>
-                    {e.highlight && (
-                      <div className={focusMode ? "text-base text-foreground/90 border-l-2 border-foreground/30 pl-3 italic leading-[1.75]" : "text-sm text-foreground/90 border-l-2 border-foreground/30 pl-3 italic"}>
-                        {e.highlight}
-                      </div>
-                    )}
-                    {e.notes && (
-                      <div className={focusMode ? "text-sm text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap leading-[1.7]" : "text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap"}>
-                        <span className="font-medium text-foreground/70">Observações: </span>{e.notes}
-                      </div>
-                    )}
-                    {(e.source_url || (e.tags && e.tags.length > 0)) && (
-                      <div className="flex items-center gap-2 flex-wrap pt-1">
-                        {e.source_url && (
-                          <a href={e.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-                            <ExternalLink className="h-3 w-3" /> Fonte
-                          </a>
-                        )}
-                        {e.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>)}
-                      </div>
-                    )}
-                    <div className="pt-1">
-                      <EntryAIAssist topic={topic} entry={e} />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+        <EntriesTabs
+          topic={topic}
+          entries={entries}
+          focusMode={focusMode}
+          onEdit={(e) => setEntryDialog({ open: true, edit: e })}
+          onMove={(e) => setPickDialog({ open: true, mode: "move", entry: e })}
+          onDuplicate={(e) => setPickDialog({ open: true, mode: "duplicate", entry: e })}
+          onDelete={(id) => { if (confirm("Remover registro?")) deleteEntry.mutate(id); }}
+          onAdd={(kind) => setEntryDialog({ open: true, kind })}
+        />
       </div>
 
       <EntryFormDialog
         open={entryDialog.open}
-        onOpenChange={(o) => setEntryDialog({ open: o, edit: o ? entryDialog.edit : undefined })}
+        onOpenChange={(o) => setEntryDialog({ open: o, edit: o ? entryDialog.edit : undefined, kind: o ? entryDialog.kind : undefined })}
         topicId={topic.id}
         entry={entryDialog.edit}
+        defaultKind={entryDialog.kind ?? entryDialog.edit?.kind ?? "event"}
       />
       <TopicFormDialog open={editTopic} onOpenChange={setEditTopic} topic={topic} />
       <PickTopicDialog
@@ -285,5 +229,214 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
         }}
       />
     </div>
+  );
+}
+
+// ============================================================================
+// Entries tabs: Events (timeline) + Knowledge Base (cards)
+// ============================================================================
+
+interface EntriesTabsProps {
+  topic: StudyTopic;
+  entries: StudyEntry[];
+  focusMode: boolean;
+  onEdit: (e: StudyEntry) => void;
+  onMove: (e: StudyEntry) => void;
+  onDuplicate: (e: StudyEntry) => void;
+  onDelete: (id: string) => void;
+  onAdd: (kind: StudyEntryKind) => void;
+}
+
+function EntriesTabs({ topic, entries, focusMode, onEdit, onMove, onDuplicate, onDelete, onAdd }: EntriesTabsProps) {
+  const events = useMemo(() => entries.filter((e) => (e.kind ?? "event") === "event"), [entries]);
+  const knowledge = useMemo(() => entries.filter((e) => e.kind === "knowledge"), [entries]);
+  const initial = knowledge.length > events.length ? "knowledge" : "events";
+  const [tab, setTab] = useState<string>(initial);
+
+  return (
+    <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+      <TabsList className="grid grid-cols-2 max-w-sm">
+        <TabsTrigger value="events" className="gap-1.5">
+          <Calendar className="h-3.5 w-3.5" /> Eventos
+          <span className="text-[10px] text-muted-foreground ml-1">{events.length}</span>
+        </TabsTrigger>
+        <TabsTrigger value="knowledge" className="gap-1.5">
+          <BookOpen className="h-3.5 w-3.5" /> Biblioteca
+          <span className="text-[10px] text-muted-foreground ml-1">{knowledge.length}</span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="events" className="space-y-2 mt-0">
+        {events.length === 0 ? (
+          <EmptyState label="Nenhum evento ainda." cta="Adicionar evento" onClick={() => onAdd("event")} />
+        ) : (
+          events.map((e) => (
+            <EventCard
+              key={e.id} topic={topic} entry={e} focusMode={focusMode}
+              onEdit={() => onEdit(e)} onMove={() => onMove(e)} onDuplicate={() => onDuplicate(e)} onDelete={() => onDelete(e.id)}
+            />
+          ))
+        )}
+      </TabsContent>
+
+      <TabsContent value="knowledge" className="mt-0">
+        {knowledge.length === 0 ? (
+          <EmptyState label="Biblioteca vazia." cta="Adicionar conhecimento" onClick={() => onAdd("knowledge")} />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {knowledge.map((e) => (
+              <KnowledgeCard
+                key={e.id} topic={topic} entry={e}
+                onEdit={() => onEdit(e)} onMove={() => onMove(e)} onDuplicate={() => onDuplicate(e)} onDelete={() => onDelete(e.id)}
+              />
+            ))}
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function EmptyState({ label, cta, onClick }: { label: string; cta: string; onClick: () => void }) {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="p-6 text-center text-sm text-muted-foreground">
+        {label}{" "}
+        <button className="text-foreground underline" onClick={onClick}>{cta}</button>.
+      </CardContent>
+    </Card>
+  );
+}
+
+function EntryActions({ onEdit, onMove, onDuplicate, onDelete }: { onEdit: () => void; onMove: () => void; onDuplicate: () => void; onDelete: () => void }) {
+  return (
+    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shrink-0">
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+        <Pencil className="h-3 w-3" />
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7">
+            <MoreHorizontal className="h-3 w-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onMove}>
+            <ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Mover para outro tema
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onDuplicate}>
+            <Copy className="h-3.5 w-3.5 mr-2" /> Duplicar em outro tema
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+function EventCard({ topic, entry: e, focusMode, onEdit, onMove, onDuplicate, onDelete }:
+  { topic: StudyTopic; entry: StudyEntry; focusMode: boolean; onEdit: () => void; onMove: () => void; onDuplicate: () => void; onDelete: () => void }) {
+  return (
+    <Card className="hover:border-foreground/20 transition-colors group">
+      <CardContent className="p-4 space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <span className="font-mono">{e.entry_date ? formatDateBR(e.entry_date) : "—"}</span>
+            </div>
+            <h3 className={focusMode ? "text-base font-medium leading-snug" : "text-sm font-medium leading-snug"}>{e.title}</h3>
+          </div>
+          <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
+        </div>
+        <p className={focusMode ? "text-base text-foreground/80 leading-[1.75] whitespace-pre-wrap" : "text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap"}>{e.summary}</p>
+        {e.highlight && (
+          <div className={focusMode ? "text-base text-foreground/90 border-l-2 border-foreground/30 pl-3 italic leading-[1.75]" : "text-sm text-foreground/90 border-l-2 border-foreground/30 pl-3 italic"}>
+            {e.highlight}
+          </div>
+        )}
+        {e.notes && (
+          <div className={focusMode ? "text-sm text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap leading-[1.7]" : "text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap"}>
+            <span className="font-medium text-foreground/70">Observações: </span>{e.notes}
+          </div>
+        )}
+        {(e.source_url || (e.tags && e.tags.length > 0)) && (
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            {e.source_url && (
+              <a href={e.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                <ExternalLink className="h-3 w-3" /> Fonte
+              </a>
+            )}
+            {e.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>)}
+          </div>
+        )}
+        <div className="pt-1">
+          <EntryAIAssist topic={topic} entry={e} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function KnowledgeCard({ topic, entry: e, onEdit, onMove, onDuplicate, onDelete }:
+  { topic: StudyTopic; entry: StudyEntry; onEdit: () => void; onMove: () => void; onDuplicate: () => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  const hasMore = !!(e.content && e.content.trim().length > 0);
+  return (
+    <Card className="hover:border-foreground/20 transition-colors group flex flex-col">
+      <CardContent className="p-4 space-y-2 flex-1 flex flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1.5 min-w-0 flex-1">
+            {e.category && (
+              <Badge variant="outline" className="text-[10px] font-normal uppercase tracking-wider">
+                {e.category}
+              </Badge>
+            )}
+            <h3 className="text-sm font-medium leading-snug">{e.title}</h3>
+          </div>
+          <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
+        </div>
+        <p className="text-sm text-foreground/80 leading-relaxed">{e.summary}</p>
+
+        {hasMore && (
+          <>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground self-start"
+            >
+              <ChevronRight className={`h-3 w-3 transition-transform ${open ? "rotate-90" : ""}`} />
+              {open ? "Ocultar conteúdo" : "Ver conteúdo"}
+            </button>
+            {open && (
+              <div className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap border-l-2 border-border pl-3 animate-fade-in">
+                {e.content}
+              </div>
+            )}
+          </>
+        )}
+
+        {e.notes && (
+          <div className="text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap">
+            <span className="font-medium text-foreground/70">Observações: </span>{e.notes}
+          </div>
+        )}
+
+        {(e.source_url || (e.tags && e.tags.length > 0)) && (
+          <div className="flex items-center gap-2 flex-wrap pt-1 mt-auto">
+            {e.source_url && (
+              <a href={e.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                <ExternalLink className="h-3 w-3" /> Fonte
+              </a>
+            )}
+            {e.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>)}
+          </div>
+        )}
+        <div className="pt-1">
+          <EntryAIAssist topic={topic} entry={e} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

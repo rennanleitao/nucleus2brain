@@ -723,10 +723,13 @@ export type Database = {
       }
       study_entries: {
         Row: {
+          category: string | null
+          content: string | null
           created_at: string
-          entry_date: string
+          entry_date: string | null
           highlight: string | null
           id: string
+          kind: string
           notes: string | null
           source_url: string | null
           summary: string
@@ -737,10 +740,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
+          content?: string | null
           created_at?: string
-          entry_date?: string
+          entry_date?: string | null
           highlight?: string | null
           id?: string
+          kind?: string
           notes?: string | null
           source_url?: string | null
           summary: string
@@ -751,10 +757,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
+          content?: string | null
           created_at?: string
-          entry_date?: string
+          entry_date?: string | null
           highlight?: string | null
           id?: string
+          kind?: string
           notes?: string | null
           source_url?: string | null
           summary?: string
