@@ -40,7 +40,7 @@ const PROVIDERS: Record<AIProvider, { url: string; defaultModel: string }> = {
   },
   openrouter: {
     url: "https://openrouter.ai/api/v1/chat/completions",
-    defaultModel: "google/gemini-3.5-flash",
+    defaultModel: "openrouter/auto",
   },
   google: {
     url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
@@ -120,7 +120,7 @@ async function resolveProvider(req: Request, options: AIRouterOptions): Promise<
     configuredModel = null;
   }
 
-  const model = configuredModel ||
+  const model = provider === "openrouter" ? PROVIDERS.openrouter.defaultModel : configuredModel ||
     (provider === "lovable" ? options.defaultModel : undefined) ||
     PROVIDERS[provider].defaultModel;
 

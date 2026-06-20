@@ -27,6 +27,7 @@ interface ProviderOption {
   models: ModelOption[];
   needsKey: boolean;
   setupSteps: string[];
+  automaticModel?: boolean;
 }
 
 const ALL_FEATURES = "Assistente, notas, textos, tarefas, agenda, estudos e voz";
@@ -65,16 +66,12 @@ const PROVIDERS: ProviderOption[] = [
   {
     id: "openrouter",
     name: "OpenRouter",
-    description: "Use modelos compatíveis de diferentes fabricantes com uma única chave.",
+    description: "Seleciona automaticamente o melhor modelo para cada solicitação.",
     models: [
-      { id: "google/gemini-3.5-flash", name: "Gemini 3.5 Flash", vendor: "Google", description: "Equilibrado para uso diário e automações.", scope: "all", recommended: true },
-      { id: "anthropic/claude-haiku-4.5", name: "Claude Haiku 4.5", vendor: "Anthropic", description: "Baixa latência para tarefas rápidas.", scope: "all" },
-      { id: "anthropic/claude-sonnet-4.6", name: "Claude Sonnet 4.6", vendor: "Anthropic", description: "Maior qualidade para pesquisa e tarefas complexas.", scope: "all" },
-      { id: "openai/gpt-4.1-mini", name: "GPT-4.1 Mini", vendor: "OpenAI", description: "Consistente em JSON e chamadas de ferramentas.", scope: "all" },
-      { id: "deepseek/deepseek-v3.2", name: "DeepSeek V3.2", vendor: "DeepSeek", description: "Alternativa multipropósito com saída estruturada.", scope: "all" },
-      { id: "qwen/qwen3.5-35b-a3b", name: "Qwen 3.5 35B A3B", vendor: "Qwen", description: "Modelo compacto para fluxos estruturados.", scope: "all" },
+      { id: "openrouter/auto", name: "Roteamento automático", vendor: "OpenRouter", description: "O OpenRouter analisa a solicitação e escolhe um modelo compatível.", scope: "all", recommended: true },
     ],
     needsKey: true,
+    automaticModel: true,
     setupSteps: [
       "Acesse openrouter.ai e crie uma conta",
       "Vá em Keys → Create Key",
@@ -167,7 +164,7 @@ export default function SettingsPage() {
       if (data) {
         const savedProvider = PROVIDERS.find(item => item.id === data.provider);
         setProvider(savedProvider?.id || "lovable");
-        setModel(savedProvider ? (data.model || savedProvider.models[0].id) : "google/gemini-3-flash-preview");
+        setModel(savedProvider ? (savedProvider.automaticModel ? savedProvider.models[0].id : (data.model || savedProvider.models[0].id)) : "google/gemini-3-flash-preview");
         if (savedProvider?.needsKey) {
           setKeyStatusLoading(true);
           try {
@@ -430,16 +427,28 @@ export default function SettingsPage() {
           {/* Model selection */}
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             <h3 className="text-sm font-semibold">Modelo</h3>
-            <p className="text-[11px] text-muted-foreground">
-              A lista considera streaming, JSON estruturado e chamadas de ferramentas usados pelo Nucleus.
-            </p>
-            {!selectedProvider.models.some(item => item.id === model) && (
+            {selectedProvider.automaticModel ? (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">Seleção automática ativada</p>
+                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  O OpenRouter escolhe o modelo conforme a complexidade, o tipo da tarefa e os recursos exigidos, incluindo tools e respostas estruturadas.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                A lista considera streaming, JSON estruturado e chamadas de ferramentas usados pelo Nucleus.
+              </p>
+            )}
+            {!selectedProvider.automaticModel && !selectedProvider.models.some(item => item.id === model) && (
               <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] text-muted-foreground">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                 <span>O modelo salvo anteriormente não faz parte da lista revisada. Selecione uma opção compatível e salve novamente.</span>
               </div>
             )}
-            <div className="space-y-1.5">
+            {!selectedProvider.automaticModel && <div className="space-y-1.5">
               {selectedProvider.models.map(m => (
                 <button
                   key={m.id}
@@ -467,7 +476,7 @@ export default function SettingsPage() {
                   </div>
                 </button>
               ))}
-            </div>
+            </div>}
           </div>
 
           {/* API Key + Setup Steps */}
