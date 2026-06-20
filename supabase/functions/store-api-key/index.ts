@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isConfigurableAIProvider, testAIProviderConnection } from "../_shared/ai-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,24 +25,63 @@ serve(async (req) => {
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
-    const { provider, apiKey } = await req.json();
-    if (!provider || !apiKey) throw new Error("Missing provider or apiKey");
+    const { action = "store", provider, model, apiKey } = await req.json();
+    if (!provider || !isConfigurableAIProvider(provider)) throw new Error("Invalid provider");
 
     // Store with service role (bypasses RLS)
     const supabase = createClient(supabaseUrl, serviceKey);
-    
-    // Upsert
-    const { data: existing } = await supabase
+
+    const { data: existing, error: lookupError } = await supabase
       .from("user_api_keys")
-      .select("id")
+      .select("id, api_key")
       .eq("user_id", user.id)
       .eq("provider", provider)
       .maybeSingle();
+    if (lookupError) throw lookupError;
+
+    if (action === "status") {
+      return new Response(JSON.stringify({ configured: !!existing }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "test") {
+      if (!model || typeof model !== "string") throw new Error("Missing model");
+      const keyToTest = typeof apiKey === "string" && apiKey.trim() ? apiKey.trim() : existing?.api_key;
+      if (!keyToTest) {
+        return new Response(JSON.stringify({ success: false, error: "API key não configurada." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const response = await testAIProviderConnection(provider, model, keyToTest);
+      if (!response.ok) {
+        await response.text();
+        const error = response.status === 401 || response.status === 403
+          ? "API key inválida ou sem permissão."
+          : response.status === 429
+          ? "Limite ou créditos do provedor excedidos."
+          : `O provedor recusou o teste (HTTP ${response.status}).`;
+        return new Response(JSON.stringify({ success: false, error }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action !== "store" || typeof apiKey !== "string" || !apiKey.trim()) {
+      throw new Error("Missing provider or apiKey");
+    }
 
     if (existing) {
-      await supabase.from("user_api_keys").update({ api_key: apiKey }).eq("id", existing.id);
+      const { error } = await supabase.from("user_api_keys").update({ api_key: apiKey.trim() }).eq("id", existing.id);
+      if (error) throw error;
     } else {
-      await supabase.from("user_api_keys").insert({ user_id: user.id, provider, api_key: apiKey });
+      const { error } = await supabase.from("user_api_keys").insert({ user_id: user.id, provider, api_key: apiKey.trim() });
+      if (error) throw error;
     }
 
     return new Response(JSON.stringify({ success: true }), {

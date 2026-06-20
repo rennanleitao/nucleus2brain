@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-export type AIProvider = "lovable" | "openai" | "openrouter" | "anthropic" | "mistral";
+export type AIProvider = "lovable" | "openai" | "openrouter" | "google" | "anthropic";
 
 export interface AIRouterOptions {
   allowLegacyProviders?: boolean;
@@ -36,26 +36,30 @@ const PROVIDERS: Record<AIProvider, { url: string; defaultModel: string }> = {
   },
   openai: {
     url: "https://api.openai.com/v1/chat/completions",
-    defaultModel: "gpt-4o-mini",
+    defaultModel: "gpt-4.1-mini",
   },
   openrouter: {
     url: "https://openrouter.ai/api/v1/chat/completions",
-    defaultModel: "openai/gpt-4o-mini",
+    defaultModel: "google/gemini-3.5-flash",
+  },
+  google: {
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    defaultModel: "gemini-3.5-flash",
   },
   anthropic: {
     url: "https://api.anthropic.com/v1/messages",
     defaultModel: "claude-sonnet-4-20250514",
   },
-  mistral: {
-    url: "https://api.mistral.ai/v1/chat/completions",
-    defaultModel: "mistral-small-latest",
-  },
 };
 
-const PRIMARY_PROVIDERS = new Set<AIProvider>(["lovable", "openai", "openrouter"]);
+const PRIMARY_PROVIDERS = new Set<AIProvider>(["lovable", "openai", "openrouter", "google"]);
 
 function isSupportedProvider(value: string): value is AIProvider {
   return value in PROVIDERS;
+}
+
+export function isConfigurableAIProvider(value: string): value is Exclude<AIProvider, "lovable"> {
+  return isSupportedProvider(value) && value !== "lovable";
 }
 
 async function getAuthenticatedUserId(req: Request): Promise<string | null> {
@@ -171,6 +175,35 @@ export async function routeAICompletion(
   return { provider, model, response };
 }
 
+export async function testAIProviderConnection(
+  provider: Exclude<AIProvider, "lovable">,
+  model: string,
+  apiKey: string,
+): Promise<Response> {
+  const completion: AICompletionRequest = {
+    messages: [{ role: "user", content: "Reply only with OK." }],
+    max_tokens: 4,
+  };
+  const providerConfig = PROVIDERS[provider];
+
+  if (provider === "anthropic") {
+    const result = await routeAnthropicCompletion(providerConfig.url, model, apiKey, completion);
+    return result.response;
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
+  if (provider === "openrouter") headers["X-Title"] = "Nucleus";
+
+  return fetch(providerConfig.url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ ...completion, model }),
+  });
+}
+
 async function routeAnthropicCompletion(
   url: string,
   model: string,
@@ -193,7 +226,7 @@ async function routeAnthropicCompletion(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: typeof completion.max_tokens === "number" ? completion.max_tokens : 4096,
       ...(system ? { system } : {}),
       messages: messages.filter((message) => message.role !== "system"),
       stream: completion.stream ?? false,

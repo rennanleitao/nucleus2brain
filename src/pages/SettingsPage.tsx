@@ -9,17 +9,39 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-const PROVIDERS = [
+type ModelScope = "all" | "assistant";
+
+interface ModelOption {
+  id: string;
+  name: string;
+  vendor: string;
+  description: string;
+  scope: ModelScope;
+  recommended?: boolean;
+}
+
+interface ProviderOption {
+  id: string;
+  name: string;
+  description: string;
+  models: ModelOption[];
+  needsKey: boolean;
+  setupSteps: string[];
+}
+
+const ALL_FEATURES = "Assistente, notas, textos, tarefas, agenda, estudos e voz";
+
+const PROVIDERS: ProviderOption[] = [
   {
     id: "lovable",
     name: "Lovable AI",
     description: "Pré-configurado, sem necessidade de API key. Usa Google Gemini e OpenAI via gateway.",
     models: [
-      { id: "google/gemini-3-flash-preview", name: "Gemini 3 Flash (Recomendado)", description: "Rápido e eficiente" },
-      { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Boa relação custo/velocidade" },
-      { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro", description: "Mais preciso, mais lento" },
-      { id: "openai/gpt-5-mini", name: "GPT-5 Mini", description: "Rápido e econômico" },
-      { id: "openai/gpt-5", name: "GPT-5", description: "Mais capaz, mais caro" },
+      { id: "google/gemini-3-flash-preview", name: "Gemini 3 Flash", vendor: "Google", description: "Modelo padrão rápido e equilibrado.", scope: "all", recommended: true },
+      { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash", vendor: "Google", description: "Boa relação entre velocidade e qualidade.", scope: "all" },
+      { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro", vendor: "Google", description: "Mais indicado para tarefas complexas.", scope: "all" },
+      { id: "openai/gpt-5-mini", name: "GPT-5 Mini", vendor: "OpenAI", description: "Alternativa rápida para uso geral.", scope: "all" },
+      { id: "openai/gpt-5", name: "GPT-5", vendor: "OpenAI", description: "Maior capacidade para tarefas exigentes.", scope: "all" },
     ],
     needsKey: false,
     setupSteps: [],
@@ -29,9 +51,8 @@ const PROVIDERS = [
     name: "OpenAI",
     description: "Use diretamente a API da OpenAI com sua própria chave.",
     models: [
-      { id: "gpt-4o", name: "GPT-4o", description: "Multimodal, rápido" },
-      { id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Mais econômico" },
-      { id: "gpt-5", name: "GPT-5", description: "O mais avançado" },
+      { id: "gpt-4.1-mini", name: "GPT-4.1 Mini", vendor: "OpenAI", description: "Rápido, confiável em JSON e chamadas de ferramentas.", scope: "all", recommended: true },
+      { id: "gpt-4.1", name: "GPT-4.1", vendor: "OpenAI", description: "Mais capacidade para pesquisa e instruções complexas.", scope: "all" },
     ],
     needsKey: true,
     setupSteps: [
@@ -44,11 +65,14 @@ const PROVIDERS = [
   {
     id: "openrouter",
     name: "OpenRouter",
-    description: "Acesse modelos de diferentes provedores usando sua chave OpenRouter.",
+    description: "Use modelos compatíveis de diferentes fabricantes com uma única chave.",
     models: [
-      { id: "openai/gpt-4o-mini", name: "GPT-4o Mini", description: "Rápido e econômico" },
-      { id: "openai/gpt-4o", name: "GPT-4o", description: "Multimodal e capaz" },
-      { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Rápido e eficiente" },
+      { id: "google/gemini-3.5-flash", name: "Gemini 3.5 Flash", vendor: "Google", description: "Equilibrado para uso diário e automações.", scope: "all", recommended: true },
+      { id: "anthropic/claude-haiku-4.5", name: "Claude Haiku 4.5", vendor: "Anthropic", description: "Baixa latência para tarefas rápidas.", scope: "all" },
+      { id: "anthropic/claude-sonnet-4.6", name: "Claude Sonnet 4.6", vendor: "Anthropic", description: "Maior qualidade para pesquisa e tarefas complexas.", scope: "all" },
+      { id: "openai/gpt-4.1-mini", name: "GPT-4.1 Mini", vendor: "OpenAI", description: "Consistente em JSON e chamadas de ferramentas.", scope: "all" },
+      { id: "deepseek/deepseek-v3.2", name: "DeepSeek V3.2", vendor: "DeepSeek", description: "Alternativa multipropósito com saída estruturada.", scope: "all" },
+      { id: "qwen/qwen3.5-35b-a3b", name: "Qwen 3.5 35B A3B", vendor: "Qwen", description: "Modelo compacto para fluxos estruturados.", scope: "all" },
     ],
     needsKey: true,
     setupSteps: [
@@ -59,12 +83,29 @@ const PROVIDERS = [
     ],
   },
   {
+    id: "google",
+    name: "Google Gemini",
+    description: "Use diretamente a Gemini API com sua própria chave do Google AI Studio.",
+    models: [
+      { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", vendor: "Google", description: "Equilibrado para uso diário, automações e respostas estruturadas.", scope: "all", recommended: true },
+      { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", vendor: "Google", description: "Modelo rápido para tarefas gerais e chamadas de ferramentas.", scope: "all" },
+      { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash-Lite", vendor: "Google", description: "Menor latência para tarefas simples e frequentes.", scope: "all" },
+    ],
+    needsKey: true,
+    setupSteps: [
+      "Acesse aistudio.google.com e entre com sua conta Google",
+      "Vá em Get API key → Create API key",
+      "Copie a chave e cole no campo abaixo",
+      "Confira os limites e o faturamento da Gemini API",
+    ],
+  },
+  {
     id: "anthropic",
     name: "Anthropic Claude",
     description: "Use a API da Anthropic com os modelos Claude.",
     models: [
-      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", description: "Equilibrado" },
-      { id: "claude-opus-4-20250514", name: "Claude Opus 4", description: "Mais capaz" },
+      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", vendor: "Anthropic", description: "Equilibrado para conversas e análises.", scope: "assistant", recommended: true },
+      { id: "claude-opus-4-20250514", name: "Claude Opus 4", vendor: "Anthropic", description: "Mais capacidade para conversas complexas.", scope: "assistant" },
     ],
     needsKey: true,
     setupSteps: [
@@ -74,29 +115,25 @@ const PROVIDERS = [
       "Configure billing na Anthropic",
     ],
   },
-  {
-    id: "mistral",
-    name: "Mistral AI",
-    description: "Modelos open-source de alta performance.",
-    models: [
-      { id: "mistral-large-latest", name: "Mistral Large", description: "Mais capaz" },
-      { id: "mistral-small-latest", name: "Mistral Small", description: "Rápido e econômico" },
-    ],
-    needsKey: true,
-    setupSteps: [
-      "Acesse console.mistral.ai e crie uma conta",
-      "Vá em API Keys → Create new key",
-      "Copie a chave e cole no campo abaixo",
-      "Configure um método de pagamento",
-    ],
-  },
 ];
+
+async function hasStoredApiKey(provider: string): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke("store-api-key", {
+    body: { action: "status", provider },
+  });
+  if (error) throw error;
+  return data?.configured === true;
+}
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const [provider, setProvider] = useState("lovable");
   const [model, setModel] = useState("google/gemini-3-flash-preview");
   const [apiKey, setApiKey] = useState("");
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
+  const [editingApiKey, setEditingApiKey] = useState(true);
+  const [keyStatusLoading, setKeyStatusLoading] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
@@ -128,8 +165,22 @@ export default function SettingsPage() {
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) {
-        setProvider(data.provider || "lovable");
-        setModel(data.model || "google/gemini-3-flash-preview");
+        const savedProvider = PROVIDERS.find(item => item.id === data.provider);
+        setProvider(savedProvider?.id || "lovable");
+        setModel(savedProvider ? (data.model || savedProvider.models[0].id) : "google/gemini-3-flash-preview");
+        if (savedProvider?.needsKey) {
+          setKeyStatusLoading(true);
+          try {
+            const configured = await hasStoredApiKey(savedProvider.id);
+            setApiKeyConfigured(configured);
+            setEditingApiKey(!configured);
+          } catch {
+            setApiKeyConfigured(false);
+            setEditingApiKey(true);
+          } finally {
+            setKeyStatusLoading(false);
+          }
+        }
       }
 
       // Load WhatsApp settings
@@ -162,18 +213,32 @@ export default function SettingsPage() {
     load();
   }, [user]);
 
-  const selectedProvider = PROVIDERS.find(p => p.id === provider)!;
+  const selectedProvider = PROVIDERS.find(p => p.id === provider) || PROVIDERS[0];
 
-  const handleProviderChange = (newProvider: string) => {
+  const handleProviderChange = async (newProvider: string) => {
     setProvider(newProvider);
     const prov = PROVIDERS.find(p => p.id === newProvider)!;
     setModel(prov.models[0].id);
     setApiKey("");
+    setApiKeyConfigured(false);
+    setEditingApiKey(prov.needsKey);
+    if (prov.needsKey) {
+      setKeyStatusLoading(true);
+      try {
+        const configured = await hasStoredApiKey(prov.id);
+        setApiKeyConfigured(configured);
+        setEditingApiKey(!configured);
+      } catch {
+        setEditingApiKey(true);
+      } finally {
+        setKeyStatusLoading(false);
+      }
+    }
   };
 
   const handleSave = async () => {
     if (!user) return;
-    if (selectedProvider.needsKey && !apiKey.trim()) {
+    if (selectedProvider.needsKey && !apiKeyConfigured && !apiKey.trim()) {
       toast.error("API key é obrigatória para este provedor");
       return;
     }
@@ -198,6 +263,8 @@ export default function SettingsPage() {
           body: { provider, apiKey: apiKey.trim() },
         });
         if (error) throw error;
+        setApiKeyConfigured(true);
+        setEditingApiKey(false);
       }
 
       toast.success("Configurações salvas!");
@@ -206,6 +273,33 @@ export default function SettingsPage() {
       toast.error(err.message || "Erro ao salvar");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!selectedProvider.needsKey) return;
+    if (!apiKeyConfigured && !apiKey.trim()) {
+      toast.error("Informe uma API key para testar");
+      return;
+    }
+
+    setTestingConnection(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("store-api-key", {
+        body: {
+          action: "test",
+          provider,
+          model,
+          ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Não foi possível conectar ao provedor");
+      toast.success("Conexão validada com sucesso!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao testar conexão");
+    } finally {
+      setTestingConnection(false);
     }
   };
 
@@ -336,6 +430,15 @@ export default function SettingsPage() {
           {/* Model selection */}
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             <h3 className="text-sm font-semibold">Modelo</h3>
+            <p className="text-[11px] text-muted-foreground">
+              A lista considera streaming, JSON estruturado e chamadas de ferramentas usados pelo Nucleus.
+            </p>
+            {!selectedProvider.models.some(item => item.id === model) && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] text-muted-foreground">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                <span>O modelo salvo anteriormente não faz parte da lista revisada. Selecione uma opção compatível e salve novamente.</span>
+              </div>
+            )}
             <div className="space-y-1.5">
               {selectedProvider.models.map(m => (
                 <button
@@ -347,12 +450,20 @@ export default function SettingsPage() {
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium">{m.name}</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-sm font-medium">{m.name}</span>
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0">{m.vendor}</Badge>
+                        {m.recommended && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Recomendado</Badge>}
+                      </div>
                       <p className="text-[11px] text-muted-foreground">{m.description}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        <span className="font-medium text-foreground/70">Compatível:</span>{" "}
+                        {m.scope === "all" ? ALL_FEATURES : "somente Assistente/chat"}
+                      </p>
                     </div>
-                    {model === m.id && <Check className="h-4 w-4 text-primary" />}
+                    {model === m.id && <Check className="h-4 w-4 shrink-0 text-primary" />}
                   </div>
                 </button>
               ))}
@@ -378,19 +489,63 @@ export default function SettingsPage() {
                 </ol>
               </div>
 
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">API Key</label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
-                  placeholder={`Cole sua ${selectedProvider.name} API key...`}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  A chave será armazenada de forma segura e nunca exposta no frontend.
-                </p>
-              </div>
+              {keyStatusLoading ? (
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                  Verificando API key configurada...
+                </div>
+              ) : apiKeyConfigured && !editingApiKey ? (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs font-medium">API key configurada</p>
+                      <p className="text-[10px] text-muted-foreground">A chave permanece protegida no backend.</p>
+                    </div>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setEditingApiKey(true)}>
+                    Substituir chave
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label className="text-xs font-medium text-muted-foreground">API Key</label>
+                    {apiKeyConfigured && (
+                      <button
+                        type="button"
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setApiKey("");
+                          setEditingApiKey(false);
+                        }}
+                      >
+                        Cancelar substituição
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder={`Cole sua ${selectedProvider.name} API key...`}
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    A chave será armazenada de forma segura e nunca retornada ao frontend.
+                  </p>
+                </div>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleTestConnection}
+                disabled={testingConnection || keyStatusLoading || (!apiKeyConfigured && !apiKey.trim())}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                {testingConnection ? "Testando conexão..." : "Testar conexão"}
+              </Button>
             </div>
           )}
 
