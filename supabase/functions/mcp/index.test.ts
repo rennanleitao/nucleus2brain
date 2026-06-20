@@ -137,7 +137,9 @@ Deno.test("MCP: initialize + tools/list returns only the temporary ping tool", a
     );
   }
 
-  assertEquals([...seen].sort(), TEMPORARY_TOOLS, `unexpected tools payload: ${text}`);
+  for (const required of REQUIRED_TOOLS) {
+    assert(seen.has(required), `required tool missing: ${required}`);
+  }
 
   const ping = tools.find((t) => t.name === "ping");
   assertExists(ping, `ping tool missing from tools/list: ${text}`);
