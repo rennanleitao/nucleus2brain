@@ -42,6 +42,23 @@ const PROVIDERS = [
     ],
   },
   {
+    id: "openrouter",
+    name: "OpenRouter",
+    description: "Acesse modelos de diferentes provedores usando sua chave OpenRouter.",
+    models: [
+      { id: "openai/gpt-4o-mini", name: "GPT-4o Mini", description: "Rápido e econômico" },
+      { id: "openai/gpt-4o", name: "GPT-4o", description: "Multimodal e capaz" },
+      { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Rápido e eficiente" },
+    ],
+    needsKey: true,
+    setupSteps: [
+      "Acesse openrouter.ai e crie uma conta",
+      "Vá em Keys → Create Key",
+      "Copie a chave e cole no campo abaixo",
+      "Adicione créditos à sua conta OpenRouter",
+    ],
+  },
+  {
     id: "anthropic",
     name: "Anthropic Claude",
     description: "Use a API da Anthropic com os modelos Claude.",

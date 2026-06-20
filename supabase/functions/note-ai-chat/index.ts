@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { routeAICompletion } from "../_shared/ai-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,9 +11,6 @@ serve(async (req) => {
 
   try {
     const { question, noteTitle, noteContent, history } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     // Strip HTML from note content
     const plainContent = noteContent
@@ -37,7 +35,7 @@ Regras:
 - Quando identificar ações, use checkbox markdown (- [ ] ação)
 - Separe seções com linhas horizontais (---) quando a resposta for longa`;
 
-    const messages: any[] = [
+    const messages: Array<{ role: string; content: string }> = [
       { role: "system", content: systemPrompt },
     ];
 
@@ -50,17 +48,11 @@ Regras:
 
     messages.push({ role: "user", content: question });
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages,
-      }),
-    });
+    const { response, provider } = await routeAICompletion(
+      req,
+      { messages },
+      { defaultModel: "google/gemini-3-flash-preview" },
+    );
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -74,7 +66,7 @@ Regras:
         });
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error(`${provider} AI error:`, response.status, t);
       throw new Error("AI gateway error");
     }
 
