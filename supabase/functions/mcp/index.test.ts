@@ -19,7 +19,15 @@ const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!;
 const MCP_URL = `${SUPABASE_URL}/functions/v1/mcp`;
 
-const TEMPORARY_TOOLS = ["ping"];
+// Tools that must always be present in the production catalog.
+const REQUIRED_TOOLS = [
+  "ping",
+  "search","fetch",
+  "search_everything","get_recent_activity","get_daily_briefing",
+  "find_related_content","extract_action_items","summarize_space",
+  "get_context_for_chat",
+  "add_event_entry","add_knowledge_entry","add_book_summary","search_study_content",
+];
 
 function jsonRpc(id: number, method: string, params: unknown = {}) {
   return JSON.stringify({ jsonrpc: "2.0", id, method, params });
