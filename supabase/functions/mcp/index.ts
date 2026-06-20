@@ -1,11 +1,23 @@
 // MCP Server for Nucleus — exposes notes/tasks/spaces/tags/links/contexts
 // as tools via JSON-RPC over Streamable HTTP. Authenticated via OAuth Bearer.
+//
+// Enterprise response envelope: every tool response is normalized to a
+// structured JSON object with status, entity_type, operation, display_url,
+// readback data, ingestion_result, next_actions and correlation_id. Failures
+// always come back as { status:"failed", error_code, message } — never as
+// JSON-RPC -32601 / raw exceptions.
 import { Hono } from "npm:hono@4";
 import { McpServer, StreamableHttpTransport } from "npm:mcp-lite@^0.10.0";
 import { z } from "npm:zod@3";
 import { zodToJsonSchema } from "npm:zod-to-json-schema@3";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, getBaseUrl } from "../_shared/mcp-auth.ts";
+import { callLovableAI } from "../_shared/lovable-ai.ts";
+import {
+  type EntityType,
+  type Operation,
+  urlFor,
+} from "./_envelope.ts";
 
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPA_URL = Deno.env.get("SUPABASE_URL")!;
@@ -47,20 +59,270 @@ function clientFor(token: string): SupabaseClient {
 // ---------- Tool helpers ----------
 type Ctx = { userId: string; supabase: SupabaseClient };
 
+// Legacy `ok()` / `fail()` keep their signatures so existing handler bodies
+// don't need to change. The wrapper below intercepts every response and
+// upgrades it to the enterprise envelope.
 function ok(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
-function fail(message: string) {
+function fail(message: string, code = "db_error") {
   return {
     isError: true,
-    content: [{ type: "text" as const, text: JSON.stringify({ error: message }) }],
+    content: [{ type: "text" as const, text: JSON.stringify({ __mcp_error: true, error_code: code, error: message }) }],
   };
+}
+
+// Map tool name -> (entity_type, operation) used by the envelope.
+const TOOL_META: Record<string, { entity: EntityType; op: Operation }> = {
+  ping: { entity: "generic", op: "compute" },
+  // notes
+  create_note: { entity: "note", op: "create" },
+  update_note: { entity: "note", op: "update" },
+  append_to_note: { entity: "note", op: "update" },
+  append_section_to_note: { entity: "note", op: "update" },
+  delete_note: { entity: "note", op: "delete" },
+  search_notes: { entity: "note", op: "search" },
+  get_note: { entity: "note", op: "get" },
+  list_notes: { entity: "note", op: "list" },
+  // tasks
+  create_task: { entity: "task", op: "create" },
+  update_task: { entity: "task", op: "update" },
+  delete_task: { entity: "task", op: "delete" },
+  search_tasks: { entity: "task", op: "search" },
+  get_task: { entity: "task", op: "get" },
+  list_tasks: { entity: "task", op: "list" },
+  complete_task: { entity: "task", op: "update" },
+  // spaces
+  create_space: { entity: "space", op: "create" },
+  update_space: { entity: "space", op: "update" },
+  delete_space: { entity: "space", op: "delete" },
+  search_spaces: { entity: "space", op: "search" },
+  get_space: { entity: "space", op: "get" },
+  list_spaces: { entity: "space", op: "list" },
+  // tags
+  create_tag: { entity: "tag", op: "create" },
+  search_tags: { entity: "tag", op: "search" },
+  assign_tag_to_note: { entity: "note", op: "update" },
+  assign_tag_to_task: { entity: "task", op: "update" },
+  remove_tag_from_note: { entity: "note", op: "update" },
+  remove_tag_from_task: { entity: "task", op: "update" },
+  // links between entities
+  link_task_to_note: { entity: "task", op: "update" },
+  unlink_task_from_note: { entity: "task", op: "update" },
+  link_note_to_space: { entity: "note", op: "update" },
+  unlink_note_from_space: { entity: "note", op: "update" },
+  link_task_to_space: { entity: "task", op: "update" },
+  unlink_task_from_space: { entity: "task", op: "update" },
+  // context
+  get_note_context: { entity: "note", op: "get" },
+  get_space_context: { entity: "space", op: "get" },
+  // chatgpt aliases
+  search: { entity: "search_result", op: "search" },
+  fetch: { entity: "generic", op: "get" },
+  // meetings
+  list_meetings: { entity: "meeting", op: "list" },
+  search_meetings: { entity: "meeting", op: "search" },
+  // subtasks
+  list_subtasks: { entity: "subtask", op: "list" },
+  create_subtask: { entity: "subtask", op: "create" },
+  update_subtask: { entity: "subtask", op: "update" },
+  delete_subtask: { entity: "subtask", op: "delete" },
+  // task materials
+  list_task_materials: { entity: "task_material", op: "list" },
+  create_task_material: { entity: "task_material", op: "create" },
+  update_task_material: { entity: "task_material", op: "update" },
+  delete_task_material: { entity: "task_material", op: "delete" },
+  // bookmark links
+  list_links: { entity: "link", op: "list" },
+  search_links: { entity: "link", op: "search" },
+  create_link: { entity: "link", op: "create" },
+  update_link: { entity: "link", op: "update" },
+  delete_link: { entity: "link", op: "delete" },
+  // study areas
+  list_study_areas: { entity: "study_area", op: "list" },
+  get_study_area: { entity: "study_area", op: "get" },
+  create_study_area: { entity: "study_area", op: "create" },
+  update_study_area: { entity: "study_area", op: "update" },
+  delete_study_area: { entity: "study_area", op: "delete" },
+  // study topics
+  list_study_topics: { entity: "study_topic", op: "list" },
+  get_study_topic: { entity: "study_topic", op: "get" },
+  create_study_topic: { entity: "study_topic", op: "create" },
+  update_study_topic: { entity: "study_topic", op: "update" },
+  delete_study_topic: { entity: "study_topic", op: "delete" },
+  // study entries (event + knowledge)
+  list_study_entries: { entity: "study_entry", op: "list" },
+  get_study_entry: { entity: "study_entry", op: "get" },
+  add_study_entry: { entity: "study_entry", op: "create" },
+  update_study_entry: { entity: "study_entry", op: "update" },
+  delete_study_entry: { entity: "study_entry", op: "delete" },
+  search_study_entries: { entity: "study_entry", op: "search" },
+  add_event_entry: { entity: "study_entry", op: "create" },
+  add_knowledge_entry: { entity: "study_entry", op: "create" },
+  add_book_summary: { entity: "study_entry", op: "create" },
+  search_study_content: { entity: "study_entry", op: "search" },
+  // semantic / AI
+  search_everything: { entity: "search_result", op: "search" },
+  get_recent_activity: { entity: "activity", op: "list" },
+  get_daily_briefing: { entity: "briefing", op: "compute" },
+  find_related_content: { entity: "search_result", op: "search" },
+  extract_action_items: { entity: "ai_suggestion", op: "ai" },
+  summarize_space: { entity: "summary", op: "ai" },
+  get_context_for_chat: { entity: "context", op: "compute" },
+};
+
+const INDEXABLE: Set<EntityType> = new Set([
+  "note","task","space","study_topic","study_entry","study_area","link","task_material","subtask","meeting",
+]);
+
+function pickTitle(d: any): string | null {
+  if (!d || typeof d !== "object") return null;
+  return d.title ?? d.name ?? d.heading ?? null;
+}
+function defaultNextActions(op: Operation): string[] {
+  switch (op) {
+    case "create": return ["show_entity","refresh_list","search_related_content"];
+    case "update": return ["show_entity","refresh_list"];
+    case "delete": return ["refresh_list"];
+    case "list":   return ["refresh_list","search_related_content"];
+    case "get":    return ["show_entity","search_related_content","create_follow_up_task"];
+    case "search": return ["refresh_list","find_related_content"];
+    case "compute":
+    case "ai":     return ["show_entity"];
+    default: return [];
+  }
+}
+function classifyError(msg: string): string {
+  const m = (msg || "").toLowerCase();
+  if (m.includes("permission") || m.includes("not authorized") || m.includes("rls")) return "forbidden";
+  if (m.includes("not found") || m.includes("0 rows") || m.includes("no rows")) return "not_found";
+  if (m.includes("invalid") || m.includes("violates check") || m.includes("required")) return "invalid_input";
+  return "db_error";
+}
+function rowsFor(data: any): number {
+  if (Array.isArray(data)) return data.length;
+  if (data && typeof data === "object") {
+    if (Array.isArray(data.results)) return data.results.length;
+    if (data.deleted) return 1;
+    if (data.id) return 1;
+  }
+  return 0;
 }
 
 // Use Zod schemas for tool inputs; mcp-lite converts to JSON schema.
 const buildServer = (ctx: Ctx) => {
-  const s = new McpServer({ name: "nucleus-mcp", version: "0.1.0", schemaAdapter: (schema) => zodToJsonSchema(schema as any) });
+  const s = new McpServer({ name: "nucleus-mcp", version: "1.0.0", schemaAdapter: (schema) => zodToJsonSchema(schema as any) });
   const db = ctx.supabase;
+
+  // ---------- Envelope wrapper ----------
+  // Wrap s.tool so every legacy handler returning ok()/fail() automatically
+  // gets a structured enterprise envelope without per-handler refactor.
+  const _origTool = s.tool.bind(s);
+  (s as any).tool = (name: string, opts: any) => {
+    const meta = TOOL_META[name] ?? { entity: "generic" as EntityType, op: "compute" as Operation };
+    const origHandler = opts.handler;
+    opts.handler = async (input: any) => {
+      const correlation_id = crypto.randomUUID();
+      const started = Date.now();
+      let success = false;
+      let rows = 0;
+      try {
+        const ret = await origHandler(input);
+        const text = ret?.content?.[0]?.text ?? "";
+        let parsed: any;
+        try { parsed = JSON.parse(text); } catch { parsed = text; }
+
+        if (ret?.isError || (parsed && parsed.__mcp_error)) {
+          const errMsg = parsed?.error ?? "Unexpected error";
+          const code = parsed?.error_code ?? classifyError(errMsg);
+          const env = {
+            status: "failed",
+            error_code: code,
+            message: errMsg,
+            entity_type: meta.entity,
+            operation: meta.op,
+            details: null,
+            correlation_id,
+            next_actions: ["retry","refresh_list"],
+          };
+          return { isError: true, content: [{ type: "text", text: JSON.stringify(env, null, 2) }] };
+        }
+
+        success = true;
+        rows = rowsFor(parsed);
+        const isList = Array.isArray(parsed);
+        const single = !isList && parsed && typeof parsed === "object" ? parsed : null;
+        const entity_id = single?.id ?? null;
+        const title = pickTitle(single);
+        const display_url = urlFor(meta.entity, entity_id, single ?? undefined);
+        const indexed = INDEXABLE.has(meta.entity) && meta.op !== "delete";
+        const isWrite = meta.op === "create" || meta.op === "update" || meta.op === "delete";
+
+        const env: any = {
+          status: "success",
+          entity_type: meta.entity,
+          operation: meta.op,
+          correlation_id,
+          next_actions: defaultNextActions(meta.op),
+        };
+
+        if (isWrite) {
+          env.message = `${meta.entity}${title ? ` "${title}"` : ""} ${meta.op === "delete" ? "removido" : meta.op === "create" ? "criado" : "atualizado"}.`;
+          env.entity_id = entity_id;
+          env.title = title;
+          env.display_url = display_url;
+          env.data = parsed;
+          env.ingestion_result = {
+            status: "success",
+            indexed: indexed && meta.op !== "delete",
+            searchable: indexed && meta.op !== "delete",
+            summary: meta.op === "delete"
+              ? `${meta.entity} removido do índice.`
+              : `${meta.entity}${title ? ` "${title}"` : ""} indexado e disponível para buscas.`,
+          };
+        } else {
+          env.message = isList
+            ? `${rows} ${meta.entity}(s) ${meta.op === "search" ? "encontrado(s)" : "listado(s)"}.`
+            : (rows ? `${meta.entity} recuperado.` : `Nenhum ${meta.entity} encontrado.`);
+          env.count = isList ? rows : (parsed ? 1 : 0);
+          if (entity_id) {
+            env.entity_id = entity_id;
+            env.title = title;
+            env.display_url = display_url;
+          }
+          env.data = parsed;
+        }
+
+        return { content: [{ type: "text", text: JSON.stringify(env, null, 2) }] };
+      } catch (e: any) {
+        const env = {
+          status: "failed",
+          error_code: "internal_error",
+          message: e?.message ? String(e.message) : "Unexpected error",
+          entity_type: meta.entity,
+          operation: meta.op,
+          details: null,
+          correlation_id,
+          next_actions: ["retry"],
+        };
+        return { isError: true, content: [{ type: "text", text: JSON.stringify(env, null, 2) }] };
+      } finally {
+        try {
+          console.info(JSON.stringify({
+            ts: new Date().toISOString(),
+            mcp_log: true,
+            tool_name: name,
+            user_id: ctx.userId,
+            execution_time_ms: Date.now() - started,
+            success,
+            rows_affected: rows,
+            correlation_id,
+          }));
+        } catch { /* logging must never break the response */ }
+      }
+    };
+    return _origTool(name, opts);
+  };
 
   s.tool("ping", {
     description: "Simple connectivity test",
