@@ -1121,11 +1121,15 @@ const buildServer = (ctx: Ctx) => {
 
   s.tool("search_study_entries", {
     description:
-      "Search chronological study entries by free-text across title, summary, " +
-      "source_url, highlight, notes, and tags. Optional date range on entry_date.",
+      "Search study entries (events e knowledge) por free-text em title/summary/" +
+      "content/source_url/highlight/notes/tags. Filtre por `kind` ('event'|'knowledge'), " +
+      "topic_id, area_id, category, tag e intervalo de entry_date.",
     inputSchema: z.object({
       query: z.string().optional(),
+      kind: z.enum(["event","knowledge"]).optional(),
+      category: z.string().optional(),
       topic_id: z.string().uuid().optional(),
+      area_id: z.string().uuid().optional(),
       tag: z.string().optional(),
       date_from: z.string().optional().describe("ISO date YYYY-MM-DD"),
       date_to: z.string().optional().describe("ISO date YYYY-MM-DD"),
@@ -1133,16 +1137,24 @@ const buildServer = (ctx: Ctx) => {
     }),
     handler: async (input) => {
       let q = db.from("study_entries").select("*")
-        .order("entry_date", { ascending: false })
+        .order("entry_date", { ascending: false, nullsFirst: false })
         .limit(input.limit ?? 25);
+      if (input.kind) q = q.eq("kind", input.kind);
+      if (input.category) q = q.eq("category", input.category);
       if (input.topic_id) q = q.eq("topic_id", input.topic_id);
+      if (input.area_id) {
+        const { data: topics } = await db.from("study_topics").select("id").eq("area_id", input.area_id);
+        const ids = (topics ?? []).map((t: { id: string }) => t.id);
+        if (ids.length === 0) return ok([]);
+        q = q.in("topic_id", ids);
+      }
       if (input.tag) q = q.contains("tags", [input.tag]);
       if (input.date_from) q = q.gte("entry_date", input.date_from);
       if (input.date_to) q = q.lte("entry_date", input.date_to);
       if (input.query) {
         const v = input.query.replace(/[,()]/g, " ");
         q = q.or(
-          `title.ilike.%${v}%,summary.ilike.%${v}%,source_url.ilike.%${v}%,highlight.ilike.%${v}%,notes.ilike.%${v}%`
+          `title.ilike.%${v}%,summary.ilike.%${v}%,content.ilike.%${v}%,source_url.ilike.%${v}%,highlight.ilike.%${v}%,notes.ilike.%${v}%`
         );
       }
       const { data, error } = await q;
