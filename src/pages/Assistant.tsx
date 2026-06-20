@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrtToday } from "@/lib/timezone";
+import { getFunctionAuthHeaders } from "@/lib/functionAuth";
 
 interface Message {
   id: string;
@@ -72,11 +73,12 @@ export default function Assistant() {
     let assistantContent = "";
 
     try {
+      const authHeaders = await getFunctionAuthHeaders();
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          ...authHeaders,
         },
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),

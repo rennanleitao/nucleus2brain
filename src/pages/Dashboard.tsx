@@ -9,6 +9,7 @@ import { Clock, AlertTriangle, TrendingUp, Bot, Send, User, ChevronDown, Chevron
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { AccomplishmentHistory } from "@/components/AccomplishmentHistory";
+import { getFunctionAuthHeaders } from "@/lib/functionAuth";
 
 import { useAuth } from "@/hooks/useAuth";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
@@ -91,12 +92,16 @@ export default function Dashboard() {
 
     let assistantContent = "";
     try {
+      const authHeaders = await getFunctionAuthHeaders();
       const resp = await fetch(CHAT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })), context }),
       });
-      if (!resp.ok) throw new Error("AI request failed");
+      if (!resp.ok) {
+        const errorBody = await resp.json().catch(() => ({ error: "AI request failed" }));
+        throw new Error(errorBody.error || "AI request failed");
+      }
       const reader = resp.body?.getReader();
       if (!reader) throw new Error("No stream");
       const decoder = new TextDecoder();
@@ -140,6 +145,7 @@ export default function Dashboard() {
         } catch {}
       }
     } catch (err: any) {
+      toast.error(err.message || "Erro ao acessar a IA");
       if (!assistantContent) {
         setChatMessages(prev => [...prev, { id: "err-" + Date.now(), role: "assistant", content: "Desculpe, ocorreu um erro. Tente novamente." }]);
       }
