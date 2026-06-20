@@ -130,6 +130,8 @@ export default function SettingsPage() {
   const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
   const [editingApiKey, setEditingApiKey] = useState(true);
   const [keyStatusLoading, setKeyStatusLoading] = useState(false);
+  const [keyStatusError, setKeyStatusError] = useState<string | null>(null);
+  const [testedUnsavedKey, setTestedUnsavedKey] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -167,6 +169,7 @@ export default function SettingsPage() {
         setModel(savedProvider ? (savedProvider.automaticModel ? savedProvider.models[0].id : (data.model || savedProvider.models[0].id)) : "google/gemini-3-flash-preview");
         if (savedProvider?.needsKey) {
           setKeyStatusLoading(true);
+          setKeyStatusError(null);
           try {
             const configured = await hasStoredApiKey(savedProvider.id);
             setApiKeyConfigured(configured);
@@ -174,6 +177,7 @@ export default function SettingsPage() {
           } catch {
             setApiKeyConfigured(false);
             setEditingApiKey(true);
+            setKeyStatusError("Não foi possível verificar se a API key está salva.");
           } finally {
             setKeyStatusLoading(false);
           }
@@ -217,8 +221,10 @@ export default function SettingsPage() {
     const prov = PROVIDERS.find(p => p.id === newProvider)!;
     setModel(prov.models[0].id);
     setApiKey("");
+    setTestedUnsavedKey(false);
     setApiKeyConfigured(false);
     setEditingApiKey(prov.needsKey);
+    setKeyStatusError(null);
     if (prov.needsKey) {
       setKeyStatusLoading(true);
       try {
@@ -227,6 +233,7 @@ export default function SettingsPage() {
         setEditingApiKey(!configured);
       } catch {
         setEditingApiKey(true);
+        setKeyStatusError("Não foi possível verificar se a API key está salva.");
       } finally {
         setKeyStatusLoading(false);
       }
@@ -262,6 +269,7 @@ export default function SettingsPage() {
         if (error) throw error;
         setApiKeyConfigured(true);
         setEditingApiKey(false);
+        setTestedUnsavedKey(false);
       }
 
       toast.success("Configurações salvas!");
@@ -292,7 +300,12 @@ export default function SettingsPage() {
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Não foi possível conectar ao provedor");
-      toast.success("Conexão validada com sucesso!");
+      if (apiKey.trim()) {
+        setTestedUnsavedKey(true);
+        toast.success("Conexão validada. Clique em Salvar configurações para guardar a chave.");
+      } else {
+        toast.success("Conexão validada com a chave salva!");
+      }
     } catch (err: any) {
       toast.error(err.message || "Erro ao testar conexão");
     } finally {
@@ -502,6 +515,19 @@ export default function SettingsPage() {
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                   Verificando API key configurada...
                 </div>
+              ) : keyStatusError ? (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                    <div>
+                      <p className="text-xs font-medium">Não foi possível consultar a chave</p>
+                      <p className="text-[10px] text-muted-foreground">{keyStatusError} Você pode informar a chave novamente.</p>
+                    </div>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setKeyStatusError(null)}>
+                    Informar chave
+                  </Button>
+                </div>
               ) : apiKeyConfigured && !editingApiKey ? (
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <div className="flex items-center gap-2">
@@ -535,7 +561,10 @@ export default function SettingsPage() {
                   <input
                     type="password"
                     value={apiKey}
-                    onChange={e => setApiKey(e.target.value)}
+                    onChange={e => {
+                      setApiKey(e.target.value);
+                      setTestedUnsavedKey(false);
+                    }}
                     placeholder={`Cole sua ${selectedProvider.name} API key...`}
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
                   />
@@ -555,6 +584,12 @@ export default function SettingsPage() {
                 <CheckCircle2 className="h-4 w-4 mr-1.5" />
                 {testingConnection ? "Testando conexão..." : "Testar conexão"}
               </Button>
+              {testedUnsavedKey && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] text-muted-foreground">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  <span>A chave foi testada, mas ainda não foi salva. Clique em <strong>Salvar configurações</strong> abaixo.</span>
+                </div>
+              )}
             </div>
           )}
 
