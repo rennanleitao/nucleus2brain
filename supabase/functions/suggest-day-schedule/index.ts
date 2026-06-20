@@ -1,6 +1,8 @@
-// Suggests a chronological order/time for the day's tasks using Lovable AI.
+// Suggests a chronological order/time for the day's tasks using the configured AI provider.
 // Considers: existing Google Calendar events for the day, task priority, estimated_minutes,
 // optional working window, and per-task triage hints (type/urgency/complexity).
+import { routeAICompletion } from "../_shared/ai-router.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -45,9 +47,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
     const workStart = body.workStart || "09:00";
     const workEnd = body.workEnd || "18:00";
 
@@ -77,56 +76,48 @@ Regras de priorização:
       tasks: body.tasks,
     }, null, 2);
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: sysPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "schedule_tasks",
-              description: "Return the suggested schedule for the day's tasks.",
-              parameters: {
-                type: "object",
-                properties: {
-                  schedule: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        task_id: { type: "string" },
-                        time: { type: ["string", "null"], description: "HH:MM 24h or null if not scheduled" },
-                        duration_minutes: { type: "number", description: "Suggested duration in minutes (multiple of 5, min 5)" },
-                        reason: { type: "string", description: "Short reason (max 80 chars)" },
-                      },
-                      required: ["task_id", "time", "duration_minutes", "reason"],
-                      additionalProperties: false,
+    const { response: aiResp, provider } = await routeAICompletion(req, {
+      messages: [
+        { role: "system", content: sysPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "schedule_tasks",
+            description: "Return the suggested schedule for the day's tasks.",
+            parameters: {
+              type: "object",
+              properties: {
+                schedule: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      task_id: { type: "string" },
+                      time: { type: ["string", "null"], description: "HH:MM 24h or null if not scheduled" },
+                      duration_minutes: { type: "number", description: "Suggested duration in minutes (multiple of 5, min 5)" },
+                      reason: { type: "string", description: "Short reason (max 80 chars)" },
                     },
+                    required: ["task_id", "time", "duration_minutes", "reason"],
+                    additionalProperties: false,
                   },
-                  summary: { type: "string", description: "1-2 sentence overview of the plan" },
                 },
-                required: ["schedule", "summary"],
-                additionalProperties: false,
+                summary: { type: "string", description: "1-2 sentence overview of the plan" },
               },
+              required: ["schedule", "summary"],
+              additionalProperties: false,
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "schedule_tasks" } },
-      }),
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "schedule_tasks" } },
     });
 
     if (!aiResp.ok) {
       const t = await aiResp.text();
-      console.error("AI gateway error:", aiResp.status, t);
+      console.error(`${provider} AI error:`, aiResp.status, t);
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit excedido. Tente novamente em instantes." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },

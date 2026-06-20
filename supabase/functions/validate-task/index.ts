@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { routeAICompletion } from "../_shared/ai-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,17 +17,7 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+    const { response } = await routeAICompletion(req, {
         messages: [
           {
             role: "system",
@@ -70,8 +61,7 @@ Always respond in the SAME LANGUAGE as the task title.`,
           },
         ],
         tool_choice: { type: "function", function: { name: "evaluate_task" } },
-      }),
-    });
+    }, { defaultModel: "google/gemini-3-flash-preview" });
 
     if (!response.ok) {
       if (response.status === 429) {

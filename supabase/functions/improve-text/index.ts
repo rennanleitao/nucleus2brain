@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { routeAICompletion } from "../_shared/ai-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,9 +11,6 @@ serve(async (req) => {
 
   try {
     const { text, mode, extraInstructions, templateName, templateStructure } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     // For the inline modes (improve/simplify/expand/formal) the result REPLACES
     // a selection inside a rich-text editor, so the model must return PLAIN text
@@ -73,20 +71,16 @@ ${text}`,
 
     const systemPrompt = prompts[mode] || prompts.improve;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+    const { response, provider } = await routeAICompletion(
+      req,
+      {
         messages: [
           { role: "system", content: "You are a professional text editor. Follow the instructions exactly." },
           { role: "user", content: systemPrompt },
         ],
-      }),
-    });
+      },
+      { defaultModel: "google/gemini-3-flash-preview" },
+    );
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -100,7 +94,7 @@ ${text}`,
         });
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error(`${provider} AI error:`, response.status, t);
       throw new Error("AI gateway error");
     }
 

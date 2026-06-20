@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { routeAICompletion } from "../_shared/ai-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,11 +31,6 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
-
     const spacesContext = spaces?.length
       ? `Available spaces (use exact id if user mentions one): ${JSON.stringify(spaces)}`
       : "No spaces available.";
@@ -62,24 +58,13 @@ Return JSON:
   "subtasks": [{ "title": "string", "due_date": "YYYY-MM-DD or null" }]
 }`;
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: transcript },
-          ],
-          temperature: 0.1,
-        }),
-      }
-    );
+    const { response } = await routeAICompletion(req, {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: transcript },
+      ],
+      temperature: 0.1,
+    }, { defaultModel: "google/gemini-3-flash-preview" });
 
     if (!response.ok) {
       const err = await response.text();

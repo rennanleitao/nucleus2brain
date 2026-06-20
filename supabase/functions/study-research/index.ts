@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { routeAICompletion } from "../_shared/ai-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,6 +7,9 @@ const corsHeaders = {
 };
 
 interface Source { title: string; url: string; snippet?: string }
+interface SearchResult { title?: string; url: string; description?: string; snippet?: string }
+interface TimelineEntry { entry_date: string; title: string; summary?: string }
+interface ChatMessage { role: string; content: string }
 
 async function firecrawlSearch(query: string): Promise<Source[]> {
   const key = Deno.env.get("FIRECRAWL_API_KEY");
@@ -19,7 +23,7 @@ async function firecrawlSearch(query: string): Promise<Source[]> {
     if (!r.ok) return [];
     const d = await r.json();
     const items = d?.data?.web ?? d?.data ?? [];
-    return (items as any[]).slice(0, 5).map((x) => ({
+    return (items as SearchResult[]).slice(0, 5).map((x) => ({
       title: x.title ?? x.url,
       url: x.url,
       snippet: x.description ?? x.snippet ?? "",
@@ -35,15 +39,12 @@ serve(async (req) => {
 
   try {
     const { question, topicTitle, topicDescription, entries, history } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
     // Try live web search via Firecrawl (optional)
     const sources = await firecrawlSearch(`${topicTitle} ${question}`);
 
     const timelineCtx = (entries ?? [])
       .slice(0, 20)
-      .map((e: any) => `- [${e.entry_date}] ${e.title}: ${e.summary ?? ""}`)
+      .map((e: TimelineEntry) => `- [${e.entry_date}] ${e.title}: ${e.summary ?? ""}`)
       .join("\n");
 
     const sourcesBlock = sources.length
@@ -67,21 +68,21 @@ Regras:
 - Ao final, liste "Fontes:" como bullets com título e URL clicável em markdown: [título](url).
 - Use markdown (negrito, listas) quando ajudar.`;
 
-    const messages: any[] = [{ role: "system", content: systemPrompt }];
+    const messages: ChatMessage[] = [{ role: "system", content: systemPrompt }];
     if (Array.isArray(history)) for (const m of history) messages.push({ role: m.role, content: m.content });
     messages.push({ role: "user", content: question });
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages }),
-    });
+    const { response, provider } = await routeAICompletion(
+      req,
+      { messages },
+      { defaultModel: "google/gemini-3-flash-preview" },
+    );
 
     if (!response.ok) {
       if (response.status === 429) return new Response(JSON.stringify({ error: "Limite de requisições. Tente em instantes." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (response.status === 402) return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error(`${provider} AI error:`, response.status, t);
       throw new Error("AI gateway error");
     }
 
