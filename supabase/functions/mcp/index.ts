@@ -1576,12 +1576,15 @@ const buildServer = (ctx: Ctx) => {
 
   // ---------- STUDY ENTRIES (update / delete) ----------
   s.tool("update_study_entry", {
-    description: "Update a study entry.",
+    description: "Update a study entry. Pode alterar o `kind` ('event' | 'knowledge'), categoria e conteúdo longo.",
     inputSchema: z.object({
       id: z.string().uuid(),
-      entry_date: z.string().optional(),
+      kind: z.enum(["event","knowledge"]).optional(),
+      category: z.string().nullable().optional(),
+      entry_date: z.string().nullable().optional(),
       title: z.string().min(1).max(500).optional(),
       summary: z.string().optional(),
+      content: z.string().nullable().optional(),
       source_url: z.string().url().nullable().optional(),
       highlight: z.string().nullable().optional(),
       notes: z.string().nullable().optional(),
@@ -1589,7 +1592,7 @@ const buildServer = (ctx: Ctx) => {
     }),
     handler: async (input) => {
       const patch: Record<string, unknown> = {};
-      for (const k of ["entry_date", "title", "summary", "source_url", "highlight", "notes", "tags"] as const) {
+      for (const k of ["kind","category","entry_date","title","summary","content","source_url","highlight","notes","tags"] as const) {
         if (input[k] !== undefined) patch[k] = input[k];
       }
       const { data, error } = await db.from("study_entries").update(patch).eq("id", input.id).select().single();
