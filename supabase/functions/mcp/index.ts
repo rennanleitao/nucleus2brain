@@ -1080,26 +1080,35 @@ const buildServer = (ctx: Ctx) => {
   // ---------- STUDY ENTRIES (Conhecimentos Gerais) ----------
   s.tool("add_study_entry", {
     description:
-      "Add a chronological entry to a study topic (Conhecimentos Gerais). " +
-      "Simple timeline format — no type, no source name. The URL itself, when " +
-      "provided, indicates the nature of the content.",
+      "Add an entry to a study topic (Conhecimentos Gerais). " +
+      "Set `kind` to 'event' (timeline / fato datado) or 'knowledge' " +
+      "(framework, conceito, livro, playbook — conhecimento permanente). " +
+      "For knowledge entries `entry_date` is opcional.",
     inputSchema: z.object({
       topic_id: z.string().uuid(),
-      entry_date: z.string().describe("ISO date YYYY-MM-DD"),
+      kind: z.enum(["event","knowledge"]).optional(),
+      category: z.string().nullable().optional(),
+      entry_date: z.string().optional().describe("ISO date YYYY-MM-DD (obrigatório só para kind=event)"),
       title: z.string().min(1).max(500),
       summary: z.string().min(1),
+      content: z.string().nullable().optional(),
       source_url: z.string().url().nullable().optional(),
       highlight: z.string().nullable().optional(),
       notes: z.string().nullable().optional(),
       tags: z.array(z.string()).optional(),
     }),
     handler: async (input) => {
+      const kind = input.kind ?? "event";
+      if (kind === "event" && !input.entry_date) return fail("entry_date is required for kind='event'", "invalid_input");
       const { data, error } = await db.from("study_entries").insert({
         user_id: ctx.userId,
         topic_id: input.topic_id,
-        entry_date: input.entry_date,
+        kind,
+        category: input.category ?? null,
+        entry_date: input.entry_date ?? null,
         title: input.title,
         summary: input.summary,
+        content: input.content ?? null,
         source_url: input.source_url ?? null,
         highlight: input.highlight ?? null,
         notes: input.notes ?? null,
