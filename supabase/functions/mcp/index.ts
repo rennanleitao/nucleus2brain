@@ -1657,6 +1657,409 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
+  // ============================================================
+  // SEMANTIC + AI LAYER (camada cognitiva)
+  // ============================================================
+
+  s.tool("add_event_entry", {
+    description: "Atalho para adicionar uma entrada de timeline (kind='event') a um tópico. entry_date é obrigatório.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      entry_date: z.string().describe("ISO YYYY-MM-DD"),
+      title: z.string().min(1).max(500),
+      summary: z.string().min(1),
+      category: z.string().nullable().optional(),
+      source_url: z.string().url().nullable().optional(),
+      highlight: z.string().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_entries").insert({
+        user_id: ctx.userId, topic_id: input.topic_id, kind: "event",
+        entry_date: input.entry_date, title: input.title, summary: input.summary,
+        category: input.category ?? null, source_url: input.source_url ?? null,
+        highlight: input.highlight ?? null, tags: input.tags ?? [],
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("add_knowledge_entry", {
+    description: "Atalho para adicionar uma entrada de Knowledge Base (kind='knowledge') a um tópico — frameworks, conceitos, modelos mentais, playbooks, prompts.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      title: z.string().min(1).max(500),
+      summary: z.string().min(1),
+      content: z.string().nullable().optional(),
+      category: z.string().nullable().optional().describe("Ex: 'framework','conceito','playbook','prompt','benchmark','modelo_mental','metodologia'"),
+      source_url: z.string().url().nullable().optional(),
+      highlight: z.string().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_entries").insert({
+        user_id: ctx.userId, topic_id: input.topic_id, kind: "knowledge",
+        title: input.title, summary: input.summary, content: input.content ?? null,
+        category: input.category ?? null, source_url: input.source_url ?? null,
+        highlight: input.highlight ?? null, tags: input.tags ?? [],
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("add_book_summary", {
+    description: "Adiciona um resumo de livro como entrada de Knowledge Base (category='livro').",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      title: z.string().min(1).max(500).describe("Título do livro"),
+      author: z.string().optional(),
+      summary: z.string().min(1),
+      key_takeaways: z.array(z.string()).optional(),
+      content: z.string().optional(),
+      source_url: z.string().url().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+    }),
+    handler: async (input) => {
+      const fullTitle = input.author ? `${input.title} — ${input.author}` : input.title;
+      const body = [
+        input.content ?? "",
+        input.key_takeaways?.length ? "\n\n## Principais aprendizados\n" + input.key_takeaways.map((k) => `- ${k}`).join("\n") : "",
+      ].join("").trim();
+      const { data, error } = await db.from("study_entries").insert({
+        user_id: ctx.userId, topic_id: input.topic_id, kind: "knowledge",
+        category: "livro", title: fullTitle, summary: input.summary,
+        content: body || null, source_url: input.source_url ?? null,
+        tags: input.tags ?? [],
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("search_study_content", {
+    description: "Busca unificada em todo o módulo Conhecimentos Gerais: areas, topics e entries (events + knowledge).",
+    inputSchema: z.object({
+      query: z.string().min(1),
+      kind: z.enum(["event","knowledge"]).optional(),
+      limit: z.number().int().min(1).max(50).optional(),
+    }),
+    handler: async (input) => {
+      const v = input.query.replace(/[,()]/g, " ");
+      const lim = input.limit ?? 15;
+      const [areasR, topicsR, entriesR] = await Promise.all([
+        db.from("study_areas").select("id,name,description").or(`name.ilike.%${v}%,description.ilike.%${v}%`).limit(lim),
+        db.from("study_topics").select("id,title,description,area_id,tags").or(`title.ilike.%${v}%,description.ilike.%${v}%,notes.ilike.%${v}%`).limit(lim),
+        (() => {
+          let q = db.from("study_entries").select("id,topic_id,kind,category,title,summary,entry_date,tags")
+            .or(`title.ilike.%${v}%,summary.ilike.%${v}%,content.ilike.%${v}%,highlight.ilike.%${v}%,notes.ilike.%${v}%`)
+            .order("entry_date", { ascending: false, nullsFirst: false })
+            .limit(lim);
+          if (input.kind) q = q.eq("kind", input.kind);
+          return q;
+        })(),
+      ]);
+      return ok({
+        areas: areasR.data ?? [],
+        topics: topicsR.data ?? [],
+        entries: entriesR.data ?? [],
+      });
+    },
+  });
+
+  s.tool("search_everything", {
+    description: "Busca semântica simples (ilike paralelo) em notes, tasks, spaces, links, materials, study_topics e study_entries. Retorna resultados agrupados com display_url.",
+    inputSchema: z.object({
+      query: z.string().min(1),
+      types: z.array(z.enum(["note","task","space","link","task_material","study_topic","study_entry"])).optional(),
+      limit_per_type: z.number().int().min(1).max(25).optional(),
+    }),
+    handler: async (input) => {
+      const v = input.query.replace(/[,()]/g, " ");
+      const lim = input.limit_per_type ?? 8;
+      const want = (t: string) => !input.types || input.types.includes(t as any);
+      const [notes, tasks, spaces, links, mats, topics, entries] = await Promise.all([
+        want("note") ? db.from("notes").select("id,title,content,space_id,tags,updated_at").or(`title.ilike.%${v}%,content.ilike.%${v}%`).limit(lim) : Promise.resolve({ data: [] }),
+        want("task") ? db.from("tasks").select("id,title,description,status,due_date,space_id").is("deleted_at", null).or(`title.ilike.%${v}%,description.ilike.%${v}%`).limit(lim) : Promise.resolve({ data: [] }),
+        want("space") ? db.from("spaces").select("id,name,description").or(`name.ilike.%${v}%,description.ilike.%${v}%`).limit(lim) : Promise.resolve({ data: [] }),
+        want("link") ? db.from("links").select("id,title,url,description,space_id").or(`title.ilike.%${v}%,description.ilike.%${v}%,url.ilike.%${v}%`).limit(lim) : Promise.resolve({ data: [] }),
+        want("task_material") ? db.from("task_materials").select("id,title,url,description,task_id,space_id").or(`title.ilike.%${v}%,description.ilike.%${v}%,url.ilike.%${v}%`).limit(lim) : Promise.resolve({ data: [] }),
+        want("study_topic") ? db.from("study_topics").select("id,title,description,area_id").or(`title.ilike.%${v}%,description.ilike.%${v}%,notes.ilike.%${v}%`).limit(lim) : Promise.resolve({ data: [] }),
+        want("study_entry") ? db.from("study_entries").select("id,topic_id,kind,category,title,summary,entry_date").or(`title.ilike.%${v}%,summary.ilike.%${v}%,content.ilike.%${v}%`).limit(lim) : Promise.resolve({ data: [] }),
+      ]);
+      const enrich = (rows: any[], type: EntityType, hint?: (r: any) => any) =>
+        (rows ?? []).map((r) => ({ entity_type: type, entity_id: r.id, title: r.title ?? r.name, display_url: urlFor(type, r.id, hint?.(r)), data: r }));
+      const results = [
+        ...enrich(notes.data ?? [], "note"),
+        ...enrich(tasks.data ?? [], "task"),
+        ...enrich(spaces.data ?? [], "space"),
+        ...enrich(links.data ?? [], "link"),
+        ...enrich(mats.data ?? [], "task_material", (r) => ({ task_id: r.task_id })),
+        ...enrich(topics.data ?? [], "study_topic"),
+        ...enrich(entries.data ?? [], "study_entry", (r) => ({ topic_id: r.topic_id })),
+      ];
+      return ok({ query: input.query, total: results.length, results });
+    },
+  });
+
+  s.tool("get_recent_activity", {
+    description: "Atividade recente em todas as entidades (notes, tasks, study_entries) ordenada por updated_at desc.",
+    inputSchema: z.object({
+      since_days: z.number().int().min(1).max(90).optional(),
+      limit: z.number().int().min(1).max(100).optional(),
+    }),
+    handler: async (input) => {
+      const since = new Date(Date.now() - (input.since_days ?? 7) * 86_400_000).toISOString();
+      const lim = input.limit ?? 25;
+      const [notes, tasks, entries] = await Promise.all([
+        db.from("notes").select("id,title,updated_at,space_id").gte("updated_at", since).order("updated_at", { ascending: false }).limit(lim),
+        db.from("tasks").select("id,title,status,updated_at,space_id,completed_at").is("deleted_at", null).gte("updated_at", since).order("updated_at", { ascending: false }).limit(lim),
+        db.from("study_entries").select("id,topic_id,kind,title,created_at").gte("created_at", since).order("created_at", { ascending: false }).limit(lim),
+      ]);
+      const items = [
+        ...(notes.data ?? []).map((n: any) => ({ entity_type: "note", id: n.id, title: n.title, ts: n.updated_at, display_url: urlFor("note", n.id) })),
+        ...(tasks.data ?? []).map((t: any) => ({ entity_type: "task", id: t.id, title: t.title, ts: t.updated_at, status: t.status, display_url: urlFor("task", t.id) })),
+        ...(entries.data ?? []).map((e: any) => ({ entity_type: "study_entry", id: e.id, title: e.title, ts: e.created_at, kind: e.kind, display_url: urlFor("study_entry", e.id, { topic_id: e.topic_id }) })),
+      ].sort((a, b) => (b.ts ?? "").localeCompare(a.ts ?? "")).slice(0, lim);
+      return ok({ since, items });
+    },
+  });
+
+  s.tool("get_daily_briefing", {
+    description: "Briefing diário consolidado: tarefas para hoje, atrasadas, concluídas nos últimos 7 dias, notas atualizadas hoje e novas entradas em Conhecimentos Gerais.",
+    inputSchema: z.object({}),
+    handler: async () => {
+      const tz = "America/Sao_Paulo";
+      const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+      const today = `${parts.find(p=>p.type==="year")!.value}-${parts.find(p=>p.type==="month")!.value}-${parts.find(p=>p.type==="day")!.value}`;
+      const sevenAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+      const [todayT, overdue, recentDone, todayNotes, newKnowledge] = await Promise.all([
+        db.from("tasks").select("id,title,status,due_date,priority,space_id").is("deleted_at", null).eq("due_date", today).neq("status","done"),
+        db.from("tasks").select("id,title,status,due_date,priority,space_id").is("deleted_at", null).lt("due_date", today).neq("status","done").order("due_date"),
+        db.from("tasks").select("id,title,completed_at").gte("completed_at", sevenAgo).eq("status","done").order("completed_at",{ascending:false}).limit(20),
+        db.from("notes").select("id,title,updated_at").gte("updated_at", `${today}T00:00:00Z`).order("updated_at",{ascending:false}).limit(20),
+        db.from("study_entries").select("id,topic_id,kind,title,created_at").gte("created_at", sevenAgo).order("created_at",{ascending:false}).limit(20),
+      ]);
+      return ok({
+        date: today,
+        tasks_today: todayT.data ?? [],
+        tasks_overdue: overdue.data ?? [],
+        completed_last_7d: recentDone.data ?? [],
+        notes_updated_today: todayNotes.data ?? [],
+        new_knowledge_last_7d: newKnowledge.data ?? [],
+      });
+    },
+  });
+
+  s.tool("find_related_content", {
+    description: "Encontra conteúdo relacionado a uma entidade (note, task, study_topic, study_entry) por tags compartilhadas, mesmo space ou mesmo tópico.",
+    inputSchema: z.object({
+      entity_type: z.enum(["note","task","study_topic","study_entry"]),
+      id: z.string().uuid(),
+      limit: z.number().int().min(1).max(50).optional(),
+    }),
+    handler: async (input) => {
+      const lim = input.limit ?? 10;
+      let tags: string[] = [];
+      let space_id: string | null = null;
+      let topic_id: string | null = null;
+      if (input.entity_type === "note") {
+        const { data } = await db.from("notes").select("tags,space_id").eq("id", input.id).single();
+        tags = data?.tags ?? []; space_id = data?.space_id ?? null;
+      } else if (input.entity_type === "task") {
+        const { data } = await db.from("tasks").select("tag,space_id").eq("id", input.id).single();
+        tags = data?.tag ? [data.tag] : []; space_id = data?.space_id ?? null;
+      } else if (input.entity_type === "study_topic") {
+        const { data } = await db.from("study_topics").select("tags").eq("id", input.id).single();
+        tags = data?.tags ?? [];
+      } else {
+        const { data } = await db.from("study_entries").select("tags,topic_id").eq("id", input.id).single();
+        tags = data?.tags ?? []; topic_id = data?.topic_id ?? null;
+      }
+      const [notes, tasks, entries] = await Promise.all([
+        tags.length ? db.from("notes").select("id,title,tags,space_id").overlaps("tags", tags).neq("id", input.id).limit(lim) : Promise.resolve({ data: [] }),
+        tags.length ? db.from("tasks").select("id,title,tag,space_id").is("deleted_at", null).in("tag", tags).neq("id", input.id).limit(lim) : Promise.resolve({ data: [] }),
+        topic_id ? db.from("study_entries").select("id,title,kind,topic_id").eq("topic_id", topic_id).neq("id", input.id).limit(lim)
+                 : (tags.length ? db.from("study_entries").select("id,title,kind,topic_id,tags").overlaps("tags", tags).neq("id", input.id).limit(lim) : Promise.resolve({ data: [] })),
+      ]);
+      const sameSpace = space_id ? await db.from("notes").select("id,title").eq("space_id", space_id).neq("id", input.id).limit(lim) : { data: [] };
+      return ok({
+        seed: { entity_type: input.entity_type, id: input.id, tags, space_id, topic_id },
+        related_notes: notes.data ?? [],
+        related_tasks: tasks.data ?? [],
+        related_study_entries: entries.data ?? [],
+        same_space_notes: sameSpace.data ?? [],
+      });
+    },
+  });
+
+  s.tool("extract_action_items", {
+    description: "Usa IA para extrair próximos passos / action items de um texto livre (transcrição de reunião, nota, briefing).",
+    inputSchema: z.object({
+      text: z.string().min(20),
+      context: z.string().optional(),
+    }),
+    handler: async (input) => {
+      try {
+        const result = await callLovableAI(
+          `${input.context ? `Contexto: ${input.context}\n\n` : ""}Texto:\n${input.text}\n\nExtraia todas as ações concretas (action items / próximos passos).`,
+          {
+            system: "Você é um analista executivo. Extraia action items objetivos, sem inventar prazos ou responsáveis. Português do Brasil.",
+            schema: {
+              name: "extract_action_items",
+              description: "Lista estruturada de ações",
+              parameters: {
+                type: "object",
+                properties: {
+                  action_items: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        description: { type: "string" },
+                        owner: { type: "string" },
+                        due_date: { type: "string" },
+                        priority: { type: "string", enum: ["low","medium","high","urgent"] },
+                      },
+                      required: ["title"],
+                    },
+                  },
+                },
+                required: ["action_items"],
+              },
+            },
+          },
+        );
+        return ok(result);
+      } catch (e: any) {
+        return fail(`AI gateway error: ${e?.message ?? e}`, "ai_unavailable");
+      }
+    },
+  });
+
+  s.tool("create_task_from_note", {
+    description: "Cria uma task a partir de uma nota, herdando space_id e linkando via note_id.",
+    inputSchema: z.object({
+      note_id: z.string().uuid(),
+      title: z.string().min(1).max(500),
+      description: z.string().optional(),
+      due_date: z.string().optional(),
+      priority: z.enum(["low","medium","high","urgent"]).optional(),
+    }),
+    handler: async (input) => {
+      const { data: note, error: nErr } = await db.from("notes").select("space_id,tags").eq("id", input.note_id).single();
+      if (nErr) return fail(nErr.message);
+      const { data, error } = await db.from("tasks").insert({
+        user_id: ctx.userId,
+        title: input.title,
+        description: input.description ?? null,
+        due_date: input.due_date ?? null,
+        priority: input.priority ?? "medium",
+        status: "todo",
+        note_id: input.note_id,
+        space_id: note?.space_id ?? null,
+        tag: (note?.tags ?? [])[0] ?? null,
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("append_meeting_to_project", {
+    description: "Adiciona uma seção de reunião (decisões, próximos passos) à nota mais recente de um space.",
+    inputSchema: z.object({
+      space_id: z.string().uuid(),
+      heading: z.string().min(1).max(200),
+      summary: z.string().optional(),
+      decisions: z.array(z.string()).optional(),
+      next_steps: z.array(z.string()).optional(),
+      meeting_date: z.string().optional(),
+    }),
+    handler: async (input) => {
+      const { data: hub, error } = await db.from("notes").select("id,content").eq("space_id", input.space_id).order("updated_at",{ascending:false}).limit(1).single();
+      if (error) return fail(error.message, "not_found");
+      const lines = [`## ${input.heading}`, ""];
+      if (input.meeting_date) lines.push(`_Reunião em: ${input.meeting_date}_`, "");
+      if (input.summary) lines.push(input.summary.trim(), "");
+      if (input.decisions?.length) { lines.push("### Decisões"); input.decisions.forEach((d) => lines.push(`- ${d}`)); lines.push(""); }
+      if (input.next_steps?.length) { lines.push("### Próximos passos"); input.next_steps.forEach((n) => lines.push(`- [ ] ${n}`)); }
+      const merged = `${hub.content ?? ""}${hub.content ? "\n\n---\n\n" : ""}${lines.join("\n")}`;
+      const { data, error: uErr } = await db.from("notes").update({ content: merged }).eq("id", hub.id).select().single();
+      if (uErr) return fail(uErr.message);
+      return ok(data);
+    },
+  });
+
+  s.tool("summarize_space", {
+    description: "Gera um resumo executivo de um space usando IA: em andamento, decisões recentes, riscos e próximos passos.",
+    inputSchema: z.object({
+      space_id: z.string().uuid(),
+      max_notes: z.number().int().min(1).max(20).optional(),
+    }),
+    handler: async (input) => {
+      const limN = input.max_notes ?? 8;
+      const [{ data: space }, { data: notes }, { data: tasks }] = await Promise.all([
+        db.from("spaces").select("id,name,description").eq("id", input.space_id).single(),
+        db.from("notes").select("title,content,updated_at").eq("space_id", input.space_id).order("updated_at",{ascending:false}).limit(limN),
+        db.from("tasks").select("title,status,due_date,priority").is("deleted_at", null).eq("space_id", input.space_id).order("updated_at",{ascending:false}).limit(50),
+      ]);
+      if (!space) return fail("Space not found", "not_found");
+      const promptParts = [
+        `Space: ${space.name}${space.description ? ` — ${space.description}` : ""}`,
+        "",
+        "## Notas recentes",
+        ...(notes ?? []).map((n: any) => `### ${n.title}\n${(n.content ?? "").slice(0, 1500)}`),
+        "",
+        "## Tarefas",
+        ...(tasks ?? []).map((t: any) => `- [${t.status}] ${t.title}${t.due_date ? ` (due ${t.due_date})` : ""} [${t.priority}]`),
+      ].join("\n");
+      try {
+        const result = await callLovableAI(promptParts, {
+          system: "Você é um chief of staff. Produza um resumo executivo em português, conciso, com seções: Em andamento, Decisões recentes, Riscos/atenção, Próximos passos.",
+          temperature: 0.3,
+          max_tokens: 800,
+        });
+        return ok({ space, summary: typeof result === "string" ? result : JSON.stringify(result) });
+      } catch (e: any) {
+        return fail(`AI gateway error: ${e?.message ?? e}`, "ai_unavailable");
+      }
+    },
+  });
+
+  s.tool("get_context_for_chat", {
+    description: "Pacote de contexto para abrir uma conversa com o assistente: spaces ativos, tarefas para hoje + atrasadas, notas recentes e tópicos de Conhecimentos Gerais ativos.",
+    inputSchema: z.object({
+      query: z.string().optional(),
+      limit: z.number().int().min(1).max(50).optional(),
+    }),
+    handler: async (input) => {
+      const lim = input.limit ?? 10;
+      const tz = "America/Sao_Paulo";
+      const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+      const today = `${parts.find(p=>p.type==="year")!.value}-${parts.find(p=>p.type==="month")!.value}-${parts.find(p=>p.type==="day")!.value}`;
+      const v = input.query ? input.query.replace(/[,()]/g, " ") : null;
+      const [spaces, tasksToday, overdue, notes, topics] = await Promise.all([
+        db.from("spaces").select("id,name,description").order("updated_at",{ascending:false}).limit(lim),
+        db.from("tasks").select("id,title,due_date,status,priority,space_id").is("deleted_at", null).eq("due_date", today).neq("status","done").limit(lim),
+        db.from("tasks").select("id,title,due_date,status,priority,space_id").is("deleted_at", null).lt("due_date", today).neq("status","done").order("due_date").limit(lim),
+        v ? db.from("notes").select("id,title,updated_at").or(`title.ilike.%${v}%,content.ilike.%${v}%`).limit(lim)
+          : db.from("notes").select("id,title,updated_at").order("updated_at",{ascending:false}).limit(lim),
+        db.from("study_topics").select("id,title,area_id,last_updated_at").order("last_updated_at",{ascending:false,nullsFirst:false}).limit(lim),
+      ]);
+      return ok({
+        date: today,
+        query: input.query ?? null,
+        spaces: spaces.data ?? [],
+        tasks_today: tasksToday.data ?? [],
+        tasks_overdue: overdue.data ?? [],
+        recent_notes: notes.data ?? [],
+        active_study_topics: topics.data ?? [],
+      });
+    },
+  });
+
   return s;
 };
 
