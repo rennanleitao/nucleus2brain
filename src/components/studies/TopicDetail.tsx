@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,17 +12,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowRight,
   ArrowRightLeft,
   BookOpen,
   Calendar,
-  Clock3,
   Copy,
   ExternalLink,
   FileText,
-  LayoutDashboard,
+  Link2,
   Maximize2,
   Minimize2,
   MoreHorizontal,
@@ -43,7 +39,6 @@ import {
   useMoveEntry,
   useStudyAreas,
   useStudyEntries,
-  useUpdateTopic,
 } from "@/hooks/useStudies";
 import { formatRelative } from "@/lib/studyDate";
 import { cn } from "@/lib/utils";
@@ -51,6 +46,7 @@ import { toast } from "sonner";
 import { EntryAIAssist } from "./EntryAIAssist";
 import { EntryFormDialog } from "./EntryFormDialog";
 import { PickTopicDialog } from "./PickTopicDialog";
+import { StudyNoteDialog } from "./StudyNoteDialog";
 import { TopicFormDialog } from "./TopicFormDialog";
 
 interface Props {
@@ -59,7 +55,7 @@ interface Props {
   onToggleFocus?: () => void;
 }
 
-type WorkspaceTab = "overview" | "library" | "timeline" | "notes";
+type WorkspaceTab = "library" | "notes" | "timeline";
 
 export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) {
   const { data: areas = [] } = useStudyAreas();
@@ -67,13 +63,13 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
   const area = areas.find((item) => item.id === topic.area_id);
   const deleteEntry = useDeleteEntry();
   const deleteTopic = useDeleteTopic();
-  const updateTopic = useUpdateTopic();
   const moveEntry = useMoveEntry();
   const duplicateEntry = useDuplicateEntry();
   const [, setParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("library");
   const [editTopic, setEditTopic] = useState(false);
+  const [noteDialog, setNoteDialog] = useState<{ open: boolean; note?: StudyEntry }>({ open: false });
   const [entryDialog, setEntryDialog] = useState<{
     open: boolean;
     edit?: StudyEntry;
@@ -93,37 +89,14 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
     () => entries.filter((entry) => (entry.kind ?? "event") === "event"),
     [entries]
   );
-
-  const [notesDraft, setNotesDraft] = useState(topic.notes ?? "");
-  const [notesSaving, setNotesSaving] = useState(false);
-  const lastSavedRef = useRef(topic.notes ?? "");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setActiveTab("overview");
-    setNotesDraft(topic.notes ?? "");
-    lastSavedRef.current = topic.notes ?? "";
-  }, [topic.id, topic.notes]);
+  const notes = useMemo(
+    () => entries.filter((entry) => entry.kind === "note"),
+    [entries]
+  );
 
   useEffect(() => {
-    if (notesDraft === lastSavedRef.current) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      setNotesSaving(true);
-      try {
-        await updateTopic.mutateAsync({
-          id: topic.id,
-          notes: notesDraft.trim() ? notesDraft : null,
-        });
-        lastSavedRef.current = notesDraft;
-      } finally {
-        setNotesSaving(false);
-      }
-    }, 700);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [notesDraft, topic.id, updateTopic]);
+    setActiveTab("library");
+  }, [topic.id]);
 
   useEffect(() => {
     if (!focusMode || !onToggleFocus) return;
@@ -211,11 +184,14 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
             </div>
 
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+              <Button size="sm" onClick={() => openEntry("knowledge")}>
+                <BookOpen className="mr-1.5 h-3.5 w-3.5" /> Adicionar ao repositório
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setNoteDialog({ open: true })}>
+                <NotebookPen className="mr-1.5 h-3.5 w-3.5" /> Nova anotação
+              </Button>
               <Button variant="outline" size="sm" onClick={() => openEntry("event")}>
                 <Calendar className="mr-1.5 h-3.5 w-3.5" /> Adicionar evento
-              </Button>
-              <Button size="sm" onClick={() => openEntry("knowledge")}>
-                <BookOpen className="mr-1.5 h-3.5 w-3.5" /> Item na biblioteca
               </Button>
               <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar tema
@@ -253,23 +229,12 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
           className="mt-4"
         >
           <div className="overflow-x-auto border-b border-border">
-            <TabsList className="h-11 min-w-[520px] justify-start gap-1 rounded-none bg-transparent p-0">
-              <WorkspaceTabTrigger value="overview" icon={LayoutDashboard} label="Visão geral" />
-              <WorkspaceTabTrigger value="library" icon={BookOpen} label="Biblioteca" count={knowledge.length} />
-              <WorkspaceTabTrigger value="timeline" icon={Calendar} label="Timeline" count={events.length} />
-              <WorkspaceTabTrigger value="notes" icon={NotebookPen} label="Anotações" />
+            <TabsList className="h-11 min-w-[390px] justify-start gap-1 rounded-none bg-transparent p-0">
+              <WorkspaceTabTrigger value="library" icon={BookOpen} label="Repositório" count={knowledge.length} />
+              <WorkspaceTabTrigger value="notes" icon={NotebookPen} label="Anotações" count={notes.length} />
+              {events.length > 0 && <WorkspaceTabTrigger value="timeline" icon={Calendar} label="Timeline" count={events.length} />}
             </TabsList>
           </div>
-
-          <TabsContent value="overview" className="mt-6">
-            <OverviewTab
-              topic={topic}
-              knowledge={knowledge}
-              events={events}
-              hasNotes={Boolean(notesDraft.trim())}
-              onChangeTab={setActiveTab}
-            />
-          </TabsContent>
 
           <TabsContent value="library" className="mt-6">
             <LibraryTab
@@ -292,10 +257,12 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
 
           <TabsContent value="notes" className="mt-6">
             <NotesTab
-              value={notesDraft}
-              onChange={setNotesDraft}
-              saving={notesSaving}
-              saved={notesDraft === lastSavedRef.current}
+              entries={notes}
+              onAdd={() => setNoteDialog({ open: true })}
+              onEdit={(note) => setNoteDialog({ open: true, note })}
+              onMove={moveEntryToTopic}
+              onDuplicate={duplicateEntryToTopic}
+              onDelete={removeEntry}
             />
           </TabsContent>
         </Tabs>
@@ -313,6 +280,12 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
         topicId={topic.id}
         entry={entryDialog.edit}
         defaultKind={entryDialog.kind ?? entryDialog.edit?.kind ?? "event"}
+      />
+      <StudyNoteDialog
+        open={noteDialog.open}
+        onOpenChange={(open) => setNoteDialog({ open, note: open ? noteDialog.note : undefined })}
+        topicId={topic.id}
+        note={noteDialog.note}
       />
       <TopicFormDialog open={editTopic} onOpenChange={setEditTopic} topic={topic} />
       <PickTopicDialog
@@ -360,122 +333,6 @@ function WorkspaceTabTrigger({
   );
 }
 
-function OverviewTab({
-  topic,
-  knowledge,
-  events,
-  hasNotes,
-  onChangeTab,
-}: {
-  topic: StudyTopic;
-  knowledge: StudyEntry[];
-  events: StudyEntry[];
-  hasNotes: boolean;
-  onChangeTab: (tab: WorkspaceTab) => void;
-}) {
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard icon={BookOpen} label="Biblioteca" value={knowledge.length} hint="itens cadastrados" />
-        <SummaryCard icon={Calendar} label="Timeline" value={events.length} hint="eventos registrados" />
-        <SummaryCard icon={NotebookPen} label="Anotações" value={hasNotes ? "Ativas" : "Vazias"} hint="com salvamento automático" />
-        <SummaryCard icon={Clock3} label="Última atualização" value={formatRelative(topic.last_updated_at ?? topic.updated_at)} hint="atividade do tema" />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1fr_1fr_0.8fr]">
-        <RecentBlock
-          title="Últimos itens da biblioteca"
-          empty="Nenhum item na biblioteca."
-          entries={knowledge.slice(0, 3)}
-          onViewAll={() => onChangeTab("library")}
-        />
-        <RecentBlock
-          title="Últimos eventos"
-          empty="Nenhum evento na timeline."
-          entries={events.slice(0, 3)}
-          onViewAll={() => onChangeTab("timeline")}
-          showDate
-        />
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Sobre este tema</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <p className="leading-relaxed">
-              {topic.description || "Adicione uma descrição para contextualizar este tema."}
-            </p>
-            <Button variant="ghost" size="sm" className="h-auto px-0 text-foreground" onClick={() => onChangeTab("notes")}>
-              Abrir anotações <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function SummaryCard({ icon: Icon, label, value, hint }: {
-  icon: typeof BookOpen;
-  label: string;
-  value: string | number;
-  hint: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-start gap-3 p-4 md:p-5">
-        <div className="rounded-lg bg-primary/10 p-2 text-primary">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">{label}</p>
-          <p className="truncate text-xl font-semibold tracking-tight">{value}</p>
-          <p className="text-[11px] text-muted-foreground">{hint}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function RecentBlock({ title, empty, entries, onViewAll, showDate = false }: {
-  title: string;
-  empty: string;
-  entries: StudyEntry[];
-  onViewAll: () => void;
-  showDate?: boolean;
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {entries.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">{empty}</p>
-        ) : (
-          <div className="divide-y divide-border">
-            {entries.map((entry) => (
-              <div key={entry.id} className="flex items-center gap-3 py-3 first:pt-1">
-                <div className="rounded-md bg-muted p-1.5 text-muted-foreground">
-                  {showDate ? <Calendar className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{entry.title}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {showDate && entry.entry_date ? formatEntryDate(entry.entry_date) : entry.category || formatRelative(entry.updated_at)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <Button variant="ghost" size="sm" className="mt-2 h-auto px-0 text-xs" onClick={onViewAll}>
-          Ver tudo <ArrowRight className="ml-1.5 h-3 w-3" />
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
 interface EntryTabProps {
   topic: StudyTopic;
   entries: StudyEntry[];
@@ -492,7 +349,7 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
     if (!normalized) return entries;
     return entries.filter((entry) =>
-      [entry.title, entry.summary, entry.category, ...(entry.tags ?? [])]
+      [entry.title, entry.summary, entry.content, entry.source_url, ...(entry.tags ?? [])]
         .filter(Boolean)
         .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalized))
     );
@@ -502,28 +359,28 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
     <section className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Biblioteca</h2>
+          <h2 className="text-lg font-semibold">Repositório</h2>
           <p className="text-sm text-muted-foreground">{entries.length} {entries.length === 1 ? "item" : "itens"}</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative sm:w-72">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar na biblioteca..." className="pl-9" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar no repositório..." className="pl-9" />
           </div>
           <Button onClick={onAdd}>
-            <Plus className="mr-1.5 h-4 w-4" /> Adicionar item
+            <Plus className="mr-1.5 h-4 w-4" /> Adicionar conteúdo
           </Button>
         </div>
       </div>
 
       {filteredEntries.length === 0 ? (
         <EmptyState
-          label={query ? "Nenhum item corresponde à busca." : "Biblioteca vazia."}
-          cta={query ? undefined : "Adicionar item à biblioteca"}
+          label={query ? "Nenhum conteúdo corresponde à busca." : "Repositório vazio."}
+          cta={query ? undefined : "Adicionar ao repositório"}
           onClick={query ? undefined : onAdd}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="mx-auto max-w-5xl space-y-3">
           {filteredEntries.map((entry) => (
             <KnowledgeCard
               key={entry.id}
@@ -580,34 +437,49 @@ function TimelineTab({ topic, entries, focusMode, onAdd, onEdit, onMove, onDupli
   );
 }
 
-function NotesTab({ value, onChange, saving, saved }: {
-  value: string;
-  onChange: (value: string) => void;
-  saving: boolean;
-  saved: boolean;
+function NotesTab({ entries, onAdd, onEdit, onMove, onDuplicate, onDelete }: {
+  entries: StudyEntry[];
+  onAdd: () => void;
+  onEdit: (entry: StudyEntry) => void;
+  onMove: (entry: StudyEntry) => void;
+  onDuplicate: (entry: StudyEntry) => void;
+  onDelete: (id: string) => void;
 }) {
   return (
-    <section className="mx-auto max-w-4xl space-y-4">
-      <div className="flex items-end justify-between gap-4">
+    <section className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Anotações do tema</h2>
-          <p className="text-sm text-muted-foreground">Reflexões, perguntas e conexões livres.</p>
+          <h2 className="text-lg font-semibold">Anotações</h2>
+          <p className="text-sm text-muted-foreground">{entries.length} {entries.length === 1 ? "nota" : "notas"} com ideias, conclusões e conexões.</p>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {saving ? "Salvando..." : saved ? "Salvo automaticamente" : ""}
-        </span>
+        <Button onClick={onAdd}><Plus className="mr-1.5 h-4 w-4" /> Nova anotação</Button>
       </div>
-      <Card>
-        <CardContent className="p-3 md:p-5">
-          <Textarea
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder="Escreva suas reflexões, ideias soltas, perguntas e conexões..."
-            className="min-h-[360px] resize-y border-0 bg-transparent text-sm leading-7 shadow-none focus-visible:ring-0 md:text-base"
-          />
-        </CardContent>
-      </Card>
-      <p className="text-xs text-muted-foreground">As alterações são salvas automaticamente.</p>
+      {entries.length === 0 ? (
+        <EmptyState label="Nenhuma anotação ainda." cta="Criar primeira anotação" onClick={onAdd} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {entries.map((entry) => (
+            <Card key={entry.id} className="group transition-colors hover:border-foreground/20">
+              <CardContent className="flex min-h-48 flex-col gap-3 p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><NotebookPen className="h-3.5 w-3.5" /> Anotação</div>
+                    <h3 className="font-medium leading-snug">{entry.title}</h3>
+                  </div>
+                  <EntryActions onEdit={() => onEdit(entry)} onMove={() => onMove(entry)} onDuplicate={() => onDuplicate(entry)} onDelete={() => onDelete(entry.id)} />
+                </div>
+                <p className="line-clamp-4 text-sm leading-relaxed text-muted-foreground">{entry.summary}</p>
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {entry.tags?.map((tag) => <Badge key={tag} variant="secondary" className="text-[10px] font-normal">#{tag}</Badge>)}
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onEdit(entry)}>Abrir anotação</Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -714,54 +586,55 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
-  const [contentOpen, setContentOpen] = useState(false);
-  const hasContent = Boolean(entry.content?.trim());
+  const sourceHost = entry.source_url ? getSourceHost(entry.source_url) : null;
   return (
-    <>
-      <Card className="group flex min-h-[250px] flex-col transition-colors hover:border-foreground/20">
-        <CardContent className="flex flex-1 flex-col gap-3 p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-2">
-              {entry.category && <Badge variant="outline" className="text-[10px] font-normal uppercase tracking-wider">{entry.category}</Badge>}
-              <h3 className="text-base font-medium leading-snug">{entry.title}</h3>
-            </div>
-            <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
+    <Card className="group transition-colors hover:border-foreground/20">
+      <CardContent className="space-y-4 p-4 md:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-base font-medium leading-snug">{entry.title}</h3>
+            <p className="mt-1 text-[11px] text-muted-foreground">Atualizado {formatRelative(entry.updated_at)}</p>
           </div>
-          <p className="line-clamp-4 text-sm leading-relaxed text-foreground/75">{entry.summary}</p>
-          {hasContent && (
-            <Button variant="ghost" size="sm" className="h-auto w-fit px-0 text-xs" onClick={() => setContentOpen(true)}>
-              Ver conteúdo <ArrowRight className="ml-1.5 h-3 w-3" />
-            </Button>
-          )}
-          <div className="mt-auto space-y-3 pt-2">
-            <EntryFooter entry={entry} />
-            <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
-              <span>Atualizado {formatRelative(entry.updated_at)}</span>
-              <EntryAIAssist topic={topic} entry={entry} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Dialog open={contentOpen} onOpenChange={setContentOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{entry.title}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 py-2">
-            <p className="text-sm leading-relaxed text-muted-foreground">{entry.summary}</p>
-            <div className="whitespace-pre-wrap text-sm leading-7 text-foreground/90 md:text-base">{entry.content}</div>
-            {entry.notes && (
-              <div className="rounded-lg bg-muted/40 p-4 text-sm leading-relaxed text-muted-foreground">
-                <span className="font-medium text-foreground">Observações: </span>{entry.notes}
-              </div>
+          <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
+        </div>
+        <div className="grid gap-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+          <div className="rounded-lg border border-border bg-muted/25 p-4">
+            <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {entry.source_url ? <Link2 className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />} Fonte
+            </p>
+            {entry.source_url ? (
+              <a href={entry.source_url} target="_blank" rel="noreferrer" className="block space-y-2 text-sm hover:text-primary">
+                <span className="flex items-center gap-1.5 font-medium"><ExternalLink className="h-3.5 w-3.5" /> {sourceHost}</span>
+                <span className="block break-all text-xs text-muted-foreground">{entry.source_url}</span>
+              </a>
+            ) : entry.content ? (
+              <div className="max-h-44 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-foreground/75">{entry.content}</div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem fonte adicionada.</p>
             )}
-            <EntryFooter entry={entry} />
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          <div className="flex min-w-0 flex-col rounded-lg border border-border p-4">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Minha leitura / relevância</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{entry.summary}</p>
+            <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
+              <div className="flex flex-wrap gap-1.5">
+                {entry.tags?.map((tag) => <Badge key={tag} variant="secondary" className="text-[10px] font-normal">#{tag}</Badge>)}
+              </div>
+              <EntryAIAssist topic={topic} entry={entry} mode="enrich" />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
+}
+
+function getSourceHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "Abrir fonte";
+  }
 }
 
 function EntryFooter({ entry }: { entry: StudyEntry }) {
