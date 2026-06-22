@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useCreateEntry, useUpdateEntry, type StudyEntry, type StudyEntryKind } from "@/hooks/useStudies";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { FileText, Link2, Loader2, Paperclip } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Props {
@@ -22,11 +22,6 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-const KNOWLEDGE_CATEGORIES = [
-  "Framework", "Conceito", "Metodologia", "Livro", "Artigo",
-  "Playbook", "Prompt", "Benchmark", "Modelo Mental", "Síntese", "Template", "Checklist",
-];
-
 export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKind = "event" }: Props) {
   const [kind, setKind] = useState<StudyEntryKind>(defaultKind);
   const [entryDate, setEntryDate] = useState(todayISO());
@@ -38,7 +33,8 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
   const [highlight, setHighlight] = useState("");
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState("");
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [sourceMode, setSourceMode] = useState<"link" | "text">("link");
+  const [uploading, setUploading] = useState(false);
   const create = useCreateEntry();
   const update = useUpdateEntry();
 
@@ -54,11 +50,31 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
     setHighlight(entry?.highlight ?? "");
     setNotes(entry?.notes ?? "");
     setTags((entry?.tags ?? []).join(", "));
-    setAdvancedOpen(Boolean(entry?.category || entry?.content || entry?.notes || entry?.tags?.length));
+    setSourceMode(entry?.source_url ? "link" : "text");
   }, [open, entry, defaultKind]);
 
   const isEvent = kind === "event";
-  const canSave = title.trim() && summary.trim() && (!isEvent || !!entryDate);
+  const canSave = title.trim() && summary.trim() && (!isEvent || !!entryDate) && !uploading;
+
+  const uploadDocument = async (file: File) => {
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Faça login para enviar arquivos");
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${user.id}/studies/${Date.now()}_${safeName}`;
+      const { error } = await supabase.storage.from("attachments").upload(path, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+      setSourceUrl(data.publicUrl);
+      setSourceMode("link");
+      toast.success("Documento anexado");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Erro ao enviar documento");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const submit = async () => {
     if (!canSave) return;
@@ -117,17 +133,45 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
                 <Label>Título *</Label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Building Agents with LLMs" autoFocus />
               </div>
-              <div className="space-y-1.5">
-                <Label>Link <span className="font-normal text-muted-foreground">(opcional)</span></Label>
-                <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://artigo, PDF ou apresentação..." />
-                <p className="text-[11px] text-muted-foreground">Cole um link para artigo, PDF, apresentação ou outra fonte.</p>
+              <div className="space-y-2">
+                <Label>Fonte <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant={sourceMode === "link" ? "secondary" : "outline"} onClick={() => setSourceMode("link")}>
+                    <Link2 className="mr-1.5 h-3.5 w-3.5" /> Link ou documento
+                  </Button>
+                  <Button type="button" variant={sourceMode === "text" ? "secondary" : "outline"} onClick={() => setSourceMode("text")}>
+                    <FileText className="mr-1.5 h-3.5 w-3.5" /> Texto livre
+                  </Button>
+                </div>
+                {sourceMode === "link" ? (
+                  <div className="space-y-2">
+                    <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://artigo, PDF ou apresentação..." />
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+                      {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+                      {uploading ? "Enviando documento..." : "Ou enviar PDF, Word ou apresentação"}
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,application/pdf"
+                        className="sr-only"
+                        disabled={uploading}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) void uploadDocument(file);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5} placeholder="Cole um trecho, referência ou texto que deseja guardar..." />
+                )}
               </div>
             </>
           )}
 
           <div className="space-y-1.5">
-            <Label>Resumo *</Label>
-            <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={isEvent ? "Sobre o que é este registro" : "Em uma frase: o que é e por que importa"} />
+            <Label>{isEvent ? "Resumo *" : "Minha leitura / relevância *"}</Label>
+            <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={4} placeholder={isEvent ? "Sobre o que é este registro" : "Com suas palavras: por que este conteúdo importa e como ele pode ser útil?"} />
           </div>
 
           {isEvent && (
@@ -153,37 +197,11 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
               </div>
             </>
           ) : (
-            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="rounded-lg border border-border">
-              <CollapsibleTrigger asChild>
-                <button type="button" className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm font-medium hover:bg-muted/40">
-                  <span className="flex items-center gap-2"><SlidersHorizontal className="h-3.5 w-3.5" /> Mais detalhes</span>
-                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="space-y-4 border-t border-border p-3">
-                  <div className="space-y-1.5">
-                    <Label>Categoria</Label>
-                    <Input list="kb-categories" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Livro, Artigo, Framework..." />
-                    <datalist id="kb-categories">
-                      {KNOWLEDGE_CATEGORIES.map((c) => <option key={c} value={c} />)}
-                    </datalist>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Conteúdo complementar</Label>
-                    <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5} placeholder="Trechos, passos, estrutura ou exemplos..." />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Observações</Label>
-                    <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Sua interpretação" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Tags (separadas por vírgula)</Label>
-                    <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="ia, agentes, arquitetura" />
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+            <div className="space-y-1.5">
+              <Label>Tags <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+              <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="ia, agentes, arquitetura" />
+              <p className="text-[11px] text-muted-foreground">Separe as tags por vírgula.</p>
+            </div>
           )}
         </div>
 

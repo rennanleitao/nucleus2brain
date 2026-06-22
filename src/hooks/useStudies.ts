@@ -28,18 +28,18 @@ export interface StudyTopic {
 }
 
 
-export type StudyEntryKind = "event" | "knowledge";
+export type StudyEntryKind = "event" | "knowledge" | "note";
 
 export interface StudyEntry {
   id: string;
   user_id: string;
   topic_id: string;
   kind: StudyEntryKind;
-  entry_date: string | null; // YYYY-MM-DD (required for events, optional for knowledge)
+  entry_date: string | null; // YYYY-MM-DD (required for events)
   title: string;
   summary: string;
-  category: string | null;       // knowledge: Framework, Conceito, Livro, Playbook, Prompt...
-  content: string | null;        // knowledge: long-form main content
+  category: string | null;       // knowledge: optional source category
+  content: string | null;        // knowledge: free-text source; note: rich-text HTML
   source_url: string | null;
   highlight: string | null;      // events: highlight quote/data
   notes: string | null;
@@ -304,4 +304,3 @@ export function useDuplicateEntry() {
     },
   });
 }
-

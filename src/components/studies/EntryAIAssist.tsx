@@ -3,18 +3,20 @@ import ReactMarkdown from "react-markdown";
 import { Sparkles, Loader2, ExternalLink, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { StudyTopic, StudyEntry } from "@/hooks/useStudies";
+import { useUpdateEntry, type StudyTopic, type StudyEntry } from "@/hooks/useStudies";
 
 interface Source { title: string; url: string; snippet?: string }
 interface QA { q: string; a: string; sources?: Source[] }
 
-interface Props { topic: StudyTopic; entry: StudyEntry }
+interface Props { topic: StudyTopic; entry: StudyEntry; mode?: "qa" | "enrich" }
 
-export function EntryAIAssist({ topic, entry }: Props) {
+export function EntryAIAssist({ topic, entry, mode = "qa" }: Props) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<QA[]>([]);
+  const [suggestion, setSuggestion] = useState<QA | null>(null);
+  const updateEntry = useUpdateEntry();
 
   const ask = async () => {
     const question = q.trim();
@@ -34,14 +36,66 @@ export function EntryAIAssist({ topic, entry }: Props) {
       if (data?.error) throw new Error(data.error);
       setHistory((h) => [...h, { q: question, a: data.answer, sources: data.sources ?? [] }]);
       setQ("");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro");
     } finally {
       setLoading(false);
     }
   };
 
+  const enrich = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const source = entry.source_url || entry.content || "Fonte não informada";
+      const { data, error } = await supabase.functions.invoke("study-research", {
+        body: {
+          question: [
+            "Reescreva e enriqueça o resumo abaixo, preservando a perspectiva pessoal do autor.",
+            "Explique em um parágrafo conciso por que o conteúdo é relevante, suas implicações e possíveis usos.",
+            "Responda somente com o novo resumo, sem título ou lista de fontes.",
+            `Título: ${entry.title}`,
+            `Fonte: ${source}`,
+            `Resumo atual: ${entry.summary}`,
+          ].join("\n\n"),
+          topicTitle: topic.title,
+          topicDescription: topic.description,
+          entries: [{ entry_date: entry.entry_date, title: entry.title, summary: entry.summary }],
+          history: [],
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setSuggestion({ q: "Resumo enriquecido", a: data.answer, sources: data.sources ?? [] });
+      setOpen(true);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Erro ao enriquecer resumo");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applySuggestion = async () => {
+    if (!suggestion?.a) return;
+    try {
+      await updateEntry.mutateAsync({ id: entry.id, summary: suggestion.a.trim() });
+      toast.success("Resumo atualizado");
+      setSuggestion(null);
+      setOpen(false);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Erro ao aplicar resumo");
+    }
+  };
+
   if (!open) {
+    if (mode === "enrich") {
+      return (
+        <ButtonLike onClick={enrich} disabled={loading}>
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+          {loading ? "Enriquecendo..." : "Enriquecer com IA"}
+        </ButtonLike>
+      );
+    }
     return (
       <button
         onClick={() => setOpen(true)}
@@ -50,6 +104,24 @@ export function EntryAIAssist({ topic, entry }: Props) {
       >
         <Sparkles className="h-3 w-3" /> Complementar com IA
       </button>
+    );
+  }
+
+  if (mode === "enrich" && suggestion) {
+    return (
+      <div className="w-full rounded-lg border border-border bg-muted/30 p-3 space-y-3 animate-fade-in">
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex items-center gap-1.5 text-xs font-medium"><Sparkles className="h-3.5 w-3.5" /> Sugestão da IA</span>
+          <button onClick={() => { setSuggestion(null); setOpen(false); }} className="text-muted-foreground hover:text-foreground" title="Fechar"><X className="h-3.5 w-3.5" /></button>
+        </div>
+        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed"><ReactMarkdown>{suggestion.a}</ReactMarkdown></div>
+        <div className="flex justify-end gap-2">
+          <button onClick={() => { setSuggestion(null); setOpen(false); }} className="px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground">Descartar</button>
+          <button onClick={applySuggestion} disabled={updateEntry.isPending} className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50">
+            {updateEntry.isPending ? "Aplicando..." : "Usar este resumo"}
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -95,5 +167,13 @@ export function EntryAIAssist({ topic, entry }: Props) {
         </div>
       ))}
     </div>
+  );
+}
+
+function ButtonLike({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button onClick={onClick} disabled={disabled} className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50">
+      {children}
+    </button>
   );
 }
