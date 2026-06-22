@@ -1,54 +1,109 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, ExternalLink, NotebookPen, MoreHorizontal, Maximize2, Minimize2, ChevronDown, ChevronRight, ArrowRightLeft, Copy, Calendar, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  useStudyEntries, useDeleteEntry, useStudyAreas, useUpdateTopic, useDeleteTopic,
-  useMoveEntry, useDuplicateEntry,
-  type StudyTopic, type StudyEntry, type StudyEntryKind,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ArrowRight,
+  ArrowRightLeft,
+  BookOpen,
+  Calendar,
+  Clock3,
+  Copy,
+  ExternalLink,
+  FileText,
+  LayoutDashboard,
+  Maximize2,
+  Minimize2,
+  MoreHorizontal,
+  NotebookPen,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
+import {
+  type StudyEntry,
+  type StudyEntryKind,
+  type StudyTopic,
+  useDeleteEntry,
+  useDeleteTopic,
+  useDuplicateEntry,
+  useMoveEntry,
+  useStudyAreas,
+  useStudyEntries,
+  useUpdateTopic,
 } from "@/hooks/useStudies";
-import { EntryFormDialog } from "./EntryFormDialog";
-import { TopicFormDialog } from "./TopicFormDialog";
-import { EntryAIAssist } from "./EntryAIAssist";
-import { PickTopicDialog } from "./PickTopicDialog";
-import { formatDateBR, formatRelative } from "@/lib/studyDate";
+import { formatRelative } from "@/lib/studyDate";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { EntryAIAssist } from "./EntryAIAssist";
+import { EntryFormDialog } from "./EntryFormDialog";
+import { PickTopicDialog } from "./PickTopicDialog";
+import { TopicFormDialog } from "./TopicFormDialog";
 
+interface Props {
+  topic: StudyTopic;
+  focusMode?: boolean;
+  onToggleFocus?: () => void;
+}
 
-interface Props { topic: StudyTopic; focusMode?: boolean; onToggleFocus?: () => void }
+type WorkspaceTab = "overview" | "library" | "timeline" | "notes";
 
 export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) {
   const { data: areas = [] } = useStudyAreas();
   const { data: entries = [] } = useStudyEntries(topic.id);
-  const area = areas.find((a) => a.id === topic.area_id);
-
+  const area = areas.find((item) => item.id === topic.area_id);
   const deleteEntry = useDeleteEntry();
   const deleteTopic = useDeleteTopic();
   const updateTopic = useUpdateTopic();
   const moveEntry = useMoveEntry();
   const duplicateEntry = useDuplicateEntry();
   const [, setParams] = useSearchParams();
-  const [editTopic, setEditTopic] = useState(false);
-  const [descOpen, setDescOpen] = useState(false);
-  const [entryDialog, setEntryDialog] = useState<{ open: boolean; edit?: StudyEntry; kind?: StudyEntryKind }>({ open: false });
-  const [pickDialog, setPickDialog] = useState<{ open: boolean; mode: "move" | "duplicate"; entry?: StudyEntry }>({ open: false, mode: "move" });
 
-  // Inline free-form annotations — autosaved with debounce
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+  const [editTopic, setEditTopic] = useState(false);
+  const [entryDialog, setEntryDialog] = useState<{
+    open: boolean;
+    edit?: StudyEntry;
+    kind?: StudyEntryKind;
+  }>({ open: false });
+  const [pickDialog, setPickDialog] = useState<{
+    open: boolean;
+    mode: "move" | "duplicate";
+    entry?: StudyEntry;
+  }>({ open: false, mode: "move" });
+
+  const knowledge = useMemo(
+    () => entries.filter((entry) => entry.kind === "knowledge"),
+    [entries]
+  );
+  const events = useMemo(
+    () => entries.filter((entry) => (entry.kind ?? "event") === "event"),
+    [entries]
+  );
+
   const [notesDraft, setNotesDraft] = useState(topic.notes ?? "");
   const [notesSaving, setNotesSaving] = useState(false);
   const lastSavedRef = useRef(topic.notes ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    setActiveTab("overview");
     setNotesDraft(topic.notes ?? "");
     lastSavedRef.current = topic.notes ?? "";
-  }, [topic.id]);
+  }, [topic.id, topic.notes]);
 
   useEffect(() => {
     if (notesDraft === lastSavedRef.current) return;
@@ -56,157 +111,205 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
     debounceRef.current = setTimeout(async () => {
       setNotesSaving(true);
       try {
-        await updateTopic.mutateAsync({ id: topic.id, notes: notesDraft.trim() ? notesDraft : null });
+        await updateTopic.mutateAsync({
+          id: topic.id,
+          notes: notesDraft.trim() ? notesDraft : null,
+        });
         lastSavedRef.current = notesDraft;
       } finally {
         setNotesSaving(false);
       }
     }, 700);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [notesDraft, topic.id, updateTopic]);
 
   useEffect(() => {
     if (!focusMode || !onToggleFocus) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onToggleFocus(); };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onToggleFocus();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [focusMode, onToggleFocus]);
 
-  return (
-    <div className={focusMode
-      ? "fixed inset-0 z-50 overflow-y-auto bg-background animate-fade-in"
-      : "flex-1 overflow-y-auto bg-background"}>
-      <div className={focusMode
-        ? "max-w-6xl mx-auto px-8 md:px-16 lg:px-24 py-10 md:py-16 space-y-10"
-        : "max-w-4xl mx-auto p-6 md:p-8 space-y-8"}>
+  const openEntry = (kind: StudyEntryKind) => setEntryDialog({ open: true, kind });
+  const editEntry = (entry: StudyEntry) => setEntryDialog({ open: true, edit: entry });
+  const moveEntryToTopic = (entry: StudyEntry) =>
+    setPickDialog({ open: true, mode: "move", entry });
+  const duplicateEntryToTopic = (entry: StudyEntry) =>
+    setPickDialog({ open: true, mode: "duplicate", entry });
+  const removeEntry = (id: string) => {
+    if (confirm("Remover registro?")) deleteEntry.mutate(id);
+  };
 
-        <header className="space-y-5 text-center">
-          <div className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            <span>{area?.name ?? "—"}</span>
-            <span className="text-muted-foreground/40">·</span>
-            <span className="normal-case tracking-normal">Atualizado {formatRelative(topic.last_updated_at ?? topic.updated_at)}</span>
+  const entryActions = {
+    onEdit: editEntry,
+    onMove: moveEntryToTopic,
+    onDuplicate: duplicateEntryToTopic,
+    onDelete: removeEntry,
+  };
+
+  const removeTopic = () => {
+    if (!confirm(`Remover tema "${topic.title}" e todos os registros?`)) return;
+    deleteTopic.mutate(topic.id, {
+      onSuccess: () => {
+        const nextParams = new URLSearchParams(window.location.search);
+        nextParams.delete("topic");
+        setParams(nextParams, { replace: true });
+      },
+    });
+  };
+
+  return (
+    <div
+      className={cn(
+        "bg-background",
+        focusMode
+          ? "fixed inset-0 z-50 overflow-y-auto animate-fade-in"
+          : "flex-1 overflow-y-auto"
+      )}
+    >
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 md:px-8 md:py-7">
+        <header className="space-y-4 border-b border-border pb-5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Conhecimento</span>
+            <span>/</span>
+            <span>{area?.name ?? "Área"}</span>
+            <span>/</span>
+            <span className="truncate text-foreground/70">{topic.title}</span>
           </div>
 
-          <h1 className={focusMode
-            ? "text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1] max-w-3xl mx-auto"
-            : "text-3xl md:text-4xl font-semibold tracking-tight leading-[1.15] max-w-2xl mx-auto"}>
-            {topic.title}
-          </h1>
-
-          {topic.description && (
-            <div className="max-w-2xl mx-auto">
-              <button
-                onClick={() => setDescOpen((v) => !v)}
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {descOpen ? "Ocultar descrição" : "Mostrar descrição"}
-                <ChevronDown className={`h-3 w-3 transition-transform ${descOpen ? "rotate-180" : ""}`} />
-              </button>
-              {descOpen && (
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed animate-fade-in">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 max-w-3xl space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                  {topic.title}
+                </h1>
+                <Badge variant="secondary" className="font-normal">
+                  {area?.name ?? "Sem área"}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Atualizado {formatRelative(topic.last_updated_at ?? topic.updated_at)}
+              </p>
+              {topic.description && (
+                <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                   {topic.description}
                 </p>
               )}
+              {!!topic.tags?.length && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {topic.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-[10px] font-normal">
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
 
-          {topic.tags && topic.tags.length > 0 && (
-            <div className="flex items-center justify-center gap-1.5 flex-wrap">
-              {topic.tags.map((t) => (
-                <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-center gap-2 pt-2">
-            {onToggleFocus && (
-              <Button variant="ghost" size="sm" onClick={onToggleFocus} title={focusMode ? "Sair do modo leitura (Esc)" : "Modo leitura"}>
-                {focusMode ? <Minimize2 className="h-3.5 w-3.5 mr-1.5" /> : <Maximize2 className="h-3.5 w-3.5 mr-1.5" />}
-                {focusMode ? "Sair" : "Leitura"}
+            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+              <Button variant="outline" size="sm" onClick={() => openEntry("event")}>
+                <Calendar className="mr-1.5 h-3.5 w-3.5" /> Adicionar evento
               </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
-              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm">
-                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar
-                  <ChevronDown className="h-3 w-3 ml-1.5 opacity-70" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEntryDialog({ open: true, kind: "event" })}>
-                  <Calendar className="h-3.5 w-3.5 mr-2" /> Evento relevante
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEntryDialog({ open: true, kind: "knowledge" })}>
-                  <BookOpen className="h-3.5 w-3.5 mr-2" /> Knowledge Base
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => {
-                    if (confirm(`Remover tema "${topic.title}" e todos os registros?`)) {
-                      deleteTopic.mutate(topic.id, {
-                        onSuccess: () => {
-                          const p = new URLSearchParams(window.location.search);
-                          p.delete("topic");
-                          setParams(p, { replace: true });
-                        },
-                      });
-                    }
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover tema
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <Button size="sm" onClick={() => openEntry("knowledge")}>
+                <BookOpen className="mr-1.5 h-3.5 w-3.5" /> Item na biblioteca
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setEditTopic(true)}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar tema
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Mais ações">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onToggleFocus && (
+                    <DropdownMenuItem onClick={onToggleFocus}>
+                      {focusMode ? (
+                        <Minimize2 className="mr-2 h-3.5 w-3.5" />
+                      ) : (
+                        <Maximize2 className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      {focusMode ? "Sair do modo leitura" : "Modo leitura"}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={removeTopic}>
+                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Remover tema
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </header>
 
-        <Separator />
-
-        {/* Anotações livres do tema */}
-        <section className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <NotebookPen className="h-4 w-4" /> Anotações
-            </h2>
-            <span className="text-[11px] text-muted-foreground">
-              {notesSaving ? "Salvando..." : notesDraft && notesDraft === lastSavedRef.current ? "Salvo" : ""}
-            </span>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as WorkspaceTab)}
+          className="mt-4"
+        >
+          <div className="overflow-x-auto border-b border-border">
+            <TabsList className="h-11 min-w-[520px] justify-start gap-1 rounded-none bg-transparent p-0">
+              <WorkspaceTabTrigger value="overview" icon={LayoutDashboard} label="Visão geral" />
+              <WorkspaceTabTrigger value="library" icon={BookOpen} label="Biblioteca" count={knowledge.length} />
+              <WorkspaceTabTrigger value="timeline" icon={Calendar} label="Timeline" count={events.length} />
+              <WorkspaceTabTrigger value="notes" icon={NotebookPen} label="Anotações" />
+            </TabsList>
           </div>
-          <Textarea
-            value={notesDraft}
-            onChange={(e) => setNotesDraft(e.target.value)}
-            placeholder="Espaço livre para suas reflexões, ideias soltas, perguntas, conexões..."
-            rows={5}
-            className="resize-y bg-muted/30 border-border/50 focus-visible:bg-background"
-          />
-        </section>
-        <EntriesTabs
-          topic={topic}
-          entries={entries}
-          focusMode={focusMode}
-          onEdit={(e) => setEntryDialog({ open: true, edit: e })}
-          onMove={(e) => setPickDialog({ open: true, mode: "move", entry: e })}
-          onDuplicate={(e) => setPickDialog({ open: true, mode: "duplicate", entry: e })}
-          onDelete={(id) => { if (confirm("Remover registro?")) deleteEntry.mutate(id); }}
-          onAdd={(kind) => setEntryDialog({ open: true, kind })}
-        />
+
+          <TabsContent value="overview" className="mt-6">
+            <OverviewTab
+              topic={topic}
+              knowledge={knowledge}
+              events={events}
+              hasNotes={Boolean(notesDraft.trim())}
+              onChangeTab={setActiveTab}
+            />
+          </TabsContent>
+
+          <TabsContent value="library" className="mt-6">
+            <LibraryTab
+              topic={topic}
+              entries={knowledge}
+              onAdd={() => openEntry("knowledge")}
+              {...entryActions}
+            />
+          </TabsContent>
+
+          <TabsContent value="timeline" className="mt-6">
+            <TimelineTab
+              topic={topic}
+              entries={events}
+              focusMode={focusMode}
+              onAdd={() => openEntry("event")}
+              {...entryActions}
+            />
+          </TabsContent>
+
+          <TabsContent value="notes" className="mt-6">
+            <NotesTab
+              value={notesDraft}
+              onChange={setNotesDraft}
+              saving={notesSaving}
+              saved={notesDraft === lastSavedRef.current}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <EntryFormDialog
         open={entryDialog.open}
-        onOpenChange={(o) => setEntryDialog({ open: o, edit: o ? entryDialog.edit : undefined, kind: o ? entryDialog.kind : undefined })}
+        onOpenChange={(open) =>
+          setEntryDialog({
+            open,
+            edit: open ? entryDialog.edit : undefined,
+            kind: open ? entryDialog.kind : undefined,
+          })
+        }
         topicId={topic.id}
         entry={entryDialog.edit}
         defaultKind={entryDialog.kind ?? entryDialog.edit?.kind ?? "event"}
@@ -216,7 +319,7 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
         open={pickDialog.open}
         mode={pickDialog.mode}
         currentTopicId={topic.id}
-        onOpenChange={(o) => setPickDialog((p) => ({ ...p, open: o }))}
+        onOpenChange={(open) => setPickDialog((current) => ({ ...current, open }))}
         onConfirm={async (topicId) => {
           if (!pickDialog.entry) return;
           if (pickDialog.mode === "move") {
@@ -232,104 +335,322 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
   );
 }
 
-// ============================================================================
-// Entries tabs: Events (timeline) + Knowledge Base (cards)
-// ============================================================================
-
-interface EntriesTabsProps {
-  topic: StudyTopic;
-  entries: StudyEntry[];
-  focusMode: boolean;
-  onEdit: (e: StudyEntry) => void;
-  onMove: (e: StudyEntry) => void;
-  onDuplicate: (e: StudyEntry) => void;
-  onDelete: (id: string) => void;
-  onAdd: (kind: StudyEntryKind) => void;
-}
-
-function EntriesTabs({ topic, entries, focusMode, onEdit, onMove, onDuplicate, onDelete, onAdd }: EntriesTabsProps) {
-  const events = useMemo(() => entries.filter((e) => (e.kind ?? "event") === "event"), [entries]);
-  const knowledge = useMemo(() => entries.filter((e) => e.kind === "knowledge"), [entries]);
-  const initial = knowledge.length > events.length ? "knowledge" : "events";
-  const [tab, setTab] = useState<string>(initial);
-
+function WorkspaceTabTrigger({
+  value,
+  icon: Icon,
+  label,
+  count,
+}: {
+  value: WorkspaceTab;
+  icon: typeof BookOpen;
+  label: string;
+  count?: number;
+}) {
   return (
-    <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-      <TabsList className="grid grid-cols-2 max-w-sm">
-        <TabsTrigger value="events" className="gap-1.5">
-          <Calendar className="h-3.5 w-3.5" /> Eventos
-          <span className="text-[10px] text-muted-foreground ml-1">{events.length}</span>
-        </TabsTrigger>
-        <TabsTrigger value="knowledge" className="gap-1.5">
-          <BookOpen className="h-3.5 w-3.5" /> Biblioteca
-          <span className="text-[10px] text-muted-foreground ml-1">{knowledge.length}</span>
-        </TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="events" className="space-y-2 mt-0">
-        {events.length === 0 ? (
-          <EmptyState label="Nenhum evento ainda." cta="Adicionar evento" onClick={() => onAdd("event")} />
-        ) : (
-          events.map((e) => (
-            <EventCard
-              key={e.id} topic={topic} entry={e} focusMode={focusMode}
-              onEdit={() => onEdit(e)} onMove={() => onMove(e)} onDuplicate={() => onDuplicate(e)} onDelete={() => onDelete(e.id)}
-            />
-          ))
-        )}
-      </TabsContent>
-
-      <TabsContent value="knowledge" className="mt-0">
-        {knowledge.length === 0 ? (
-          <EmptyState label="Biblioteca vazia." cta="Adicionar conhecimento" onClick={() => onAdd("knowledge")} />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {knowledge.map((e) => (
-              <KnowledgeCard
-                key={e.id} topic={topic} entry={e}
-                onEdit={() => onEdit(e)} onMove={() => onMove(e)} onDuplicate={() => onDuplicate(e)} onDelete={() => onDelete(e.id)}
-              />
-            ))}
-          </div>
-        )}
-      </TabsContent>
-    </Tabs>
+    <TabsTrigger
+      value={value}
+      className="h-11 gap-2 rounded-none border-b-2 border-transparent px-4 text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+      {count !== undefined && (
+        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none">{count}</span>
+      )}
+    </TabsTrigger>
   );
 }
 
-function EmptyState({ label, cta, onClick }: { label: string; cta: string; onClick: () => void }) {
+function OverviewTab({
+  topic,
+  knowledge,
+  events,
+  hasNotes,
+  onChangeTab,
+}: {
+  topic: StudyTopic;
+  knowledge: StudyEntry[];
+  events: StudyEntry[];
+  hasNotes: boolean;
+  onChangeTab: (tab: WorkspaceTab) => void;
+}) {
   return (
-    <Card className="border-dashed">
-      <CardContent className="p-6 text-center text-sm text-muted-foreground">
-        {label}{" "}
-        <button className="text-foreground underline" onClick={onClick}>{cta}</button>.
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard icon={BookOpen} label="Biblioteca" value={knowledge.length} hint="itens cadastrados" />
+        <SummaryCard icon={Calendar} label="Timeline" value={events.length} hint="eventos registrados" />
+        <SummaryCard icon={NotebookPen} label="Anotações" value={hasNotes ? "Ativas" : "Vazias"} hint="com salvamento automático" />
+        <SummaryCard icon={Clock3} label="Última atualização" value={formatRelative(topic.last_updated_at ?? topic.updated_at)} hint="atividade do tema" />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr_0.8fr]">
+        <RecentBlock
+          title="Últimos itens da biblioteca"
+          empty="Nenhum item na biblioteca."
+          entries={knowledge.slice(0, 3)}
+          onViewAll={() => onChangeTab("library")}
+        />
+        <RecentBlock
+          title="Últimos eventos"
+          empty="Nenhum evento na timeline."
+          entries={events.slice(0, 3)}
+          onViewAll={() => onChangeTab("timeline")}
+          showDate
+        />
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Sobre este tema</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-muted-foreground">
+            <p className="leading-relaxed">
+              {topic.description || "Adicione uma descrição para contextualizar este tema."}
+            </p>
+            <Button variant="ghost" size="sm" className="h-auto px-0 text-foreground" onClick={() => onChangeTab("notes")}>
+              Abrir anotações <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function SummaryCard({ icon: Icon, label, value, hint }: {
+  icon: typeof BookOpen;
+  label: string;
+  value: string | number;
+  hint: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-start gap-3 p-4 md:p-5">
+        <div className="rounded-lg bg-primary/10 p-2 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          <p className="truncate text-xl font-semibold tracking-tight">{value}</p>
+          <p className="text-[11px] text-muted-foreground">{hint}</p>
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-function EntryActions({ onEdit, onMove, onDuplicate, onDelete }: { onEdit: () => void; onMove: () => void; onDuplicate: () => void; onDelete: () => void }) {
+function RecentBlock({ title, empty, entries, onViewAll, showDate = false }: {
+  title: string;
+  empty: string;
+  entries: StudyEntry[];
+  onViewAll: () => void;
+  showDate?: boolean;
+}) {
   return (
-    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shrink-0">
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
-        <Pencil className="h-3 w-3" />
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {entries.length === 0 ? (
+          <p className="py-4 text-sm text-muted-foreground">{empty}</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {entries.map((entry) => (
+              <div key={entry.id} className="flex items-center gap-3 py-3 first:pt-1">
+                <div className="rounded-md bg-muted p-1.5 text-muted-foreground">
+                  {showDate ? <Calendar className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{entry.title}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {showDate && entry.entry_date ? formatEntryDate(entry.entry_date) : entry.category || formatRelative(entry.updated_at)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <Button variant="ghost" size="sm" className="mt-2 h-auto px-0 text-xs" onClick={onViewAll}>
+          Ver tudo <ArrowRight className="ml-1.5 h-3 w-3" />
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface EntryTabProps {
+  topic: StudyTopic;
+  entries: StudyEntry[];
+  onAdd: () => void;
+  onEdit: (entry: StudyEntry) => void;
+  onMove: (entry: StudyEntry) => void;
+  onDuplicate: (entry: StudyEntry) => void;
+  onDelete: (id: string) => void;
+}
+
+function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDelete }: EntryTabProps) {
+  const [query, setQuery] = useState("");
+  const filteredEntries = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase("pt-BR");
+    if (!normalized) return entries;
+    return entries.filter((entry) =>
+      [entry.title, entry.summary, entry.category, ...(entry.tags ?? [])]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalized))
+    );
+  }, [entries, query]);
+
+  return (
+    <section className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Biblioteca</h2>
+          <p className="text-sm text-muted-foreground">{entries.length} {entries.length === 1 ? "item" : "itens"}</p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative sm:w-72">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar na biblioteca..." className="pl-9" />
+          </div>
+          <Button onClick={onAdd}>
+            <Plus className="mr-1.5 h-4 w-4" /> Adicionar item
+          </Button>
+        </div>
+      </div>
+
+      {filteredEntries.length === 0 ? (
+        <EmptyState
+          label={query ? "Nenhum item corresponde à busca." : "Biblioteca vazia."}
+          cta={query ? undefined : "Adicionar item à biblioteca"}
+          onClick={query ? undefined : onAdd}
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          {filteredEntries.map((entry) => (
+            <KnowledgeCard
+              key={entry.id}
+              topic={topic}
+              entry={entry}
+              onEdit={() => onEdit(entry)}
+              onMove={() => onMove(entry)}
+              onDuplicate={() => onDuplicate(entry)}
+              onDelete={() => onDelete(entry.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TimelineTab({ topic, entries, focusMode, onAdd, onEdit, onMove, onDuplicate, onDelete }: EntryTabProps & { focusMode: boolean }) {
+  return (
+    <section className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Timeline</h2>
+          <p className="text-sm text-muted-foreground">{entries.length} {entries.length === 1 ? "evento" : "eventos"}</p>
+        </div>
+        <Button onClick={onAdd}>
+          <Plus className="mr-1.5 h-4 w-4" /> Adicionar evento
+        </Button>
+      </div>
+
+      {entries.length === 0 ? (
+        <EmptyState label="Nenhum evento ainda." cta="Adicionar evento" onClick={onAdd} />
+      ) : (
+        <div className="relative space-y-4 md:space-y-5">
+          <div className="absolute bottom-6 left-[67px] top-6 hidden w-px bg-border md:block" />
+          {entries.map((entry) => (
+            <div key={entry.id} className="relative grid gap-2 md:grid-cols-[120px_minmax(0,1fr)] md:gap-5">
+              <TimelineDate date={entry.entry_date} />
+              <span className="absolute left-[63px] top-7 hidden h-2.5 w-2.5 rounded-full border-2 border-background bg-primary md:block" />
+              <EventCard
+                topic={topic}
+                entry={entry}
+                focusMode={focusMode}
+                onEdit={() => onEdit(entry)}
+                onMove={() => onMove(entry)}
+                onDuplicate={() => onDuplicate(entry)}
+                onDelete={() => onDelete(entry.id)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function NotesTab({ value, onChange, saving, saved }: {
+  value: string;
+  onChange: (value: string) => void;
+  saving: boolean;
+  saved: boolean;
+}) {
+  return (
+    <section className="mx-auto max-w-4xl space-y-4">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Anotações do tema</h2>
+          <p className="text-sm text-muted-foreground">Reflexões, perguntas e conexões livres.</p>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {saving ? "Salvando..." : saved ? "Salvo automaticamente" : ""}
+        </span>
+      </div>
+      <Card>
+        <CardContent className="p-3 md:p-5">
+          <Textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Escreva suas reflexões, ideias soltas, perguntas e conexões..."
+            className="min-h-[360px] resize-y border-0 bg-transparent text-sm leading-7 shadow-none focus-visible:ring-0 md:text-base"
+          />
+        </CardContent>
+      </Card>
+      <p className="text-xs text-muted-foreground">As alterações são salvas automaticamente.</p>
+    </section>
+  );
+}
+
+function EmptyState({ label, cta, onClick }: { label: string; cta?: string; onClick?: () => void }) {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center gap-3 p-10 text-center">
+        <BookOpen className="h-7 w-7 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">{label}</p>
+        {cta && onClick && <Button variant="outline" size="sm" onClick={onClick}>{cta}</Button>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function EntryActions({ onEdit, onMove, onDuplicate, onDelete }: {
+  onEdit: () => void;
+  onMove: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex shrink-0 gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} aria-label="Editar registro">
+        <Pencil className="h-3.5 w-3.5" />
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <MoreHorizontal className="h-3 w-3" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Mais ações do registro">
+            <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={onMove}>
-            <ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Mover para outro tema
+            <ArrowRightLeft className="mr-2 h-3.5 w-3.5" /> Mover para outro tema
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onDuplicate}>
-            <Copy className="h-3.5 w-3.5 mr-2" /> Duplicar em outro tema
+            <Copy className="mr-2 h-3.5 w-3.5" /> Duplicar em outro tema
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-            <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+            <Trash2 className="mr-2 h-3.5 w-3.5" /> Remover
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -337,106 +658,131 @@ function EntryActions({ onEdit, onMove, onDuplicate, onDelete }: { onEdit: () =>
   );
 }
 
-function EventCard({ topic, entry: e, focusMode, onEdit, onMove, onDuplicate, onDelete }:
-  { topic: StudyTopic; entry: StudyEntry; focusMode: boolean; onEdit: () => void; onMove: () => void; onDuplicate: () => void; onDelete: () => void }) {
+function TimelineDate({ date }: { date: string | null }) {
+  if (!date) return <div className="text-xs text-muted-foreground md:pt-5">Sem data</div>;
+  const parsed = parseLocalDate(date);
+  const month = new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(parsed).replace(".", "").toUpperCase();
   return (
-    <Card className="hover:border-foreground/20 transition-colors group">
-      <CardContent className="p-4 space-y-2">
+    <div className="flex items-baseline gap-2 md:block md:pr-8 md:pt-3 md:text-right">
+      <span className="text-2xl font-semibold tracking-tight text-primary md:block">{String(parsed.getDate()).padStart(2, "0")}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground md:block">{month} {parsed.getFullYear()}</span>
+    </div>
+  );
+}
+
+function EventCard({ topic, entry, focusMode, onEdit, onMove, onDuplicate, onDelete }: {
+  topic: StudyTopic;
+  entry: StudyEntry;
+  focusMode: boolean;
+  onEdit: () => void;
+  onMove: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <Card className="group transition-colors hover:border-foreground/20">
+      <CardContent className="space-y-3 p-4 md:p-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1 min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span className="font-mono">{e.entry_date ? formatDateBR(e.entry_date) : "—"}</span>
-            </div>
-            <h3 className={focusMode ? "text-base font-medium leading-snug" : "text-sm font-medium leading-snug"}>{e.title}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className={cn("font-medium leading-snug", focusMode ? "text-lg" : "text-base")}>{entry.title}</h3>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/75">{entry.summary}</p>
           </div>
           <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
         </div>
-        <p className={focusMode ? "text-base text-foreground/80 leading-[1.75] whitespace-pre-wrap" : "text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap"}>{e.summary}</p>
-        {e.highlight && (
-          <div className={focusMode ? "text-base text-foreground/90 border-l-2 border-foreground/30 pl-3 italic leading-[1.75]" : "text-sm text-foreground/90 border-l-2 border-foreground/30 pl-3 italic"}>
-            {e.highlight}
-          </div>
+        {entry.highlight && (
+          <blockquote className="border-l-2 border-primary/40 bg-muted/30 py-2 pl-4 pr-3 text-sm italic leading-relaxed text-foreground/85">
+            {entry.highlight}
+          </blockquote>
         )}
-        {e.notes && (
-          <div className={focusMode ? "text-sm text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap leading-[1.7]" : "text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap"}>
-            <span className="font-medium text-foreground/70">Observações: </span>{e.notes}
-          </div>
+        {entry.notes && (
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground/70">Observações: </span>{entry.notes}
+          </p>
         )}
-        {(e.source_url || (e.tags && e.tags.length > 0)) && (
-          <div className="flex items-center gap-2 flex-wrap pt-1">
-            {e.source_url && (
-              <a href={e.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-                <ExternalLink className="h-3 w-3" /> Fonte
-              </a>
-            )}
-            {e.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>)}
-          </div>
-        )}
-        <div className="pt-1">
-          <EntryAIAssist topic={topic} entry={e} />
-        </div>
+        <EntryFooter entry={entry} />
+        <EntryAIAssist topic={topic} entry={entry} />
       </CardContent>
     </Card>
   );
 }
 
-function KnowledgeCard({ topic, entry: e, onEdit, onMove, onDuplicate, onDelete }:
-  { topic: StudyTopic; entry: StudyEntry; onEdit: () => void; onMove: () => void; onDuplicate: () => void; onDelete: () => void }) {
-  const [open, setOpen] = useState(false);
-  const hasMore = !!(e.content && e.content.trim().length > 0);
+function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: {
+  topic: StudyTopic;
+  entry: StudyEntry;
+  onEdit: () => void;
+  onMove: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const [contentOpen, setContentOpen] = useState(false);
+  const hasContent = Boolean(entry.content?.trim());
   return (
-    <Card className="hover:border-foreground/20 transition-colors group flex flex-col">
-      <CardContent className="p-4 space-y-2 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1.5 min-w-0 flex-1">
-            {e.category && (
-              <Badge variant="outline" className="text-[10px] font-normal uppercase tracking-wider">
-                {e.category}
-              </Badge>
-            )}
-            <h3 className="text-sm font-medium leading-snug">{e.title}</h3>
+    <>
+      <Card className="group flex min-h-[250px] flex-col transition-colors hover:border-foreground/20">
+        <CardContent className="flex flex-1 flex-col gap-3 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              {entry.category && <Badge variant="outline" className="text-[10px] font-normal uppercase tracking-wider">{entry.category}</Badge>}
+              <h3 className="text-base font-medium leading-snug">{entry.title}</h3>
+            </div>
+            <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
           </div>
-          <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
-        </div>
-        <p className="text-sm text-foreground/80 leading-relaxed">{e.summary}</p>
+          <p className="line-clamp-4 text-sm leading-relaxed text-foreground/75">{entry.summary}</p>
+          {hasContent && (
+            <Button variant="ghost" size="sm" className="h-auto w-fit px-0 text-xs" onClick={() => setContentOpen(true)}>
+              Ver conteúdo <ArrowRight className="ml-1.5 h-3 w-3" />
+            </Button>
+          )}
+          <div className="mt-auto space-y-3 pt-2">
+            <EntryFooter entry={entry} />
+            <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+              <span>Atualizado {formatRelative(entry.updated_at)}</span>
+              <EntryAIAssist topic={topic} entry={entry} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {hasMore && (
-          <>
-            <button
-              onClick={() => setOpen((v) => !v)}
-              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground self-start"
-            >
-              <ChevronRight className={`h-3 w-3 transition-transform ${open ? "rotate-90" : ""}`} />
-              {open ? "Ocultar conteúdo" : "Ver conteúdo"}
-            </button>
-            {open && (
-              <div className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap border-l-2 border-border pl-3 animate-fade-in">
-                {e.content}
+      <Dialog open={contentOpen} onOpenChange={setContentOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{entry.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+            <p className="text-sm leading-relaxed text-muted-foreground">{entry.summary}</p>
+            <div className="whitespace-pre-wrap text-sm leading-7 text-foreground/90 md:text-base">{entry.content}</div>
+            {entry.notes && (
+              <div className="rounded-lg bg-muted/40 p-4 text-sm leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground">Observações: </span>{entry.notes}
               </div>
             )}
-          </>
-        )}
-
-        {e.notes && (
-          <div className="text-xs text-muted-foreground border-l-2 border-border pl-3 whitespace-pre-wrap">
-            <span className="font-medium text-foreground/70">Observações: </span>{e.notes}
+            <EntryFooter entry={entry} />
           </div>
-        )}
-
-        {(e.source_url || (e.tags && e.tags.length > 0)) && (
-          <div className="flex items-center gap-2 flex-wrap pt-1 mt-auto">
-            {e.source_url && (
-              <a href={e.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-                <ExternalLink className="h-3 w-3" /> Fonte
-              </a>
-            )}
-            {e.tags?.map((t) => <Badge key={t} variant="secondary" className="text-[10px] font-normal">#{t}</Badge>)}
-          </div>
-        )}
-        <div className="pt-1">
-          <EntryAIAssist topic={topic} entry={e} />
-        </div>
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
+}
+
+function EntryFooter({ entry }: { entry: StudyEntry }) {
+  if (!entry.source_url && !entry.tags?.length) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {entry.source_url && (
+        <a href={entry.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+          <ExternalLink className="h-3 w-3" /> Fonte
+        </a>
+      )}
+      {entry.tags?.map((tag) => <Badge key={tag} variant="secondary" className="text-[10px] font-normal">#{tag}</Badge>)}
+    </div>
+  );
+}
+
+function parseLocalDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatEntryDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(parseLocalDate(value));
 }
