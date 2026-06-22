@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, FolderOpen, ArrowLeft, MoreHorizontal, Trash2, Pencil, GraduationCap, ChevronRight } from "lucide-react";
+import { Plus, FolderOpen, ArrowLeft, MoreHorizontal, Trash2, Pencil, GraduationCap, ChevronRight, BookOpen, Calendar } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   useStudyAreas, useStudyTopics, useAllRecentEntries, useDeleteArea, useDeleteTopic,
@@ -25,7 +25,8 @@ export default function Studies() {
 
   const toggleFocus = () => {
     const p = new URLSearchParams(params);
-    focusMode ? p.delete("focus") : p.set("focus", "1");
+    if (focusMode) p.delete("focus");
+    else p.set("focus", "1");
     setParams(p, { replace: true });
   };
 
@@ -47,10 +48,12 @@ export default function Studies() {
   const setSelection = (next: { area?: string | null; topic?: string | null }) => {
     const p = new URLSearchParams(params);
     if (next.area !== undefined) {
-      next.area ? p.set("area", next.area) : p.delete("area");
+      if (next.area) p.set("area", next.area);
+      else p.delete("area");
     }
     if (next.topic !== undefined) {
-      next.topic ? p.set("topic", next.topic) : p.delete("topic");
+      if (next.topic) p.set("topic", next.topic);
+      else p.delete("topic");
     }
     setParams(p, { replace: true });
   };
@@ -69,9 +72,9 @@ export default function Studies() {
         <div className="max-w-6xl mx-auto p-6 md:p-8 space-y-8">
           <header className="flex items-start justify-between gap-4 flex-wrap">
             <div className="space-y-1">
-              <h1 className="text-3xl font-semibold tracking-tight">Conhecimentos Gerais</h1>
+              <h1 className="text-3xl font-semibold tracking-tight">Conhecimento</h1>
               <p className="text-sm text-muted-foreground max-w-xl">
-                Acompanhe temas de interesse com uma cronologia simples de registros.
+                Organize áreas, temas, leituras e eventos importantes em um só lugar.
               </p>
             </div>
             <div className="flex gap-2">
@@ -84,87 +87,116 @@ export default function Studies() {
             </div>
           </header>
 
-
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Áreas</h2>
-            {areasLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando...</p>
-            ) : areas.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="p-10 text-center space-y-3">
-                  <GraduationCap className="h-8 w-8 mx-auto text-muted-foreground" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Comece criando uma área</p>
-                    <p className="text-xs text-muted-foreground">Ex.: Brasil, IA, ServiceNow, Geopolítica.</p>
-                  </div>
-                  <Button onClick={() => setAreaDialog({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Criar primeira área</Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-2">
-                {areas.map((a) => (
-                  <div key={a.id} className="group flex items-center gap-1">
-                    <button
-                      onClick={() => setSelection({ area: a.id })}
-                      className="flex-1 flex items-center gap-3 px-4 py-3 bg-card border border-border rounded-xl hover:border-foreground/20 hover:shadow-sm transition-all text-left animate-fade-in touch-manipulation active:scale-[0.99] min-w-0"
-                    >
-                      <FolderOpen className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium truncate">{a.name}</h3>
-                        {a.description && (
-                          <p className="text-xs text-muted-foreground truncate">{a.description}</p>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground flex-shrink-0">{topicsByArea.get(a.id) ?? 0} temas</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 group-hover:text-muted-foreground transition-colors" />
-                    </button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setAreaDialog({ open: true, edit: a })}>
-                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => { if (confirm(`Remover área "${a.name}" e todos os temas?`)) deleteArea.mutate(a.id); }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {recentEntries.length > 0 && (
+          <div className="grid gap-5 lg:grid-cols-2">
             <section className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Últimos registros</h2>
-              <Card>
-                <CardContent className="p-0 divide-y divide-border">
-                  {recentEntries.map((u) => {
-                    const topic = allTopics.find((t) => t.id === u.topic_id);
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Áreas de conhecimento</h2>
+                <span className="text-xs text-muted-foreground">{areas.length} {areas.length === 1 ? "área" : "áreas"}</span>
+              </div>
+              {areasLoading ? (
+                <Card><CardContent className="p-6 text-sm text-muted-foreground">Carregando...</CardContent></Card>
+              ) : areas.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="p-10 text-center space-y-3">
+                    <GraduationCap className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Comece criando uma área</p>
+                      <p className="text-xs text-muted-foreground">Ex.: Brasil, IA, ServiceNow, Geopolítica.</p>
+                    </div>
+                    <Button onClick={() => setAreaDialog({ open: true })}><Plus className="h-4 w-4 mr-1.5" />Criar primeira área</Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="divide-y divide-border p-0">
+                    {areas.map((a) => (
+                      <div key={a.id} className="group flex items-center gap-1 p-2">
+                        <button
+                          onClick={() => setSelection({ area: a.id })}
+                          className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/60"
+                        >
+                          <span className="rounded-lg bg-primary/10 p-2 text-primary"><FolderOpen className="h-4 w-4" /></span>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate text-sm font-medium">{a.name}</h3>
+                            <p className="truncate text-xs text-muted-foreground">{a.description || `${topicsByArea.get(a.id) ?? 0} temas`}</p>
+                          </div>
+                          <span className="shrink-0 text-[11px] text-muted-foreground">{topicsByArea.get(a.id) ?? 0} temas</span>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setAreaDialog({ open: true, edit: a })}><Pencil className="h-3.5 w-3.5 mr-2" /> Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm(`Remover área "${a.name}" e todos os temas?`)) deleteArea.mutate(a.id); }}>
+                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </section>
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Atividade recente</h2>
+                <span className="text-xs text-muted-foreground">Últimos registros</span>
+              </div>
+              <Card className="h-[calc(100%-1.75rem)] min-h-56">
+                <CardContent className="divide-y divide-border p-0">
+                  {recentEntries.length === 0 ? (
+                    <p className="p-8 text-center text-sm text-muted-foreground">Nenhuma atividade recente.</p>
+                  ) : recentEntries.slice(0, 6).map((entry) => {
+                    const topic = allTopics.find((item) => item.id === entry.topic_id);
                     return (
-                      <button
-                        key={u.id}
-                        className="w-full text-left p-4 hover:bg-muted/50 transition-colors flex items-start gap-3"
-                        onClick={() => topic && setSelection({ area: topic.area_id, topic: topic.id })}
-                      >
-                        <span className="text-[11px] font-mono text-muted-foreground shrink-0 w-20 pt-0.5">{u.entry_date ? formatDateBR(u.entry_date) : "—"}</span>
+                      <button key={entry.id} className="flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-muted/50" onClick={() => topic && setSelection({ area: topic.area_id, topic: topic.id })}>
+                        <span className="rounded-md bg-muted p-2 text-muted-foreground">
+                          {entry.kind === "knowledge" ? <BookOpen className="h-3.5 w-3.5" /> : <Calendar className="h-3.5 w-3.5" />}
+                        </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{u.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{topic?.title ?? "—"}</p>
+                          <p className="truncate text-sm font-medium">{entry.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">{topic?.title ?? "Tema"}</p>
                         </div>
+                        <span className="shrink-0 text-[11px] text-muted-foreground">{entry.entry_date ? formatDateBR(entry.entry_date) : formatRelative(entry.updated_at)}</span>
                       </button>
                     );
                   })}
                 </CardContent>
               </Card>
+            </section>
+          </div>
+
+          {allTopics.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Temas recentes</h2>
+                <span className="text-xs text-muted-foreground">Atualizados recentemente</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {allTopics.slice(0, 4).map((topic) => {
+                  const topicArea = areas.find((item) => item.id === topic.area_id);
+                  return (
+                    <Card key={topic.id} className="cursor-pointer transition-colors hover:border-foreground/25" onClick={() => setSelection({ area: topic.area_id, topic: topic.id })}>
+                      <CardContent className="space-y-4 p-4">
+                        <div className="flex items-start gap-3">
+                          <span className="rounded-lg bg-primary/10 p-2 text-primary"><BookOpen className="h-4 w-4" /></span>
+                          <div className="min-w-0">
+                            <h3 className="line-clamp-2 text-sm font-medium">{topic.title}</h3>
+                            <p className="truncate text-xs text-muted-foreground">{topicArea?.name ?? "Sem área"}</p>
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">Atualizado {formatRelative(topic.last_updated_at ?? topic.updated_at)}</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </section>
           )}
         </div>
@@ -314,79 +346,18 @@ export default function Studies() {
         </div>
       )}
 
-      {/* Topic open: narrow topics list + spacious detail */}
+      {/* Topic open: full-width knowledge workspace */}
       {inTopic && selectedTopic && (
-        <>
+        <div className="flex min-w-0 flex-1 flex-col">
           {!focusMode && (
-            <aside className={cn("md:w-60 border-r border-border flex flex-col shrink-0", isMobile ? "hidden" : "flex")}>
-              <div className="p-3 border-b border-border space-y-2">
-                <button
-                  onClick={() => setSelection({ topic: null })}
-                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                >
-                  <ArrowLeft className="h-3 w-3" /> {currentArea?.name ?? "Áreas"}
-                </button>
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Temas</p>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setTopicDialog({ open: true })}>
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-              <ScrollArea className="flex-1">
-                <div className="p-2 space-y-0.5">
-                  {topics.map((t) => (
-                    <div key={t.id} className="group flex items-center">
-                      <button
-                        onClick={() => setSelection({ topic: t.id })}
-                        className={cn(
-                          "flex-1 text-left px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors truncate min-w-0",
-                          topicId === t.id && "bg-muted font-medium"
-                        )}
-                      >
-                        {t.title}
-                      </button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100">
-                            <MoreHorizontal className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setTopicDialog({ open: true, edit: t })}>
-                            <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => {
-                              if (confirm(`Remover tema "${t.title}" e todos os registros?`)) {
-                                deleteTopic.mutate(t.id);
-                                if (topicId === t.id) setSelection({ topic: null });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </aside>
+            <div className="border-b border-border px-2 py-1.5 sm:px-4">
+              <Button variant="ghost" size="sm" onClick={() => setSelection({ topic: null })}>
+                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> {currentArea?.name ?? "Temas"}
+              </Button>
+            </div>
           )}
-
-          <div className="flex-1 flex flex-col min-w-0">
-            {isMobile && !focusMode && (
-              <div className="p-2 border-b border-border flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setSelection({ topic: null })}>
-                  <ArrowLeft className="h-3.5 w-3.5 mr-1" /> {currentArea?.name ?? "Voltar"}
-                </Button>
-              </div>
-            )}
-            <TopicDetail topic={selectedTopic} focusMode={focusMode} onToggleFocus={toggleFocus} />
-          </div>
-        </>
+          <TopicDetail topic={selectedTopic} focusMode={focusMode} onToggleFocus={toggleFocus} />
+        </div>
       )}
 
 
@@ -400,4 +371,3 @@ export default function Studies() {
     </div>
   );
 }
-
