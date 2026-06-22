@@ -523,7 +523,7 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
           onClick={query ? undefined : onAdd}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="mx-auto max-w-5xl space-y-3">
           {filteredEntries.map((entry) => (
             <KnowledgeCard
               key={entry.id}
@@ -718,8 +718,8 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
   const hasContent = Boolean(entry.content?.trim());
   return (
     <>
-      <Card className="group flex min-h-[250px] flex-col transition-colors hover:border-foreground/20">
-        <CardContent className="flex flex-1 flex-col gap-3 p-5">
+      <Card className="group transition-colors hover:border-foreground/20">
+        <CardContent className="space-y-3 p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-2">
               {entry.category && <Badge variant="outline" className="text-[10px] font-normal uppercase tracking-wider">{entry.category}</Badge>}
@@ -727,13 +727,13 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
             </div>
             <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
           </div>
-          <p className="line-clamp-4 text-sm leading-relaxed text-foreground/75">{entry.summary}</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/75">{entry.summary}</p>
           {hasContent && (
             <Button variant="ghost" size="sm" className="h-auto w-fit px-0 text-xs" onClick={() => setContentOpen(true)}>
               Ver conteúdo <ArrowRight className="ml-1.5 h-3 w-3" />
             </Button>
           )}
-          <div className="mt-auto space-y-3 pt-2">
+          <div className="space-y-3 pt-2">
             <EntryFooter entry={entry} />
             <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
               <span>Atualizado {formatRelative(entry.updated_at)}</span>

@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useCreateEntry, useUpdateEntry, type StudyEntry, type StudyEntryKind } from "@/hooks/useStudies";
-import { cn } from "@/lib/utils";
-import { Calendar, BookOpen } from "lucide-react";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -38,6 +38,7 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
   const [highlight, setHighlight] = useState("");
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const create = useCreateEntry();
   const update = useUpdateEntry();
 
@@ -53,6 +54,7 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
     setHighlight(entry?.highlight ?? "");
     setNotes(entry?.notes ?? "");
     setTags((entry?.tags ?? []).join(", "));
+    setAdvancedOpen(Boolean(entry?.category || entry?.content || entry?.notes || entry?.tags?.length));
   }, [open, entry, defaultKind]);
 
   const isEvent = kind === "event";
@@ -61,7 +63,7 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
   const submit = async () => {
     if (!canSave) return;
     const tagArr = tags.split(",").map((t) => t.trim()).filter(Boolean);
-    const payload: any = {
+    const payload: Partial<StudyEntry> & { topic_id: string; title: string; summary: string } = {
       topic_id: topicId,
       kind,
       title: title.trim(),
@@ -83,8 +85,8 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
         toast.success(isEvent ? "Evento adicionado" : "Item adicionado à biblioteca");
       }
       onOpenChange(false);
-    } catch (e: any) {
-      toast.error(e.message ?? "Erro ao salvar");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     }
   };
 
@@ -92,42 +94,12 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{entry ? "Editar registro" : "Novo registro"}</DialogTitle>
+          <DialogTitle>
+            {entry ? "Editar registro" : isEvent ? "Novo evento" : "Novo item da biblioteca"}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Type selector */}
-          {!entry && (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setKind("event")}
-                className={cn(
-                  "flex flex-col items-start gap-1 p-3 rounded-lg border text-left transition-colors",
-                  isEvent ? "border-foreground bg-muted/40" : "border-border hover:border-foreground/30"
-                )}
-              >
-                <div className="flex items-center gap-2 text-xs font-medium">
-                  <Calendar className="h-3.5 w-3.5" /> Evento relevante
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-snug">Fato datado: notícia, decisão, movimento.</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setKind("knowledge")}
-                className={cn(
-                  "flex flex-col items-start gap-1 p-3 rounded-lg border text-left transition-colors",
-                  !isEvent ? "border-foreground bg-muted/40" : "border-border hover:border-foreground/30"
-                )}
-              >
-                <div className="flex items-center gap-2 text-xs font-medium">
-                  <BookOpen className="h-3.5 w-3.5" /> Knowledge Base
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-snug">Conhecimento reutilizável: framework, conceito, livro.</p>
-              </button>
-            </div>
-          )}
-
           {isEvent ? (
             <div className="grid grid-cols-[140px_1fr] gap-3">
               <div className="space-y-1.5">
@@ -143,19 +115,12 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
             <>
               <div className="space-y-1.5">
                 <Label>Título *</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Framework JTBD" autoFocus />
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Building Agents with LLMs" autoFocus />
               </div>
               <div className="space-y-1.5">
-                <Label>Categoria</Label>
-                <Input
-                  list="kb-categories"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Framework, Conceito, Livro, Playbook..."
-                />
-                <datalist id="kb-categories">
-                  {KNOWLEDGE_CATEGORIES.map((c) => <option key={c} value={c} />)}
-                </datalist>
+                <Label>Link <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+                <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://artigo, PDF ou apresentação..." />
+                <p className="text-[11px] text-muted-foreground">Cole um link para artigo, PDF, apresentação ou outra fonte.</p>
               </div>
             </>
           )}
@@ -165,18 +130,6 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
             <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} placeholder={isEvent ? "Sobre o que é este registro" : "Em uma frase: o que é e por que importa"} />
           </div>
 
-          {!isEvent && (
-            <div className="space-y-1.5">
-              <Label>Conteúdo</Label>
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={6}
-                placeholder="Descrição completa, passos, estrutura, exemplos..."
-              />
-            </div>
-          )}
-
           {isEvent && (
             <div className="space-y-1.5">
               <Label>Highlight</Label>
@@ -184,20 +137,54 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label>Link da fonte</Label>
-            <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://..." />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Observações</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Sua interpretação" />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Tags (separadas por vírgula)</Label>
-            <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="rpa, ia" />
-          </div>
+          {isEvent ? (
+            <>
+              <div className="space-y-1.5">
+                <Label>Link da fonte</Label>
+                <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Observações</Label>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Sua interpretação" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tags (separadas por vírgula)</Label>
+                <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="rpa, ia" />
+              </div>
+            </>
+          ) : (
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="rounded-lg border border-border">
+              <CollapsibleTrigger asChild>
+                <button type="button" className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm font-medium hover:bg-muted/40">
+                  <span className="flex items-center gap-2"><SlidersHorizontal className="h-3.5 w-3.5" /> Mais detalhes</span>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-4 border-t border-border p-3">
+                  <div className="space-y-1.5">
+                    <Label>Categoria</Label>
+                    <Input list="kb-categories" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Livro, Artigo, Framework..." />
+                    <datalist id="kb-categories">
+                      {KNOWLEDGE_CATEGORIES.map((c) => <option key={c} value={c} />)}
+                    </datalist>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Conteúdo complementar</Label>
+                    <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5} placeholder="Trechos, passos, estrutura ou exemplos..." />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Observações</Label>
+                    <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Sua interpretação" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tags (separadas por vírgula)</Label>
+                    <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="ia, agentes, arquitetura" />
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </div>
 
         <DialogFooter>
