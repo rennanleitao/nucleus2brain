@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState, useCallback } from "react";
 
 export const SIDEBAR_ITEMS = [
@@ -7,6 +8,7 @@ export const SIDEBAR_ITEMS = [
   { key: "notes", title: "Notes", url: "/notes" },
   { key: "tasks", title: "Tasks", url: "/tasks" },
   { key: "studies", title: "Conhecimento", url: "/estudos" },
+  { key: "meeting-copilot", title: "Meeting Copilot", url: "/meeting-copilot" },
   { key: "materials", title: "Materials", url: "/materials" },
   { key: "tags", title: "Tags", url: "/tags" },
   { key: "calendar", title: "Calendar", url: "/calendar" },
@@ -21,7 +23,7 @@ const EVENT_NAME = "sidebar-visible-items-changed";
 const ALL_KEYS = SIDEBAR_ITEMS.map((i) => i.key) as SidebarItemKey[];
 // Keys added after the storage key was first introduced — auto-enable so users
 // who already have a stored visibility list still see new modules.
-const AUTO_ENABLE_NEW_KEYS: SidebarItemKey[] = ["studies"];
+const AUTO_ENABLE_NEW_KEYS: SidebarItemKey[] = ["studies", "meeting-copilot"];
 
 function readStored(): SidebarItemKey[] {
   try {
@@ -42,7 +44,11 @@ function readStored(): SidebarItemKey[] {
       }
     }
     if (mutated) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered)); } catch {}
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      } catch {
+        // Ignore storage failures and keep the in-memory navigation list.
+      }
     }
     return filtered;
   } catch {

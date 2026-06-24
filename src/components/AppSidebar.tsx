@@ -18,11 +18,12 @@ import {
   Play,
   Pause,
   GraduationCap,
+  Radio,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { usePomodoro } from "@/hooks/usePomodoroStore";
-import { useSidebarItems } from "@/hooks/useSidebarItems";
+import { type SidebarItemKey, useSidebarItems } from "@/hooks/useSidebarItems";
 import {
   Sidebar,
   SidebarContent,
@@ -44,6 +45,7 @@ const navItemsAll = [
   { key: "notes", title: "Notes", url: "/notes", icon: FileText },
   { key: "tasks", title: "Tasks", url: "/tasks", icon: CheckSquare },
   { key: "studies", title: "Conhecimento", url: "/estudos", icon: GraduationCap },
+  { key: "meeting-copilot", title: "Meeting Copilot", url: "/meeting-copilot", icon: Radio },
   { key: "materials", title: "Materials", url: "/materials", icon: Paperclip },
   { key: "tags", title: "Tags", url: "/tags", icon: Tag },
   { key: "calendar", title: "Calendar", url: "/calendar", icon: Calendar },
@@ -119,7 +121,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
   const { visible } = useSidebarItems();
-  const navItems = navItemsAll.filter((item) => visible.includes(item.key as any));
+  const navItems = navItemsAll.filter((item) => visible.includes(item.key as SidebarItemKey));
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
