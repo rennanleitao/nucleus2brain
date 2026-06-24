@@ -21,6 +21,14 @@ export interface MeetingCopilotSession {
   title: string;
   profile: MeetingCopilotProfile;
   status: "active" | "ended";
+  provider: string | null;
+  meeting_url: string | null;
+  bot_id: string | null;
+  bot_name: string | null;
+  bot_status: string | null;
+  bot_error: string | null;
+  bot_joined_at: string | null;
+  bot_left_at: string | null;
   transcript: string;
   analysis: MeetingCopilotAnalysis | Record<string, never>;
   started_at: string;
@@ -35,6 +43,9 @@ export interface MeetingCopilotSegment {
   session_id: string;
   content: string;
   analysis_snapshot: MeetingCopilotAnalysis | null;
+  speaker_name: string | null;
+  relative_start_seconds: number | null;
+  source: "manual" | "browser" | "recall";
   created_at: string;
 }
 
@@ -116,6 +127,7 @@ export function normalizeMeetingAnalysis(value: unknown): MeetingCopilotAnalysis
 export function useMeetingCopilotSessions() {
   return useQuery({
     queryKey: ["meeting_copilot_sessions"],
+    refetchInterval: 5000,
     queryFn: async () => {
       const { data, error } = await db
         .from("meeting_copilot_sessions")
@@ -135,6 +147,7 @@ export function useMeetingCopilotSegments(sessionId?: string | null) {
   return useQuery({
     queryKey: ["meeting_copilot_segments", sessionId],
     enabled: !!sessionId,
+    refetchInterval: sessionId ? 3000 : false,
     queryFn: async () => {
       const { data, error } = await db
         .from("meeting_copilot_segments")
@@ -198,6 +211,9 @@ export function useCreateMeetingCopilotSegment() {
       session_id: string;
       content: string;
       analysis_snapshot?: MeetingCopilotAnalysis | null;
+      speaker_name?: string | null;
+      relative_start_seconds?: number | null;
+      source?: "manual" | "browser" | "recall";
     }) => {
       const { data, error } = await db
         .from("meeting_copilot_segments")
@@ -206,6 +222,9 @@ export function useCreateMeetingCopilotSegment() {
           session_id: input.session_id,
           content: input.content,
           analysis_snapshot: input.analysis_snapshot ?? null,
+          speaker_name: input.speaker_name ?? null,
+          relative_start_seconds: input.relative_start_seconds ?? null,
+          source: input.source ?? "manual",
         })
         .select()
         .single();
