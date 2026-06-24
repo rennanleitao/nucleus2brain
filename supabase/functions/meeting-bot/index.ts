@@ -7,7 +7,14 @@ const corsHeaders = {
 };
 
 function recallBaseUrl() {
-  const region = Deno.env.get("RECALL_REGION") || "us-east-1";
+  const configuredRegion = Deno.env.get("RECALL_REGION")?.trim();
+  const validRegions = new Set(["us-west-2", "us-east-1", "eu-central-1", "ap-northeast-1"]);
+  const region = configuredRegion && validRegions.has(configuredRegion)
+    ? configuredRegion
+    : "us-west-2";
+  if (configuredRegion && configuredRegion !== region) {
+    console.warn(`Invalid RECALL_REGION "${configuredRegion}". Falling back to ${region}.`);
+  }
   return `https://${region}.recall.ai/api/v1`;
 }
 
