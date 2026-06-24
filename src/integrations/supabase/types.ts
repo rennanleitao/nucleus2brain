@@ -183,6 +183,116 @@ export type Database = {
           },
         ]
       }
+      meeting_copilot_segments: {
+        Row: {
+          analysis_snapshot: Json | null
+          content: string
+          created_at: string
+          id: string
+          relative_start_seconds: number | null
+          session_id: string
+          source: string
+          speaker_name: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_snapshot?: Json | null
+          content: string
+          created_at?: string
+          id?: string
+          relative_start_seconds?: number | null
+          session_id: string
+          source?: string
+          speaker_name?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_snapshot?: Json | null
+          content?: string
+          created_at?: string
+          id?: string
+          relative_start_seconds?: number | null
+          session_id?: string
+          source?: string
+          speaker_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_copilot_segments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_copilot_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_copilot_sessions: {
+        Row: {
+          analysis: Json
+          bot_error: string | null
+          bot_id: string | null
+          bot_joined_at: string | null
+          bot_left_at: string | null
+          bot_name: string | null
+          bot_status: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          meeting_url: string | null
+          profile: string
+          provider: string | null
+          started_at: string
+          status: string
+          title: string
+          transcript: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json
+          bot_error?: string | null
+          bot_id?: string | null
+          bot_joined_at?: string | null
+          bot_left_at?: string | null
+          bot_name?: string | null
+          bot_status?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          meeting_url?: string | null
+          profile?: string
+          provider?: string | null
+          started_at?: string
+          status?: string
+          title?: string
+          transcript?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json
+          bot_error?: string | null
+          bot_id?: string | null
+          bot_joined_at?: string | null
+          bot_left_at?: string | null
+          bot_name?: string | null
+          bot_status?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          meeting_url?: string | null
+          profile?: string
+          provider?: string | null
+          started_at?: string
+          status?: string
+          title?: string
+          transcript?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       note_comments: {
         Row: {
           author_name: string
