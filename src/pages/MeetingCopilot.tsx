@@ -7,12 +7,14 @@ import {
   CircleHelp,
   Clock3,
   Lightbulb,
+  Link2,
   Mic,
   MicOff,
   MessageSquareText,
   Play,
   Plus,
   Radio,
+  Send,
   ShieldAlert,
   Sparkles,
   Square,
@@ -102,6 +104,9 @@ export default function MeetingCopilot() {
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [listening, setListening] = useState(false);
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [botName, setBotName] = useState("Nucleus Copilot");
+  const [invitingBot, setInvitingBot] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [lastAnalyzedAt, setLastAnalyzedAt] = useState<string | null>(null);
@@ -271,6 +276,37 @@ export default function MeetingCopilot() {
     }
   }, [ensureSession, stopListening]);
 
+  const inviteMeetingBot = useCallback(async () => {
+    const cleanUrl = meetingUrl.trim();
+    if (!cleanUrl) {
+      toast.error("Informe o link da reunião.");
+      return;
+    }
+
+    setInvitingBot(true);
+    try {
+      const session = await ensureSession();
+      const { data, error } = await supabase.functions.invoke("meeting-bot", {
+        body: {
+          session_id: session.id,
+          meeting_url: cleanUrl,
+          bot_name: botName.trim() || "Nucleus Copilot",
+          language_code: "pt",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setActiveSession(data.session);
+      setMeetingUrl(cleanUrl);
+      toast.success("Copilot convidado para a reunião");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível convidar o Copilot");
+    } finally {
+      setInvitingBot(false);
+    }
+  }, [botName, ensureSession, meetingUrl]);
+
   const startNewSession = () => {
     setActiveSession(null);
     setTitle("Reunião sem título");
@@ -278,6 +314,8 @@ export default function MeetingCopilot() {
     setIncomingText("");
     setTranscript("");
     setAnalysis(EMPTY_MEETING_ANALYSIS);
+    setMeetingUrl("");
+    setBotName("Nucleus Copilot");
     setLastAnalyzedAt(null);
     setInterimTranscript("");
     setSpeechError(null);
@@ -291,6 +329,8 @@ export default function MeetingCopilot() {
     setIncomingText("");
     setTranscript(session.transcript ?? "");
     setAnalysis(normalizeMeetingAnalysis(session.analysis));
+    setMeetingUrl(session.meeting_url ?? "");
+    setBotName(session.bot_name ?? "Nucleus Copilot");
     setLastAnalyzedAt(session.updated_at);
     setInterimTranscript("");
     setSpeechError(null);
@@ -388,6 +428,45 @@ export default function MeetingCopilot() {
 
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
                 {activeProfile?.description}
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-3">
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <Link2 className="mt-0.5 h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">Convidar Copilot por link</p>
+                      <p className="text-xs text-muted-foreground">
+                        Envia um bot participante para Meet, Zoom ou Teams via provider externo. Ele transcreve todos os lados da reunião.
+                      </p>
+                    </div>
+                  </div>
+                  <BotStatusBadge session={activeSession} />
+                </div>
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
+                  <Input
+                    value={meetingUrl}
+                    onChange={(event) => setMeetingUrl(event.target.value)}
+                    placeholder="Cole o link da reunião, incluindo senha/passcode se a plataforma gerar no link"
+                  />
+                  <Input
+                    value={botName}
+                    onChange={(event) => setBotName(event.target.value)}
+                    placeholder="Nome do bot"
+                  />
+                  <Button onClick={inviteMeetingBot} disabled={invitingBot || !meetingUrl.trim()}>
+                    <Send className="mr-1.5 h-4 w-4" />
+                    {invitingBot ? "Convidando..." : "Convidar"}
+                  </Button>
+                </div>
+                {activeSession?.bot_error && (
+                  <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {activeSession.bot_error}
+                  </p>
+                )}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Para produção, configure `RECALL_API_KEY` e `RECALL_WEBHOOK_TOKEN` nas secrets do Supabase. O bot aparece como participante visível na reunião.
+                </p>
               </div>
 
               <div className={cn(
@@ -489,6 +568,11 @@ export default function MeetingCopilot() {
                           </span>
                         </div>
                         <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{segment.content}</p>
+                        {(segment.speaker_name || segment.source) && (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {segment.speaker_name ? `${segment.speaker_name} · ` : ""}{segment.source}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -572,6 +656,13 @@ export default function MeetingCopilot() {
       </div>
     </div>
   );
+}
+
+function BotStatusBadge({ session }: { session: MeetingCopilotSession | null }) {
+  if (!session?.bot_id) return <Badge variant="outline">bot não convidado</Badge>;
+  const status = session.bot_status ?? "created";
+  const label = status === "transcribing" ? "transcrevendo" : status;
+  return <Badge variant={status === "transcribing" ? "secondary" : "outline"}>{label}</Badge>;
 }
 
 function AnalysisSection({
