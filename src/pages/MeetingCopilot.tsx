@@ -7,6 +7,8 @@ import {
   CircleHelp,
   Clock3,
   Lightbulb,
+  Mic,
+  MicOff,
   MessageSquareText,
   Play,
   Plus,
@@ -44,6 +46,47 @@ import { toast } from "sonner";
 
 const AUTO_ANALYZE_DELAY = 1800;
 
+interface BrowserSpeechRecognitionAlternative {
+  transcript: string;
+}
+
+interface BrowserSpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: BrowserSpeechRecognitionAlternative;
+}
+
+interface BrowserSpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: BrowserSpeechRecognitionResult;
+  };
+}
+
+interface BrowserSpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface BrowserSpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: BrowserSpeechRecognitionEvent) => void) | null;
+  onerror: ((event: BrowserSpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
+
+declare global {
+  interface Window {
+    SpeechRecognition?: BrowserSpeechRecognitionConstructor;
+    webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor;
+  }
+}
+
 export default function MeetingCopilot() {
   const { data: sessions = [] } = useMeetingCopilotSessions();
   const createSession = useCreateMeetingCopilotSession();
@@ -58,12 +101,19 @@ export default function MeetingCopilot() {
   const [analysis, setAnalysis] = useState<MeetingCopilotAnalysis>(EMPTY_MEETING_ANALYSIS);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const [speechError, setSpeechError] = useState<string | null>(null);
   const [lastAnalyzedAt, setLastAnalyzedAt] = useState<string | null>(null);
   const processedRef = useRef("");
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const listeningRef = useRef(false);
+  const processIncomingRef = useRef<(text: string) => Promise<void>>(async () => {});
 
   const { data: segments = [] } = useMeetingCopilotSegments(activeSession?.id);
   const activeProfile = MEETING_COPILOT_PROFILES.find((item) => item.id === profile);
   const hasSession = !!activeSession;
+  const speechSupported = typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const ensureSession = useCallback(async () => {
     if (activeSession) return activeSession;
@@ -125,12 +175,101 @@ export default function MeetingCopilot() {
   }, [analyzeMeeting, createSegment, ensureSession, transcript]);
 
   useEffect(() => {
+    processIncomingRef.current = processIncomingText;
+  }, [processIncomingText]);
+
+  useEffect(() => {
     if (!autoAnalyze || !incomingText.trim()) return;
     const timer = window.setTimeout(() => {
       processIncomingText(incomingText);
     }, AUTO_ANALYZE_DELAY);
     return () => window.clearTimeout(timer);
   }, [autoAnalyze, incomingText, processIncomingText]);
+
+  useEffect(() => {
+    return () => {
+      listeningRef.current = false;
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const stopListening = useCallback(() => {
+    listeningRef.current = false;
+    setListening(false);
+    setInterimTranscript("");
+    recognitionRef.current?.stop();
+  }, []);
+
+  const startListening = useCallback(async () => {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setSpeechError("Seu navegador não suporta transcrição por voz. Use Chrome/Edge ou cole a transcrição manualmente.");
+      return;
+    }
+
+    try {
+      await ensureSession();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível iniciar a sessão");
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "pt-BR";
+
+    recognition.onresult = (event) => {
+      let finalText = "";
+      let interimText = "";
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const transcriptText = result[0]?.transcript?.trim() ?? "";
+        if (!transcriptText) continue;
+        if (result.isFinal) finalText = [finalText, transcriptText].filter(Boolean).join(" ");
+        else interimText = [interimText, transcriptText].filter(Boolean).join(" ");
+      }
+
+      setInterimTranscript(interimText);
+      if (finalText) {
+        processIncomingRef.current(finalText);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      const message = event.error === "not-allowed"
+        ? "Permissão de microfone negada. Autorize o microfone no navegador para o Copilot escutar."
+        : `Erro na escuta: ${event.error}`;
+      setSpeechError(message);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        stopListening();
+      }
+    };
+
+    recognition.onend = () => {
+      if (!listeningRef.current) return;
+      try {
+        recognition.start();
+      } catch {
+        setListening(false);
+        listeningRef.current = false;
+      }
+    };
+
+    recognitionRef.current = recognition;
+    listeningRef.current = true;
+    setSpeechError(null);
+    setListening(true);
+
+    try {
+      recognition.start();
+    } catch (error) {
+      listeningRef.current = false;
+      setListening(false);
+      setSpeechError(error instanceof Error ? error.message : "Não foi possível iniciar a escuta.");
+    }
+  }, [ensureSession, stopListening]);
 
   const startNewSession = () => {
     setActiveSession(null);
@@ -140,6 +279,8 @@ export default function MeetingCopilot() {
     setTranscript("");
     setAnalysis(EMPTY_MEETING_ANALYSIS);
     setLastAnalyzedAt(null);
+    setInterimTranscript("");
+    setSpeechError(null);
     processedRef.current = "";
   };
 
@@ -151,6 +292,8 @@ export default function MeetingCopilot() {
     setTranscript(session.transcript ?? "");
     setAnalysis(normalizeMeetingAnalysis(session.analysis));
     setLastAnalyzedAt(session.updated_at);
+    setInterimTranscript("");
+    setSpeechError(null);
     processedRef.current = "";
   };
 
@@ -198,6 +341,10 @@ export default function MeetingCopilot() {
             <Button variant="outline" onClick={() => processIncomingText(incomingText)} disabled={!incomingText.trim() || analyzing}>
               <Sparkles className="mr-1.5 h-4 w-4" /> Analisar trecho
             </Button>
+            <Button variant={listening ? "destructive" : "outline"} onClick={listening ? stopListening : startListening}>
+              {listening ? <MicOff className="mr-1.5 h-4 w-4" /> : <Mic className="mr-1.5 h-4 w-4" />}
+              {listening ? "Parar escuta" : "Escutar reunião"}
+            </Button>
             <Button onClick={endSession} disabled={!hasSession || activeSession?.status === "ended"}>
               <Square className="mr-1.5 h-4 w-4" /> Encerrar
             </Button>
@@ -241,6 +388,43 @@ export default function MeetingCopilot() {
 
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
                 {activeProfile?.description}
+              </div>
+
+              <div className={cn(
+                "rounded-lg border p-3",
+                listening ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+              )}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {listening ? <Mic className="h-4 w-4 text-primary" /> : <MicOff className="h-4 w-4 text-muted-foreground" />}
+                    <div>
+                      <p className="text-sm font-medium">
+                        {listening ? "Escutando pelo navegador" : "Escuta pelo navegador"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Usa o microfone local para transcrever trechos e alimentar o Copilot automaticamente.
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant={listening ? "destructive" : "outline"} size="sm" onClick={listening ? stopListening : startListening}>
+                    {listening ? "Parar" : "Iniciar escuta"}
+                  </Button>
+                </div>
+                {!speechSupported && (
+                  <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    Seu navegador pode não suportar Web Speech API. Se a escuta não iniciar, use Chrome/Edge ou cole a transcrição manualmente.
+                  </p>
+                )}
+                {interimTranscript && (
+                  <p className="mt-3 rounded-md bg-background px-3 py-2 text-sm italic text-muted-foreground">
+                    {interimTranscript}
+                  </p>
+                )}
+                {speechError && (
+                  <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {speechError}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
