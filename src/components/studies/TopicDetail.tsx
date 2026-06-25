@@ -41,6 +41,7 @@ import {
   useStudyEntries,
 } from "@/hooks/useStudies";
 import { formatRelative } from "@/lib/studyDate";
+import { ensureHtml, getSourceHost, htmlToPlainText, parseRepositorySources } from "@/lib/studyRepository";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { EntryAIAssist } from "./EntryAIAssist";
@@ -348,11 +349,12 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
   const filteredEntries = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
     if (!normalized) return entries;
-    return entries.filter((entry) =>
-      [entry.title, entry.summary, entry.content, entry.source_url, ...(entry.tags ?? [])]
+    return entries.filter((entry) => {
+      const sources = parseRepositorySources(entry);
+      return [entry.title, htmlToPlainText(ensureHtml(entry.summary)), entry.content, entry.source_url, ...(entry.tags ?? []), ...sources.flatMap((source) => [source.title, source.url, source.text])]
         .filter(Boolean)
-        .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalized))
-    );
+        .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalized));
+    });
   }, [entries, query]);
 
   return (
@@ -380,7 +382,12 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
           onClick={query ? undefined : onAdd}
         />
       ) : (
-        <div className="mx-auto max-w-5xl space-y-3">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-xl border border-border bg-card">
+          <div className="hidden grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)_88px] border-b border-border bg-muted/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid">
+            <span>Fontes</span>
+            <span>Resumo e principais takeaways</span>
+            <span className="text-right">Ações</span>
+          </div>
           {filteredEntries.map((entry) => (
             <KnowledgeCard
               key={entry.id}
@@ -586,55 +593,65 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
-  const sourceHost = entry.source_url ? getSourceHost(entry.source_url) : null;
+  const sources = parseRepositorySources(entry);
+  const hasSources = sources.some((source) => source.title || source.url || source.text);
+  const summaryHtml = ensureHtml(entry.summary);
   return (
-    <Card className="group transition-colors hover:border-foreground/20">
-      <CardContent className="space-y-4 p-4 md:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+    <div className="group border-b border-border last:border-b-0 transition-colors hover:bg-muted/20">
+      <div className="grid gap-4 p-4 md:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)_88px] md:p-5">
+        <div className="min-w-0 space-y-3">
+          <div>
             <h3 className="text-base font-medium leading-snug">{entry.title}</h3>
-            <p className="mt-1 text-[11px] text-muted-foreground">Atualizado {formatRelative(entry.updated_at)}</p>
-          </div>
-          <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
-        </div>
-        <div className="grid gap-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-          <div className="rounded-lg border border-border bg-muted/25 p-4">
-            <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {entry.source_url ? <Link2 className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />} Fonte
-            </p>
-            {entry.source_url ? (
-              <a href={entry.source_url} target="_blank" rel="noreferrer" className="block space-y-2 text-sm hover:text-primary">
-                <span className="flex items-center gap-1.5 font-medium"><ExternalLink className="h-3.5 w-3.5" /> {sourceHost}</span>
-                <span className="block break-all text-xs text-muted-foreground">{entry.source_url}</span>
-              </a>
-            ) : entry.content ? (
-              <div className="max-h-44 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-foreground/75">{entry.content}</div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sem fonte adicionada.</p>
-            )}
-          </div>
-          <div className="flex min-w-0 flex-col rounded-lg border border-border p-4">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Minha leitura / relevância</p>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{entry.summary}</p>
-            <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
-              <div className="flex flex-wrap gap-1.5">
-                {entry.tags?.map((tag) => <Badge key={tag} variant="secondary" className="text-[10px] font-normal">#{tag}</Badge>)}
-              </div>
-              <EntryAIAssist topic={topic} entry={entry} mode="enrich" />
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+              {entry.category && <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal">{entry.category}</Badge>}
+              <span>Atualizado {formatRelative(entry.updated_at)}</span>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
-function getSourceHost(url: string) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "Abrir fonte";
-  }
+          <div className="space-y-2">
+            {hasSources ? sources.map((source) => (
+              <div key={source.id} className="rounded-lg border border-border bg-background/70 p-3">
+                <div className="mb-1 flex items-center gap-1.5 text-xs font-medium">
+                  {source.kind === "link" ? <Link2 className="h-3.5 w-3.5 text-primary" /> : <FileText className="h-3.5 w-3.5 text-primary" />}
+                  <span className="min-w-0 truncate">{source.title || (source.url ? getSourceHost(source.url) : "Texto livre")}</span>
+                </div>
+                {source.url ? (
+                  <a href={source.url} target="_blank" rel="noreferrer" className="flex items-start gap-1.5 break-all text-xs text-primary hover:underline">
+                    <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" /> {source.url}
+                  </a>
+                ) : source.text ? (
+                  <p className="line-clamp-4 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">{source.text}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Fonte sem conteúdo preenchido.</p>
+                )}
+              </div>
+            )) : (
+              <div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
+                Sem fonte adicionada.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 space-y-4">
+          <div
+            className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1"
+            dangerouslySetInnerHTML={{ __html: summaryHtml }}
+          />
+          <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
+            <div className="flex flex-wrap gap-1.5">
+              {entry.tags?.map((tag) => <Badge key={tag} variant="secondary" className="text-[10px] font-normal">#{tag}</Badge>)}
+            </div>
+            <EntryAIAssist topic={topic} entry={entry} mode="enrich" />
+          </div>
+        </div>
+
+        <div className="flex justify-end md:pt-1">
+          <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function EntryFooter({ entry }: { entry: StudyEntry }) {

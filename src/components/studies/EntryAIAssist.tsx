@@ -4,6 +4,7 @@ import { Sparkles, Loader2, ExternalLink, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUpdateEntry, type StudyTopic, type StudyEntry } from "@/hooks/useStudies";
+import { ensureHtml, htmlToPlainText, parseRepositorySources } from "@/lib/studyRepository";
 
 interface Source { title: string; url: string; snippet?: string }
 interface QA { q: string; a: string; sources?: Source[] }
@@ -25,10 +26,10 @@ export function EntryAIAssist({ topic, entry, mode = "qa" }: Props) {
     try {
       const { data, error } = await supabase.functions.invoke("study-research", {
         body: {
-          question: `Sobre o registro "${entry.title}" (${entry.entry_date}): ${entry.summary}\n\nPergunta: ${question}`,
+          question: `Sobre o registro "${entry.title}" (${entry.entry_date}): ${htmlToPlainText(ensureHtml(entry.summary))}\n\nPergunta: ${question}`,
           topicTitle: topic.title,
           topicDescription: topic.description,
-          entries: [{ entry_date: entry.entry_date, title: entry.title, summary: entry.summary }],
+          entries: [{ entry_date: entry.entry_date, title: entry.title, summary: htmlToPlainText(ensureHtml(entry.summary)) }],
           history: [],
         },
       });
@@ -47,20 +48,28 @@ export function EntryAIAssist({ topic, entry, mode = "qa" }: Props) {
     if (loading) return;
     setLoading(true);
     try {
-      const source = entry.source_url || entry.content || "Fonte não informada";
+      const repositorySources = parseRepositorySources(entry)
+        .filter((source) => source.title || source.url || source.text)
+        .map((source, index) => [
+          `Fonte ${index + 1}: ${source.title || "Sem título"}`,
+          source.url ? `URL: ${source.url}` : "",
+          source.text ? `Texto: ${source.text}` : "",
+        ].filter(Boolean).join("\n"))
+        .join("\n\n");
+      const source = repositorySources || entry.source_url || entry.content || "Fonte não informada";
       const { data, error } = await supabase.functions.invoke("study-research", {
         body: {
           question: [
             "Reescreva e enriqueça o resumo abaixo, preservando a perspectiva pessoal do autor.",
-            "Explique em um parágrafo conciso por que o conteúdo é relevante, suas implicações e possíveis usos.",
-            "Responda somente com o novo resumo, sem título ou lista de fontes.",
+            "Explique por que o conteúdo é relevante, suas implicações, possíveis usos e principais takeaways.",
+            "Responda com texto claro, curto e estruturado. Não inclua lista de fontes.",
             `Título: ${entry.title}`,
             `Fonte: ${source}`,
-            `Resumo atual: ${entry.summary}`,
+            `Resumo atual: ${htmlToPlainText(ensureHtml(entry.summary))}`,
           ].join("\n\n"),
           topicTitle: topic.title,
           topicDescription: topic.description,
-          entries: [{ entry_date: entry.entry_date, title: entry.title, summary: entry.summary }],
+          entries: [{ entry_date: entry.entry_date, title: entry.title, summary: htmlToPlainText(ensureHtml(entry.summary)) }],
           history: [],
         },
       });
@@ -78,7 +87,7 @@ export function EntryAIAssist({ topic, entry, mode = "qa" }: Props) {
   const applySuggestion = async () => {
     if (!suggestion?.a) return;
     try {
-      await updateEntry.mutateAsync({ id: entry.id, summary: suggestion.a.trim() });
+      await updateEntry.mutateAsync({ id: entry.id, summary: ensureHtml(suggestion.a.trim()) });
       toast.success("Resumo atualizado");
       setSuggestion(null);
       setOpen(false);
