@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send, LayoutGrid, RotateCcw } from "lucide-react";
+import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send, LayoutGrid, RotateCcw, Link2 } from "lucide-react";
 import { useSidebarItems } from "@/hooks/useSidebarItems";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ interface ProviderOption {
 }
 
 const ALL_FEATURES = "Assistente, notas, textos, tarefas, agenda, estudos e voz";
+const MCP_SERVER_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`;
 
 const PROVIDERS: ProviderOption[] = [
   {
@@ -120,6 +121,10 @@ async function hasStoredApiKey(provider: string): Promise<boolean> {
   });
   if (error) throw error;
   return data?.configured === true;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function SettingsPage() {
@@ -274,8 +279,8 @@ export default function SettingsPage() {
 
       toast.success("Configurações salvas!");
       setApiKey("");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Erro ao salvar"));
     } finally {
       setSaving(false);
     }
@@ -306,8 +311,8 @@ export default function SettingsPage() {
       } else {
         toast.success("Conexão validada com a chave salva!");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao testar conexão");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Erro ao testar conexão"));
     } finally {
       setTestingConnection(false);
     }
@@ -344,7 +349,7 @@ export default function SettingsPage() {
       if (!resp.ok) throw new Error(data.error);
       setImportResult({ imported: data.imported, errors: data.errors });
       toast.success(`${data.imported} notas importadas do Evernote!`);
-    } catch (err: any) { toast.error(err.message); } finally { setImporting(false); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, "Erro ao importar Evernote")); } finally { setImporting(false); }
   };
 
   const handleNotionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -383,7 +388,7 @@ export default function SettingsPage() {
       if (!resp.ok) throw new Error(data.error);
       setImportResult({ imported: data.imported, errors: data.errors });
       toast.success(`${data.imported} notas importadas do Notion!`);
-    } catch (err: any) { toast.error(err.message); } finally { setImporting(false); }
+    } catch (err: unknown) { toast.error(getErrorMessage(err, "Erro ao importar Notion")); } finally { setImporting(false); }
   };
 
   if (!loaded) {
@@ -402,6 +407,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="ai" className="space-y-4">
         <TabsList className="bg-muted flex-wrap">
           <TabsTrigger value="ai" className="text-xs"><Bot className="h-3 w-3 mr-1" /> Assistant</TabsTrigger>
+          <TabsTrigger value="mcp" className="text-xs"><Link2 className="h-3 w-3 mr-1" /> MCP</TabsTrigger>
           <TabsTrigger value="telegram" className="text-xs"><Send className="h-3 w-3 mr-1" /> Telegram</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs"><MessageSquare className="h-3 w-3 mr-1" /> WhatsApp</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs"><Bell className="h-3 w-3 mr-1" /> Lembretes</TabsTrigger>
@@ -599,6 +605,11 @@ export default function SettingsPage() {
           </Button>
         </TabsContent>
 
+        {/* MCP TAB */}
+        <TabsContent value="mcp" className="space-y-4">
+          <McpConnectorSettings />
+        </TabsContent>
+
         {/* TELEGRAM TAB */}
         <TabsContent value="telegram" className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
@@ -674,8 +685,8 @@ export default function SettingsPage() {
                       }
 
                       setTgLinkCode(code);
-                    } catch (err: any) {
-                      toast.error(err.message || "Erro ao gerar código");
+                    } catch (err: unknown) {
+                      toast.error(getErrorMessage(err, "Erro ao gerar código"));
                     } finally {
                       setTgLinking(false);
                     }
@@ -891,8 +902,8 @@ export default function SettingsPage() {
                 if (newSettings) setWaSecret(newSettings.webhook_secret);
               }
               toast.success("WhatsApp configurado!");
-            } catch (err: any) {
-              toast.error(err.message || "Erro ao salvar");
+            } catch (err: unknown) {
+              toast.error(getErrorMessage(err, "Erro ao salvar"));
             } finally {
               setWaSaving(false);
             }
@@ -1011,6 +1022,93 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function McpConnectorSettings() {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copyText = async (value: string, label: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopied(label);
+    toast.success(`${label} copiado`);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const codexCommand = `codex mcp add nucleus --url ${MCP_SERVER_URL}`;
+  const claudeCommand = `claude mcp add --transport http nucleus ${MCP_SERVER_URL}`;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">MCP para outras LLMs</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Use este endpoint para conectar Claude, ChatGPT, Cursor, Codex e outros clientes que suportem MCP remoto.
+            </p>
+          </div>
+          <Badge variant="secondary" className="text-[10px]">OAuth</Badge>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">URL do servidor MCP</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              readOnly
+              value={MCP_SERVER_URL}
+              className="flex-1 min-w-0 bg-muted border border-border rounded-lg px-3 py-2 text-xs font-mono outline-none"
+            />
+            <Button variant="outline" size="sm" onClick={() => copyText(MCP_SERVER_URL, "URL MCP")}>
+              {copied === "URL MCP" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Ao conectar, a LLM deve abrir a autorização do Nucleus. Entre com sua conta e aprove o acesso.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <h3 className="text-sm font-semibold">Comandos rápidos</h3>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-muted-foreground">Codex</p>
+            <Button variant="ghost" size="sm" onClick={() => copyText(codexCommand, "Comando Codex")}>
+              {copied === "Comando Codex" ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+              Copiar
+            </Button>
+          </div>
+          <pre className="overflow-x-auto rounded-lg bg-muted p-3 text-xs font-mono text-muted-foreground">
+            {codexCommand}
+          </pre>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-muted-foreground">Claude Code</p>
+            <Button variant="ghost" size="sm" onClick={() => copyText(claudeCommand, "Comando Claude")}>
+              {copied === "Comando Claude" ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+              Copiar
+            </Button>
+          </div>
+          <pre className="overflow-x-auto rounded-lg bg-muted p-3 text-xs font-mono text-muted-foreground">
+            {claudeCommand}
+          </pre>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <h3 className="text-sm font-semibold">Clientes sem comando direto</h3>
+        <div className="space-y-2 text-xs text-muted-foreground">
+          <p><strong>ChatGPT:</strong> Settings → Connectors → Add custom connector → cole a URL MCP e selecione OAuth.</p>
+          <p><strong>Claude Desktop, Cursor e similares:</strong> adicione um servidor MCP remoto/HTTP usando a URL acima e autenticação OAuth, quando disponível.</p>
+          <p>As permissões ficam vinculadas à sessão autorizada no Nucleus e podem ser revogadas pela tela de integrações do MCP.</p>
+        </div>
+      </div>
     </div>
   );
 }
