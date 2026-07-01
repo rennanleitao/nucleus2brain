@@ -72,7 +72,7 @@ export function useSidebarItems() {
 
   const toggle = useCallback((key: SidebarItemKey) => {
     setVisible((prev) => {
-      // Always keep at least one item (Personal Assistant fallback)
+      // Always keep at least one item (Helena fallback)
       const has = prev.includes(key);
       let next = has ? prev.filter((k) => k !== key) : [...prev, key];
       if (next.length === 0) next = ["assistant"];
