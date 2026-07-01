@@ -35,10 +35,15 @@ const AI_MODES = [
 
 export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCreated }: TagBubbleMenuProps) {
   const [tagOpen, setTagOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
+  // Keep the bubble menu visible/positioned while any sub-menu (dropdown/popover)
+  // is open — otherwise Tiptap's default shouldShow hides the menu when the
+  // editor loses focus, and Radix's portal ends up anchored at (0,0).
+  const menuLocked = tagOpen || aiOpen;
 
   // Fetch all user tags when tag popover opens
   useEffect(() => {
