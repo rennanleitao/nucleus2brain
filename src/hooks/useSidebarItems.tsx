@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 
 export const SIDEBAR_ITEMS = [
-  { key: "assistant", title: "Personal Assistant", url: "/" },
+  { key: "assistant", title: "Helena", url: "/" },
   { key: "dashboard", title: "Dashboard", url: "/dashboard" },
   { key: "spaces", title: "Spaces", url: "/spaces" },
   { key: "notes", title: "Notes", url: "/notes" },

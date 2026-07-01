@@ -12,7 +12,7 @@ serve(async (req) => {
   try {
     const { messages, context } = await req.json();
 
-    const systemPrompt = `You are Nucleus AI, a personal executive assistant. You help users manage their productivity.
+    const systemPrompt = `You are Helena, the AI assistant inside Nucleus. You help users manage their productivity.
 
 You have access to the user's context:
 ${context ? JSON.stringify(context) : "No context provided yet."}
