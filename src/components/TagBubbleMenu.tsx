@@ -35,10 +35,15 @@ const AI_MODES = [
 
 export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCreated }: TagBubbleMenuProps) {
   const [tagOpen, setTagOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
+  // Keep the bubble menu visible/positioned while any sub-menu (dropdown/popover)
+  // is open — otherwise Tiptap's default shouldShow hides the menu when the
+  // editor loses focus, and Radix's portal ends up anchored at (0,0).
+  const menuLocked = tagOpen || aiOpen;
 
   // Fetch all user tags when tag popover opens
   useEffect(() => {
@@ -196,6 +201,10 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
       <BubbleMenu
         editor={editor}
         options={{ placement: "top" }}
+        shouldShow={({ editor, from, to }) => {
+          if (menuLocked) return true;
+          return from !== to && editor.isEditable;
+        }}
         className="flex items-center gap-0.5 bg-popover border border-border rounded-lg shadow-elevated px-1 py-0.5"
       >
         {/* Tag button */}
@@ -250,7 +259,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
         <div className="w-px h-4 bg-border mx-0.5" />
 
         {/* AI Improve dropdown */}
-        <DropdownMenu>
+        <DropdownMenu open={aiOpen} onOpenChange={setAiOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
