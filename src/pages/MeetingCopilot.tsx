@@ -105,7 +105,7 @@ export default function MeetingCopilot() {
   const [analyzing, setAnalyzing] = useState(false);
   const [listening, setListening] = useState(false);
   const [meetingUrl, setMeetingUrl] = useState("");
-  const [botName, setBotName] = useState("Nucleus Copilot");
+  const [botName, setBotName] = useState("Helena");
   const [invitingBot, setInvitingBot] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [speechError, setSpeechError] = useState<string | null>(null);
@@ -290,7 +290,7 @@ export default function MeetingCopilot() {
         body: {
           session_id: session.id,
           meeting_url: cleanUrl,
-          bot_name: botName.trim() || "Nucleus Copilot",
+          bot_name: botName.trim() || "Helena",
           language_code: "pt",
         },
       });
@@ -315,7 +315,7 @@ export default function MeetingCopilot() {
     setTranscript("");
     setAnalysis(EMPTY_MEETING_ANALYSIS);
     setMeetingUrl("");
-    setBotName("Nucleus Copilot");
+    setBotName("Helena");
     setLastAnalyzedAt(null);
     setInterimTranscript("");
     setSpeechError(null);
@@ -330,7 +330,7 @@ export default function MeetingCopilot() {
     setTranscript(session.transcript ?? "");
     setAnalysis(normalizeMeetingAnalysis(session.analysis));
     setMeetingUrl(session.meeting_url ?? "");
-    setBotName(session.bot_name ?? "Nucleus Copilot");
+    setBotName(session.bot_name ?? "Helena");
     setLastAnalyzedAt(session.updated_at);
     setInterimTranscript("");
     setSpeechError(null);
