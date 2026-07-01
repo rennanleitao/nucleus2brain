@@ -259,7 +259,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
         <div className="w-px h-4 bg-border mx-0.5" />
 
         {/* AI Improve dropdown */}
-        <DropdownMenu>
+        <DropdownMenu open={aiOpen} onOpenChange={setAiOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
