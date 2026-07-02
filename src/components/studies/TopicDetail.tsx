@@ -703,3 +703,130 @@ function parseLocalDate(value: string) {
 function formatEntryDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(parseLocalDate(value));
 }
+
+interface Takeaway {
+  id: string;
+  text: string;
+  source: string;
+  date: string | null;
+}
+
+function TopicOverview({
+  notes,
+  takeaways,
+  focusMode,
+}: {
+  notes: string | null;
+  takeaways: Takeaway[];
+  focusMode: boolean;
+}) {
+  const hasNotes = !!notes && notes.trim().length > 0;
+  const paragraphs = hasNotes ? splitParagraphs(notes!) : [];
+  const hasTakeaways = takeaways.length > 0;
+
+  return (
+    <section
+      className={cn(
+        "mt-8 grid gap-8",
+        hasNotes && hasTakeaways ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "grid-cols-1"
+      )}
+    >
+      {hasNotes && (
+        <article className="min-w-0">
+          <SectionEyebrow icon={FileText} label="Visão geral" />
+          <div
+            className={cn(
+              "mt-4 space-y-5 font-serif text-foreground/90",
+              focusMode ? "text-[19px] leading-[1.85]" : "text-[17px] leading-[1.8]"
+            )}
+          >
+            {paragraphs.map((paragraph, index) => (
+              <p
+                key={index}
+                className={cn(
+                  "whitespace-pre-wrap",
+                  index === 0 && "first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:text-5xl first-letter:font-semibold first-letter:leading-[0.9] first-letter:text-foreground"
+                )}
+              >
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        </article>
+      )}
+
+      {hasTakeaways && (
+        <aside
+          className={cn(
+            "min-w-0",
+            hasNotes ? "lg:sticky lg:top-6 lg:self-start" : ""
+          )}
+        >
+          <SectionEyebrow icon={Sparkles} label="Principais takeaways" count={takeaways.length} />
+          <ol className="mt-4 space-y-3">
+            {takeaways.map((takeaway, index) => (
+              <li
+                key={takeaway.id}
+                className="group relative rounded-lg border border-border/70 bg-card p-4 transition-colors hover:border-foreground/25"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-background text-[11px] font-semibold tabular-nums text-muted-foreground">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-[13px] leading-relaxed text-foreground/90">
+                      <Quote className="mr-1 inline h-3 w-3 -translate-y-0.5 text-primary/60" aria-hidden />
+                      {takeaway.text}
+                    </p>
+                    <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {takeaway.source}
+                      {takeaway.date && (
+                        <>
+                          <span className="mx-1.5 text-border">•</span>
+                          {formatEntryDate(takeaway.date)}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </aside>
+      )}
+    </section>
+  );
+}
+
+function SectionEyebrow({
+  icon: Icon,
+  label,
+  count,
+}: {
+  icon: typeof FileText;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <div className="flex items-center gap-2 border-b border-border/60 pb-2">
+      <Icon className="h-3.5 w-3.5 text-primary" />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </span>
+      {count !== undefined && (
+        <span className="ml-auto text-[11px] font-medium tabular-nums text-muted-foreground/70">
+          {count.toString().padStart(2, "0")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function splitParagraphs(value: string): string[] {
+  return value
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
