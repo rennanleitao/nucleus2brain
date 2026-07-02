@@ -2,9 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } fr
 import {
   Brain,
   CheckCircle2,
-  CircleHelp,
   Download,
-  History,
   Laptop,
   ListChecks,
   Mic,
@@ -15,16 +13,14 @@ import {
   Square,
   Tag,
   Trash2,
-  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -32,10 +28,8 @@ import {
   type MeetingCopilotAnalysis,
   type MeetingCopilotSession,
   normalizeMeetingAnalysis,
-  useCreateMeetingCopilotSegment,
   useCreateMeetingCopilotSession,
   useDeleteMeetingCopilotSession,
-  useMeetingCopilotSegments,
   useMeetingCopilotSessions,
   useUpdateMeetingCopilotSession,
 } from "@/hooks/useMeetingCopilot";
@@ -107,7 +101,6 @@ export default function MeetingCopilot() {
   const { data: sessions = [] } = useMeetingCopilotSessions();
   const createSession = useCreateMeetingCopilotSession();
   const updateSession = useUpdateMeetingCopilotSession();
-  const createSegment = useCreateMeetingCopilotSegment();
   const deleteSession = useDeleteMeetingCopilotSession();
 
   const [mode, setMode] = useState<MeetingMode | null>(null);
@@ -138,7 +131,6 @@ export default function MeetingCopilot() {
   const recordingRef = useRef(false);
   const shouldRestartRecognitionRef = useRef(false);
 
-  const { data: segments = [] } = useMeetingCopilotSegments(activeSession?.id);
   const canRecord = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
 
   const derivedTitle = useMemo(() => {
@@ -251,17 +243,11 @@ export default function MeetingCopilot() {
       setTranscript(nextTranscript);
       setManualText("");
 
-      const nextAnalysis = await analyze(nextTranscript, content, session.id);
-      await createSegment.mutateAsync({
-        session_id: session.id,
-        content,
-        analysis_snapshot: nextAnalysis,
-        source,
-      });
+      await analyze(nextTranscript, content, session.id);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível organizar a reunião");
     }
-  }, [analyze, createSegment, ensureSession, meetingWith, mode, theme, transcript]);
+  }, [analyze, ensureSession, meetingWith, mode, theme, transcript]);
 
   const transcribeAudioClip = useCallback(async (clip: RecordedAudio) => {
     setTranscribingClipId(clip.id);
@@ -488,7 +474,7 @@ export default function MeetingCopilot() {
 
   const handleDeleteSession = async (session: MeetingCopilotSession, event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    const confirmed = window.confirm(`Excluir "${session.title}" e todos os trechos capturados?`);
+    const confirmed = window.confirm(`Excluir "${session.title}" e todo o conteúdo organizado?`);
     if (!confirmed) return;
 
     try {
@@ -573,7 +559,7 @@ export default function MeetingCopilot() {
                         {recording ? `Gravando ${formatDuration(elapsedSeconds)}` : "Pronto para gravar"}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        A gravação salva o áudio. Depois use Transcrever em cada trecho para organizar a reunião.
+                        A gravação salva o áudio. Depois use Transcrever para gerar a reunião organizada.
                       </p>
                     </div>
                   </div>
@@ -595,7 +581,7 @@ export default function MeetingCopilot() {
                     <div className="flex items-center justify-between gap-2">
                       <Label>Áudios gravados</Label>
                       <span className="text-xs text-muted-foreground">
-                        {audioClips.length} {audioClips.length === 1 ? "trecho" : "trechos"}
+                        {audioClips.length} {audioClips.length === 1 ? "áudio" : "áudios"}
                       </span>
                     </div>
                     <div className="space-y-2">
@@ -635,7 +621,6 @@ export default function MeetingCopilot() {
                             </div>
                           </div>
                           <audio src={clip.url} controls className="h-9 w-full max-w-full" />
-                          {clip.transcript && <AudioTranscriptPreview text={clip.transcript} />}
                         </div>
                       ))}
                     </div>
@@ -643,12 +628,12 @@ export default function MeetingCopilot() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="manual-notes">Adicionar trecho manual ou transcrição</Label>
+                  <Label htmlFor="manual-notes">Adicionar observação manual</Label>
                   <Textarea
                     id="manual-notes"
                     value={manualText}
                     onChange={(event) => setManualText(event.target.value)}
-                    placeholder="Cole aqui um trecho, observação ou transcrição se a captura automática não estiver disponível."
+                    placeholder="Escreva uma observação, decisão ou próximo passo para incorporar à reunião."
                     className="min-h-28"
                   />
                   <Button variant="outline" onClick={() => processText(manualText)} disabled={!manualText.trim() || analyzing}>
@@ -707,85 +692,42 @@ export default function MeetingCopilot() {
             <CardHeader className="flex flex-row items-start justify-between gap-3">
               <div>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Brain className="h-4 w-4" /> Organização da reunião
+                  <Brain className="h-4 w-4" /> Reunião organizada
                 </CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Resumo, decisões, tarefas e contexto extraídos automaticamente da transcrição.
+                  Resumo e conteúdo final da reunião, sem separar por trechos.
                 </p>
               </div>
               {analyzing && <Badge variant="secondary" className="shrink-0 animate-pulse">Organizando...</Badge>}
             </CardHeader>
             <CardContent className="space-y-3">
-              {!transcript && segments.length === 0 && !analyzing ? (
+              {!transcript && !analyzing ? (
                 <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                  Grave e transcreva um áudio para gerar o registro organizado da reunião.
+                  Grave e transcreva um áudio para gerar o resumo e o conteúdo organizado da reunião.
                 </div>
               ) : (
-                <>
-                  <AnalysisBlock icon={Brain} title="Resumo" items={analysis.summary ? [analysis.summary] : []} empty="Aguardando transcrição." featured />
-                  <div className="grid gap-3 xl:grid-cols-2">
-                    <AnalysisBlock icon={CheckCircle2} title="Decisões" items={analysis.decisions} empty="Sem decisões." />
-                    <AnalysisBlock icon={ListChecks} title="Tarefas" items={analysis.action_items} empty="Sem tarefas." />
-                    <AnalysisBlock icon={Tag} title="Temas e tags" items={[analysis.theme_suggestion, ...analysis.key_topics, ...analysis.related_themes, ...analysis.tags].filter(Boolean)} empty="Sem tema." />
-                    <AnalysisBlock icon={Users} title="Pessoas" items={analysis.people} empty="Sem pessoas identificadas." />
-                    <AnalysisBlock icon={CircleHelp} title="Perguntas abertas" items={analysis.open_questions} empty="Sem perguntas abertas." />
-                  </div>
-                </>
+                <Tabs defaultValue="summary" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="summary">Resumo</TabsTrigger>
+                    <TabsTrigger value="content">Conteúdo organizado</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="summary" className="mt-4">
+                    <MeetingSummary analysis={analysis} />
+                  </TabsContent>
+                  <TabsContent value="content" className="mt-4">
+                    <OrganizedMeetingContent
+                      transcript={transcript}
+                      analysis={analysis}
+                      mode={mode}
+                      meetingWith={meetingWith}
+                      theme={theme}
+                      startedAt={activeSession?.started_at}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
             </CardContent>
           </Card>
-
-          {(activeSession || transcript || segments.length > 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <History className="h-4 w-4" /> Registro da reunião
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{mode === "online" ? "Online" : "Presencial"}</Badge>
-                  {meetingWith.trim() && <Badge variant="outline">Com {meetingWith.trim()}</Badge>}
-                  {(theme.trim() || analysis.theme_suggestion) && <Badge variant="outline">{theme.trim() || analysis.theme_suggestion}</Badge>}
-                  {activeSession?.started_at && (
-                    <Badge variant="outline">
-                      {new Date(activeSession.started_at).toLocaleDateString("pt-BR")} às {new Date(activeSession.started_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Transcrição consolidada</Label>
-                  {transcript ? (
-                    <ScrollArea className="h-48 rounded-lg border bg-muted/20 p-3">
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{transcript}</p>
-                    </ScrollArea>
-                  ) : (
-                    <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Nenhuma transcrição consolidada ainda.</p>
-                  )}
-                </div>
-
-                {segments.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Trechos capturados</Label>
-                    <div className="space-y-2">
-                      {segments.map((segment, index) => (
-                        <div key={segment.id} className="rounded-lg border p-3">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <Badge variant="outline">Trecho {index + 1}</Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(segment.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          </div>
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{segment.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </main>
 
         <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
@@ -929,59 +871,117 @@ function BotStatus({ session }: { session: MeetingCopilotSession | null }) {
   );
 }
 
-function AnalysisBlock({
+function MeetingSummary({ analysis }: { analysis: MeetingCopilotAnalysis }) {
+  return (
+    <section className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Brain className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-medium">Resumo</h3>
+      </div>
+      {analysis.summary ? (
+        <p className="text-sm leading-relaxed text-muted-foreground">{analysis.summary}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground">Aguardando organização da reunião.</p>
+      )}
+    </section>
+  );
+}
+
+function OrganizedMeetingContent({
+  transcript,
+  analysis,
+  mode,
+  meetingWith,
+  theme,
+  startedAt,
+}: {
+  transcript: string;
+  analysis: MeetingCopilotAnalysis;
+  mode: MeetingMode | null;
+  meetingWith: string;
+  theme: string;
+  startedAt?: string | null;
+}) {
+  const paragraphs = getOrganizedParagraphs(transcript);
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline">{mode === "online" ? "Online" : "Presencial"}</Badge>
+        {meetingWith.trim() && <Badge variant="outline">Com {meetingWith.trim()}</Badge>}
+        {(theme.trim() || analysis.theme_suggestion) && <Badge variant="outline">{theme.trim() || analysis.theme_suggestion}</Badge>}
+        {startedAt && (
+          <Badge variant="outline">
+            {new Date(startedAt).toLocaleDateString("pt-BR")} às {new Date(startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+          </Badge>
+        )}
+      </div>
+
+      {paragraphs.length > 0 && (
+        <section className="space-y-3 rounded-lg border p-4">
+          {paragraphs.map((paragraph, index) => (
+            <p key={`meeting-paragraph-${index}`} className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+              {paragraph}
+            </p>
+          ))}
+        </section>
+      )}
+
+      <div className="grid gap-3 xl:grid-cols-3">
+        <MeetingContentSection icon={Tag} title="Tópicos" items={analysis.key_topics} empty="Sem tópicos identificados." />
+        <MeetingContentSection icon={CheckCircle2} title="Decisões" items={analysis.decisions} empty="Sem decisões." />
+        <MeetingContentSection icon={ListChecks} title="Próximos passos" items={analysis.action_items} empty="Sem próximos passos." />
+      </div>
+    </div>
+  );
+}
+
+function MeetingContentSection({
   icon: Icon,
   title,
   items,
   empty,
-  featured = false,
 }: {
   icon: typeof Brain;
   title: string;
   items: string[];
   empty: string;
-  featured?: boolean;
 }) {
   return (
-    <section className={cn("rounded-lg border p-3", featured ? "border-primary/20 bg-primary/5" : "bg-card")}>
+    <section className="rounded-lg border p-3">
       <div className="mb-2 flex items-center gap-2">
-        <Icon className={cn("h-4 w-4", featured ? "text-primary" : "text-muted-foreground")} />
+        <Icon className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-medium">{title}</h3>
       </div>
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <div className="space-y-2">
+      {items.length > 0 ? (
+        <ul className="space-y-2">
           {items.map((item, index) => (
-            <p key={`${title}-${index}`} className="text-sm leading-relaxed text-muted-foreground">{item}</p>
+            <li key={`${title}-${index}`} className="text-sm leading-relaxed text-muted-foreground">
+              {item}
+            </li>
           ))}
-        </div>
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">{empty}</p>
       )}
     </section>
   );
+}
+
+function getOrganizedParagraphs(transcript: string) {
+  return transcript
+    .split(/\n{2,}/)
+    .map((block) => block
+      .split("\n")
+      .filter((line) => !/^(Com quem|Tema|Tipo):/i.test(line.trim()))
+      .join("\n")
+      .trim())
+    .filter(Boolean);
 }
 
 function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-}
-
-function AudioTranscriptPreview({ text }: { text: string }) {
-  return (
-    <Collapsible>
-      <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="mt-2 h-8 w-fit px-2 text-xs text-muted-foreground">
-          Ver texto organizado
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <ScrollArea className="mt-2 max-h-40 rounded-md border bg-muted/30 p-3">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{text}</p>
-        </ScrollArea>
-      </CollapsibleContent>
-    </Collapsible>
-  );
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
