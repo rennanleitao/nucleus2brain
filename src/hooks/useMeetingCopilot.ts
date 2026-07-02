@@ -277,14 +277,35 @@ export function useDeleteMeetingCopilotSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db
+      const { data, error } = await db
         .from("meeting_copilot_sessions")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .select("id")
+        .single<{ id: string }>();
       if (error) throw error;
+      return data;
     },
-    onSuccess: (_data, id) => {
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["meeting_copilot_sessions"] });
+      const previousSessions = qc.getQueryData<MeetingCopilotSession[]>(["meeting_copilot_sessions"]);
+
+      qc.setQueryData<MeetingCopilotSession[]>(["meeting_copilot_sessions"], (current = []) => (
+        current.filter((session) => session.id !== id)
+      ));
+      qc.removeQueries({ queryKey: ["meeting_copilot_sessions", id] });
+      qc.removeQueries({ queryKey: ["meeting_copilot_segments", id] });
+
+      return { previousSessions };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previousSessions) {
+        qc.setQueryData(["meeting_copilot_sessions"], context.previousSessions);
+      }
+    },
+    onSettled: (_data, _error, id) => {
       qc.invalidateQueries({ queryKey: ["meeting_copilot_sessions"] });
+      qc.removeQueries({ queryKey: ["meeting_copilot_sessions", id] });
       qc.removeQueries({ queryKey: ["meeting_copilot_segments", id] });
     },
   });
