@@ -691,9 +691,6 @@ function parseLocalDate(value: string) {
   return new Date(year, month - 1, day);
 }
 
-function formatEntryDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(parseLocalDate(value));
-}
 
 
 function SectionEyebrow({
