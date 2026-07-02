@@ -541,7 +541,7 @@ export default function MeetingCopilot() {
   const handleDeleteSession = async (session: MeetingCopilotSession) => {
     try {
       await deleteSession.mutateAsync(session.id);
-      if (activeSession?.id === session.id) {
+      if (activeSession?.id === session.id || sessionId === session.id) {
         resetMeeting();
         navigate("/reunioes");
       }

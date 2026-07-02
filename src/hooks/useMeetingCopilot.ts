@@ -77,6 +77,8 @@ const db = supabase as unknown as {
   from(table: "meeting_copilot_sessions" | "meeting_copilot_segments"): SupabaseQueryBuilder;
 };
 
+const locallyDeletedMeetingSessionIds = new Set<string>();
+
 export const EMPTY_MEETING_ANALYSIS: MeetingCopilotAnalysis = {
   summary: "",
   theme_suggestion: "",
@@ -151,10 +153,12 @@ export function useMeetingCopilotSessions() {
         .order("updated_at", { ascending: false })
         .limit(30);
       if (error) throw error;
-      return (data ?? []).map((session: MeetingCopilotSession) => ({
-        ...session,
-        analysis: normalizeMeetingAnalysis(session.analysis),
-      })) as MeetingCopilotSession[];
+      return (data ?? [])
+        .filter((session: MeetingCopilotSession) => !locallyDeletedMeetingSessionIds.has(session.id))
+        .map((session: MeetingCopilotSession) => ({
+          ...session,
+          analysis: normalizeMeetingAnalysis(session.analysis),
+        })) as MeetingCopilotSession[];
     },
   });
 }
@@ -277,14 +281,37 @@ export function useDeleteMeetingCopilotSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db
+      const { data, error } = await db
         .from("meeting_copilot_sessions")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .select("id")
+        .single<{ id: string }>();
       if (error) throw error;
+      return data;
     },
-    onSuccess: (_data, id) => {
+    onMutate: async (id) => {
+      locallyDeletedMeetingSessionIds.add(id);
+      await qc.cancelQueries({ queryKey: ["meeting_copilot_sessions"] });
+      const previousSessions = qc.getQueryData<MeetingCopilotSession[]>(["meeting_copilot_sessions"]);
+
+      qc.setQueryData<MeetingCopilotSession[]>(["meeting_copilot_sessions"], (current = []) => (
+        current.filter((session) => session.id !== id)
+      ));
+      qc.removeQueries({ queryKey: ["meeting_copilot_sessions", id] });
+      qc.removeQueries({ queryKey: ["meeting_copilot_segments", id] });
+
+      return { previousSessions };
+    },
+    onError: (_error, _id, context) => {
+      locallyDeletedMeetingSessionIds.delete(_id);
+      if (context?.previousSessions) {
+        qc.setQueryData(["meeting_copilot_sessions"], context.previousSessions);
+      }
+    },
+    onSettled: (_data, _error, id) => {
       qc.invalidateQueries({ queryKey: ["meeting_copilot_sessions"] });
+      qc.removeQueries({ queryKey: ["meeting_copilot_sessions", id] });
       qc.removeQueries({ queryKey: ["meeting_copilot_segments", id] });
     },
   });
