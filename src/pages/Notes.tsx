@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { getBrtToday } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionErrors";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { NoteAIChat } from "@/components/NoteAIChat";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
@@ -10,6 +11,7 @@ import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -436,7 +438,7 @@ export default function Notes() {
       setDirty(true);
       toast.success(`${clip.name} inserido na nota`);
     } catch (err: any) {
-      toast.error(err?.message || "Não foi possível transcrever este áudio");
+      toast.error(getEdgeFunctionErrorMessage(err, "Não foi possível transcrever este áudio"));
     } finally {
       setTranscribingClipId(null);
     }
@@ -887,9 +889,7 @@ export default function Notes() {
                             </div>
                           </div>
                           <audio src={clip.url} controls className="h-8 w-full max-w-full" />
-                          {clip.transcript && (
-                            <p className="rounded-md bg-background px-2 py-1.5 text-xs leading-relaxed text-muted-foreground">{clip.transcript}</p>
-                          )}
+                          {clip.transcript && <AudioTranscriptPreview text={clip.transcript} compact />}
                         </div>
                       ))}
                     </div>
@@ -1070,11 +1070,28 @@ function buildAudioCaptureHtml(clip: NoteAudioClip, transcript: string) {
 
   return `
     <section>
-      <h2>Captura de áudio - ${recordedAt}</h2>
+      <h2>Nota organizada por áudio - ${recordedAt}</h2>
       <p><strong>Duração:</strong> ${formatDuration(clip.durationSeconds)}</p>
-      <blockquote>${escapedTranscript}</blockquote>
+      ${escapedTranscript.split("<br />").map((line) => `<p>${line}</p>`).join("")}
     </section>
   `;
+}
+
+function AudioTranscriptPreview({ text, compact = false }: { text: string; compact?: boolean }) {
+  return (
+    <Collapsible>
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 w-fit px-2 text-xs text-muted-foreground">
+          Ver texto organizado
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <ScrollArea className={compact ? "mt-1 max-h-28 rounded-md border bg-background p-2" : "mt-2 max-h-40 rounded-md border bg-background p-2"}>
+          <p className="whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">{text}</p>
+        </ScrollArea>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }
 
 function escapeHtml(value: string) {

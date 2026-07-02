@@ -69,7 +69,15 @@ serve(async (req) => {
           content: [
             {
               type: "text",
-              text: "Transcreva este áudio de reunião em português do Brasil. Preserve nomes, decisões, números e tarefas quando forem mencionados. Retorne APENAS a transcrição, sem comentários.",
+              text: [
+                "Transforme este áudio em uma nota organizada em português do Brasil.",
+                "Não faça uma transcrição literal bruta.",
+                "Preserve detalhes importantes: nomes, empresas, números, datas, objeções, decisões, tarefas, responsáveis, próximos passos e exemplos mencionados.",
+                "Remova vícios de fala, repetições e hesitações sem perder conteúdo.",
+                "Organize em texto funcional para uma nota executiva, usando títulos curtos e bullets quando fizer sentido.",
+                "Quando houver incerteza, mantenha a informação com linguagem cuidadosa em vez de inventar.",
+                "Retorne APENAS o texto organizado da nota, sem introdução ou comentários sobre o áudio.",
+              ].join(" "),
             },
             {
               type: "input_audio",
