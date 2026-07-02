@@ -141,6 +141,8 @@ export default function MeetingCopilot() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioClipsRef = useRef<RecordedAudio[]>([]);
+  const activeSessionRef = useRef<MeetingCopilotSession | null>(null);
+  const sessionCreationRef = useRef<Promise<MeetingCopilotSession> | null>(null);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const recordingRef = useRef(false);
   const shouldRestartRecognitionRef = useRef(false);
@@ -170,6 +172,10 @@ export default function MeetingCopilot() {
   }, [audioClips]);
 
   useEffect(() => {
+    activeSessionRef.current = activeSession;
+  }, [activeSession]);
+
+  useEffect(() => {
     return () => {
       recordingRef.current = false;
       shouldRestartRecognitionRef.current = false;
@@ -180,6 +186,8 @@ export default function MeetingCopilot() {
   }, []);
 
   const resetMeeting = () => {
+    activeSessionRef.current = null;
+    sessionCreationRef.current = null;
     setActiveSession(null);
     setTitle("Reunião sem título");
     setMeetingWith("");
@@ -198,17 +206,24 @@ export default function MeetingCopilot() {
   };
 
   const ensureSession = useCallback(async () => {
-    if (activeSession) return activeSession;
+    if (activeSessionRef.current) return activeSessionRef.current;
+    if (sessionCreationRef.current) return sessionCreationRef.current;
 
-    const created = await createSession.mutateAsync({
+    const creation = createSession.mutateAsync({
       title: derivedTitle,
       profile: meetingType === "sales" ? "sales" : meetingType === "relationship" ? "csc" : meetingType === "process" ? "rpa" : "executive",
       theme: theme.trim() || null,
       capture_type: mode === "online" ? "online_meeting" : "in_person_meeting",
     });
+    sessionCreationRef.current = creation;
+
+    const created = await creation.finally(() => {
+      sessionCreationRef.current = null;
+    });
+    activeSessionRef.current = created;
     setActiveSession(created);
     return created;
-  }, [activeSession, createSession, derivedTitle, meetingType, mode, theme]);
+  }, [createSession, derivedTitle, meetingType, mode, theme]);
 
   const analyze = useCallback(async (nextTranscript: string, latestSegment: string, sessionId: string) => {
     setAnalyzing(true);
@@ -419,10 +434,11 @@ export default function MeetingCopilot() {
     recognitionRef.current?.stop();
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
 
-    if (activeSession) {
+    const session = activeSessionRef.current;
+    if (session) {
       try {
         const ended = await updateSession.mutateAsync({
-          id: activeSession.id,
+          id: session.id,
           status: "ended",
           ended_at: new Date().toISOString(),
           title: derivedTitle,
@@ -431,6 +447,7 @@ export default function MeetingCopilot() {
           transcript,
           analysis,
         });
+        activeSessionRef.current = ended;
         setActiveSession(ended);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "A gravação parou, mas não foi possível salvar a reunião");
@@ -479,6 +496,8 @@ export default function MeetingCopilot() {
 
   const loadSession = useCallback((session: MeetingCopilotSession) => {
     setMode(session.meeting_url ? "online" : "in_person");
+    activeSessionRef.current = session;
+    sessionCreationRef.current = null;
     setActiveSession(session);
     setTitle(session.title);
     setTheme(session.theme ?? "");
