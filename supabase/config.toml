@@ -33,6 +33,9 @@ verify_jwt = false
 [functions.parse-voice-task]
 verify_jwt = false
 
+[functions.transcribe-meeting-audio]
+verify_jwt = false
+
 [functions.telegram-poll]
 verify_jwt = false
 

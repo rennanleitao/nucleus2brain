@@ -62,6 +62,7 @@ interface SupabaseQueryBuilder {
   select(columns?: string): SupabaseQueryBuilder;
   insert(value: unknown): SupabaseQueryBuilder;
   update(value: unknown): SupabaseQueryBuilder;
+  delete(): SupabaseQueryBuilder;
   eq(column: string, value: unknown): SupabaseQueryBuilder;
   order(column: string, options?: { ascending?: boolean }): SupabaseQueryBuilder;
   limit(count: number): SupabaseQueryBuilder;
@@ -249,6 +250,23 @@ export function useUpdateMeetingCopilotSession() {
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: ["meeting_copilot_sessions"] });
       qc.invalidateQueries({ queryKey: ["meeting_copilot_segments", input.id] });
+    },
+  });
+}
+
+export function useDeleteMeetingCopilotSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await db
+        .from("meeting_copilot_sessions")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["meeting_copilot_sessions"] });
+      qc.removeQueries({ queryKey: ["meeting_copilot_segments", id] });
     },
   });
 }
