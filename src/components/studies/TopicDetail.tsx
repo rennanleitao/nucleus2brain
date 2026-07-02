@@ -97,20 +97,8 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
     [entries]
   );
 
-  const takeaways = useMemo(() => {
-    return entries
-      .filter((entry) => entry.highlight && entry.highlight.trim().length > 0)
-      .map((entry) => ({
-        id: entry.id,
-        text: entry.highlight!.trim(),
-        source: entry.title,
-        date: entry.entry_date,
-      }));
-  }, [entries]);
-
-  const hasFreeText = !!topic.notes && topic.notes.trim().length > 0;
   const hasDescription = !!topic.description && topic.description.trim().length > 0;
-  const hasOverview = hasFreeText || takeaways.length > 0;
+
 
   useEffect(() => {
     setActiveTab("library");
