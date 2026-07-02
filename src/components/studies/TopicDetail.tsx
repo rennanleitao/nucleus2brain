@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import {
   NotebookPen,
   Pencil,
   Plus,
-  Quote,
+  
   Search,
   Sparkles,
   Trash2,
@@ -41,7 +41,10 @@ import {
   useMoveEntry,
   useStudyAreas,
   useStudyEntries,
+  useUpdateEntry,
 } from "@/hooks/useStudies";
+import { RichTextEditor } from "@/components/RichTextEditor";
+
 import { formatRelative } from "@/lib/studyDate";
 import { ensureHtml, getSourceHost, htmlToPlainText, parseRepositorySources } from "@/lib/studyRepository";
 import { cn } from "@/lib/utils";
@@ -599,9 +602,37 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
 }) {
   const sources = parseRepositorySources(entry);
   const hasSources = sources.some((source) => source.title || source.url || source.text);
-  const summaryHtml = ensureHtml(entry.summary);
+  const initialHtml = useMemo(() => ensureHtml(entry.summary), [entry.id]);
+  const [summaryHtml, setSummaryHtml] = useState(initialHtml);
+  const [highlight, setHighlight] = useState(entry.highlight ?? "");
+  const updateEntry = useUpdateEntry();
+  const summaryTimer = useRef<number | null>(null);
+  const highlightTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    setSummaryHtml(ensureHtml(entry.summary));
+  }, [entry.id, entry.summary]);
+  useEffect(() => {
+    setHighlight(entry.highlight ?? "");
+  }, [entry.id, entry.highlight]);
+
+  const scheduleSummarySave = (html: string) => {
+    setSummaryHtml(html);
+    if (summaryTimer.current) window.clearTimeout(summaryTimer.current);
+    summaryTimer.current = window.setTimeout(() => {
+      updateEntry.mutate({ id: entry.id, summary: html });
+    }, 700);
+  };
+  const scheduleHighlightSave = (value: string) => {
+    setHighlight(value);
+    if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(() => {
+      updateEntry.mutate({ id: entry.id, highlight: value });
+    }, 700);
+  };
+
   return (
-    <article className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/20">
+    <article className="group overflow-hidden rounded-xl border border-border bg-card font-sans transition-colors hover:border-foreground/20">
       <header className="flex items-start justify-between gap-4 border-b border-border/60 px-6 py-5 md:px-10 md:py-7">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -615,23 +646,30 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
       </header>
 
       <div className="space-y-8 px-6 py-7 md:px-10 md:py-9">
-        {entry.highlight && (
-          <section>
-            <SectionEyebrow icon={Sparkles} label="Principais takeaways" />
-            <blockquote className="mt-4 border-l-2 border-primary/50 pl-5 text-[15px] italic leading-[1.75] text-foreground/90 md:text-base">
-              <Quote className="mr-1 inline h-3.5 w-3.5 -translate-y-0.5 text-primary/60" aria-hidden />
-              {entry.highlight}
-            </blockquote>
-          </section>
-        )}
+        <section>
+          <SectionEyebrow icon={Sparkles} label="Principais takeaways" />
+          <textarea
+            value={highlight}
+            onChange={(event) => scheduleHighlightSave(event.target.value)}
+            placeholder="Escreva o principal takeaway deste conteúdo..."
+            rows={2}
+            className="mt-4 w-full resize-none border-l-2 border-primary/50 bg-transparent pl-5 text-[15px] italic leading-[1.75] text-foreground/90 outline-none placeholder:text-muted-foreground/60 focus:border-primary md:text-base"
+          />
+        </section>
 
         <section>
           <SectionEyebrow icon={FileText} label="Conteúdo" />
-          <div
-            className="prose prose-base mt-4 max-w-none font-serif text-foreground/90 dark:prose-invert prose-headings:font-sans prose-headings:tracking-tight prose-p:leading-[1.8] prose-p:text-foreground/85 prose-li:my-1 prose-li:leading-[1.75]"
-            dangerouslySetInnerHTML={{ __html: summaryHtml }}
-          />
+          <div className="mt-4 -mx-2">
+            <RichTextEditor
+              content={summaryHtml}
+              onChange={scheduleSummarySave}
+              placeholder="Escreva o conteúdo em detalhes. Use títulos, listas, tabelas, imagens..."
+              className="border-none bg-transparent shadow-none [&>div:first-child]:bg-transparent [&>div:first-child]:border-b [&>div:first-child]:border-border/50 [&>div:last-child]:px-2 [&_.ProseMirror]:min-h-[160px] [&_.ProseMirror]:text-[15px] [&_.ProseMirror]:leading-[1.8] [&_.ProseMirror]:text-foreground/90"
+            />
+          </div>
         </section>
+
+
 
         <section>
           <SectionEyebrow icon={Link2} label="Fontes e referências" count={hasSources ? sources.length : undefined} />
