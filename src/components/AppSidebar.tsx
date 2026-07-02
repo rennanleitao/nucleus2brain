@@ -45,7 +45,7 @@ const navItemsAll = [
   { key: "notes", title: "Notes", url: "/notes", icon: FileText },
   { key: "tasks", title: "Tasks", url: "/tasks", icon: CheckSquare },
   { key: "studies", title: "Conhecimento", url: "/estudos", icon: GraduationCap },
-  { key: "meeting-copilot", title: "Meeting Copilot", url: "/meeting-copilot", icon: Radio },
+  { key: "meeting-copilot", title: "Reuniões", url: "/reunioes", icon: Radio },
   { key: "materials", title: "Materials", url: "/materials", icon: Paperclip },
   { key: "tags", title: "Tags", url: "/tags", icon: Tag },
   { key: "calendar", title: "Calendar", url: "/calendar", icon: Calendar },

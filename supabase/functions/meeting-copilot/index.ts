@@ -7,24 +7,26 @@ const corsHeaders = {
 };
 
 const profiles = {
-  sales: "Sales Copilot: foco em intenção de compra, objeções, stakeholders, urgência, orçamento e próximos passos comerciais.",
-  csc: "CSC Copilot: foco em sucesso do cliente, adoção, riscos de churn, expansão, bloqueios operacionais e próximos passos de relacionamento.",
-  rpa: "RPA Copilot: foco em processos, automações, exceções, integrações, dados necessários, ganhos de eficiência e riscos técnicos.",
-  executive: "Executive Copilot: foco em decisões, riscos estratégicos, lacunas de informação, oportunidades, alinhamento e próximos passos executivos.",
+  sales: "Cliente/Vendas: foco em clientes, oportunidades, objeções, stakeholders e follow-ups comerciais.",
+  csc: "Relacionamento: foco em acompanhamento, satisfação, expectativas, riscos, bloqueios e próximos passos.",
+  rpa: "Processos: foco em operações, automações, exceções, integrações, dados necessários e melhorias.",
+  executive: "Geral: foco em resumo objetivo, decisões, tarefas, temas, pessoas citadas e perguntas abertas.",
 } as const;
 
 type Profile = keyof typeof profiles;
 
 function emptyAnalysis() {
   return {
-    executive_summary: "",
+    summary: "",
+    theme_suggestion: "",
+    related_themes: [] as string[],
+    key_topics: [] as string[],
     decisions: [] as string[],
-    risks: [] as string[],
-    unanswered_questions: [] as string[],
-    next_best_question: "",
-    objections: [] as string[],
-    buying_signals: [] as string[],
-    next_steps: [] as string[],
+    action_items: [] as string[],
+    open_questions: [] as string[],
+    people: [] as string[],
+    tags: [] as string[],
+    confidence: 0,
   };
 }
 
@@ -33,14 +35,22 @@ function normalizeAnalysis(value: unknown) {
   const base = emptyAnalysis();
   const pickArray = (key: keyof typeof base) => Array.isArray(source[key]) ? source[key] as string[] : [];
   return {
-    executive_summary: typeof source.executive_summary === "string" ? source.executive_summary : "",
+    summary: typeof source.summary === "string"
+      ? source.summary
+      : typeof source.executive_summary === "string" ? source.executive_summary : "",
+    theme_suggestion: typeof source.theme_suggestion === "string" ? source.theme_suggestion : "",
+    related_themes: pickArray("related_themes"),
+    key_topics: pickArray("key_topics"),
     decisions: pickArray("decisions"),
-    risks: pickArray("risks"),
-    unanswered_questions: pickArray("unanswered_questions"),
-    next_best_question: typeof source.next_best_question === "string" ? source.next_best_question : "",
-    objections: pickArray("objections"),
-    buying_signals: pickArray("buying_signals"),
-    next_steps: pickArray("next_steps"),
+    action_items: Array.isArray(source.action_items)
+      ? source.action_items as string[]
+      : Array.isArray(source.next_steps) ? source.next_steps as string[] : [],
+    open_questions: Array.isArray(source.open_questions)
+      ? source.open_questions as string[]
+      : Array.isArray(source.unanswered_questions) ? source.unanswered_questions as string[] : [],
+    people: pickArray("people"),
+    tags: pickArray("tags"),
+    confidence: typeof source.confidence === "number" ? source.confidence : 0,
   };
 }
 
@@ -68,6 +78,8 @@ serve(async (req) => {
     const transcript = typeof body.transcript === "string" ? body.transcript.trim() : "";
     const latestSegment = typeof body.latest_segment === "string" ? body.latest_segment.trim() : "";
     const profile: Profile = body.profile in profiles ? body.profile : "executive";
+    const theme = typeof body.theme === "string" ? body.theme.trim() : "";
+    const captureType = typeof body.capture_type === "string" ? body.capture_type.trim() : "conversation";
     const previousAnalysis = body.previous_analysis ?? null;
 
     if (!transcript && !latestSegment) {
@@ -83,23 +95,27 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Você é o Meeting Copilot do Nucleus, um assessor executivo em tempo real durante reuniões.
+            content: `Você é o organizador do módulo Reuniões do Nucleus.
 
 Perfil de análise ativo:
 ${profiles[profile]}
 
 Missão:
-- Identificar decisões, riscos, oportunidades, lacunas de informação e próximos passos.
-- Ajudar o usuário a fazer a próxima melhor pergunta durante a reunião.
-- Ser objetivo, pragmático e orientado a ação.
+- Transformar gravações, conversas, reuniões e notas faladas em uma memória organizada.
+- Gerar resumo curto, tópicos, decisões, tarefas, perguntas abertas, pessoas citadas, tags e temas.
+- Sugerir um tema principal quando o usuário não informar um.
 - Responder em português do Brasil.
-- Não inventar fatos. Se algo não estiver explícito na transcrição, marque como lacuna/pergunta.
-- Retorne apenas dados compatíveis com o schema da ferramenta analyze_meeting.`,
+- Não inventar fatos, decisões, pessoas ou tarefas.
+- Extraia tarefas apenas quando houver uma ação clara.
+- Separe fatos explícitos de dúvidas usando open_questions.
+- Retorne apenas dados compatíveis com o schema da ferramenta organize_capture.`,
           },
           {
             role: "user",
             content: JSON.stringify({
               profile,
+              theme,
+              capture_type: captureType,
               latest_segment: latestSegment,
               transcript,
               previous_analysis: previousAnalysis,
@@ -110,36 +126,40 @@ Missão:
           {
             type: "function",
             function: {
-              name: "analyze_meeting",
-              description: "Structured real-time meeting analysis for the Nucleus Meeting Copilot panel.",
+              name: "organize_capture",
+              description: "Structured conversation, meeting, and voice note organization for Nucleus Reuniões.",
               parameters: {
                 type: "object",
                 properties: {
-                  executive_summary: { type: "string" },
+                  summary: { type: "string" },
+                  theme_suggestion: { type: "string" },
+                  related_themes: { type: "array", items: { type: "string" } },
+                  key_topics: { type: "array", items: { type: "string" } },
                   decisions: { type: "array", items: { type: "string" } },
-                  risks: { type: "array", items: { type: "string" } },
-                  unanswered_questions: { type: "array", items: { type: "string" } },
-                  next_best_question: { type: "string" },
-                  objections: { type: "array", items: { type: "string" } },
-                  buying_signals: { type: "array", items: { type: "string" } },
-                  next_steps: { type: "array", items: { type: "string" } },
+                  action_items: { type: "array", items: { type: "string" } },
+                  open_questions: { type: "array", items: { type: "string" } },
+                  people: { type: "array", items: { type: "string" } },
+                  tags: { type: "array", items: { type: "string" } },
+                  confidence: { type: "number" },
                 },
                 required: [
-                  "executive_summary",
+                  "summary",
+                  "theme_suggestion",
+                  "related_themes",
+                  "key_topics",
                   "decisions",
-                  "risks",
-                  "unanswered_questions",
-                  "next_best_question",
-                  "objections",
-                  "buying_signals",
-                  "next_steps",
+                  "action_items",
+                  "open_questions",
+                  "people",
+                  "tags",
+                  "confidence",
                 ],
                 additionalProperties: false,
               },
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "analyze_meeting" } },
+        tool_choice: { type: "function", function: { name: "organize_capture" } },
         max_tokens: 1800,
       },
       { defaultModel: "google/gemini-3-flash-preview" },
