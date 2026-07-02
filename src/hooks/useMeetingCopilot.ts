@@ -77,6 +77,8 @@ const db = supabase as unknown as {
   from(table: "meeting_copilot_sessions" | "meeting_copilot_segments"): SupabaseQueryBuilder;
 };
 
+const locallyDeletedMeetingSessionIds = new Set<string>();
+
 export const EMPTY_MEETING_ANALYSIS: MeetingCopilotAnalysis = {
   summary: "",
   theme_suggestion: "",
@@ -151,10 +153,12 @@ export function useMeetingCopilotSessions() {
         .order("updated_at", { ascending: false })
         .limit(30);
       if (error) throw error;
-      return (data ?? []).map((session: MeetingCopilotSession) => ({
-        ...session,
-        analysis: normalizeMeetingAnalysis(session.analysis),
-      })) as MeetingCopilotSession[];
+      return (data ?? [])
+        .filter((session: MeetingCopilotSession) => !locallyDeletedMeetingSessionIds.has(session.id))
+        .map((session: MeetingCopilotSession) => ({
+          ...session,
+          analysis: normalizeMeetingAnalysis(session.analysis),
+        })) as MeetingCopilotSession[];
     },
   });
 }
@@ -287,6 +291,7 @@ export function useDeleteMeetingCopilotSession() {
       return data;
     },
     onMutate: async (id) => {
+      locallyDeletedMeetingSessionIds.add(id);
       await qc.cancelQueries({ queryKey: ["meeting_copilot_sessions"] });
       const previousSessions = qc.getQueryData<MeetingCopilotSession[]>(["meeting_copilot_sessions"]);
 
@@ -299,6 +304,7 @@ export function useDeleteMeetingCopilotSession() {
       return { previousSessions };
     },
     onError: (_error, _id, context) => {
+      locallyDeletedMeetingSessionIds.delete(_id);
       if (context?.previousSessions) {
         qc.setQueryData(["meeting_copilot_sessions"], context.previousSessions);
       }
