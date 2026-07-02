@@ -78,9 +78,12 @@ type MeetingMode = "in_person" | "online";
 interface RecordedAudio {
   id: string;
   url: string;
+  blob: Blob;
+  mimeType: string;
   name: string;
   durationSeconds: number;
   createdAt: string;
+  transcript?: string;
 }
 
 declare global {
@@ -118,6 +121,7 @@ export default function MeetingCopilot() {
   const [analyzing, setAnalyzing] = useState(false);
   const [invitingBot, setInvitingBot] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [transcribingClipId, setTranscribingClipId] = useState<string | null>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [audioClips, setAudioClips] = useState<RecordedAudio[]>([]);
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
@@ -255,6 +259,35 @@ export default function MeetingCopilot() {
     }
   }, [analyze, createSegment, ensureSession, meetingWith, mode, theme, transcript]);
 
+  const transcribeAudioClip = useCallback(async (clip: RecordedAudio) => {
+    setTranscribingClipId(clip.id);
+    try {
+      const audioBase64 = await blobToBase64(clip.blob);
+      const { data, error } = await supabase.functions.invoke("transcribe-meeting-audio", {
+        body: {
+          audio_base64: audioBase64,
+          mime_type: clip.mimeType,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const clipTranscript = typeof data?.transcript === "string" ? data.transcript.trim() : "";
+      if (!clipTranscript) throw new Error("A transcrição voltou vazia.");
+
+      setAudioClips((current) => current.map((item) => (
+        item.id === clip.id ? { ...item, transcript: clipTranscript } : item
+      )));
+      await processText(clipTranscript, "manual");
+      toast.success(`${clip.name} transcrito e organizado`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível transcrever este áudio");
+    } finally {
+      setTranscribingClipId(null);
+    }
+  }, [processText]);
+
   const startSpeechRecognition = useCallback(() => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
@@ -338,6 +371,8 @@ export default function MeetingCopilot() {
           const nextClip: RecordedAudio = {
             id: `${createdAt}-${Math.random().toString(36).slice(2)}`,
             url: URL.createObjectURL(blob),
+            blob,
+            mimeType: recorder.mimeType || blob.type || "audio/webm",
             name: `Áudio ${audioClips.length + 1}`,
             durationSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
             createdAt,
@@ -520,7 +555,7 @@ export default function MeetingCopilot() {
                         {recording ? `Gravando ${formatDuration(elapsedSeconds)}` : "Pronto para gravar"}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        A transcrição automática depende do navegador. O áudio local fica disponível para baixar ao encerrar.
+                        A gravação salva o áudio. Depois use Transcrever em cada trecho para organizar a reunião.
                       </p>
                     </div>
                   </div>
@@ -557,9 +592,18 @@ export default function MeetingCopilot() {
                             </div>
                             <div className="flex items-center gap-2">
                               <Button variant="outline" size="sm" asChild title={`Baixar ${clip.name}`}>
-                                <a href={clip.url} download={`${derivedTitle}-audio-${index + 1}.webm`}>
+                                <a href={clip.url} download={`${derivedTitle}-audio-${index + 1}.${getAudioExtension(clip.mimeType)}`}>
                                   <Download className="h-4 w-4" />
                                 </a>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => transcribeAudioClip(clip)}
+                                disabled={transcribingClipId === clip.id}
+                              >
+                                <Brain className="mr-1.5 h-4 w-4" />
+                                {transcribingClipId === clip.id ? "Transcrevendo..." : "Transcrever"}
                               </Button>
                               <Button
                                 variant="outline"
@@ -573,6 +617,9 @@ export default function MeetingCopilot() {
                             </div>
                           </div>
                           <audio src={clip.url} controls className="h-9 w-full max-w-full" />
+                          {clip.transcript && (
+                            <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{clip.transcript}</p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -850,4 +897,24 @@ function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      resolve(result.split(",")[1] || "");
+    };
+    reader.onerror = () => reject(new Error("Não foi possível preparar o áudio para transcrição"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function getAudioExtension(mimeType: string) {
+  const normalized = mimeType.toLowerCase();
+  if (normalized.includes("mpeg") || normalized.includes("mp3")) return "mp3";
+  if (normalized.includes("mp4") || normalized.includes("m4a")) return "m4a";
+  if (normalized.includes("wav")) return "wav";
+  return "webm";
 }
