@@ -877,17 +877,33 @@ export default function MeetingCopilot() {
                           {cardSubtitle}
                         </p>
                       </button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={(event) => handleDeleteSession(session, event)}
-                        disabled={deleteSession.isPending}
-                        title={`Excluir ${session.title}`}
-                        aria-label={`Excluir ${session.title}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={(event) => event.stopPropagation()}
+                            disabled={deleteSession.isPending}
+                            title={`Excluir ${session.title}`}
+                            aria-label={`Excluir ${session.title}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir reunião?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              "{session.title}" e todos os trechos capturados serão removidos. Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteSession(session)}>Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   );
                   })}
