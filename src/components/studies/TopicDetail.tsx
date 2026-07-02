@@ -185,8 +185,8 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
               <p className="text-xs text-muted-foreground">
                 Atualizado {formatRelative(topic.last_updated_at ?? topic.updated_at)}
               </p>
-              {topic.description && (
-                <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+              {hasDescription && (
+                <p className="text-[15px] leading-relaxed text-foreground/70">
                   {topic.description}
                 </p>
               )}
