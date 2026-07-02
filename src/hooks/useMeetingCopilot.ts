@@ -159,6 +159,25 @@ export function useMeetingCopilotSessions() {
   });
 }
 
+export function useMeetingCopilotSession(sessionId?: string | null) {
+  return useQuery({
+    queryKey: ["meeting_copilot_sessions", sessionId],
+    enabled: !!sessionId,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("meeting_copilot_sessions")
+        .select("*")
+        .eq("id", sessionId!)
+        .single<MeetingCopilotSession>();
+      if (error) throw error;
+      return {
+        ...data,
+        analysis: normalizeMeetingAnalysis(data.analysis),
+      } as MeetingCopilotSession;
+    },
+  });
+}
+
 export function useMeetingCopilotSegments(sessionId?: string | null) {
   return useQuery({
     queryKey: ["meeting_copilot_segments", sessionId],

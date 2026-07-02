@@ -70,6 +70,7 @@ function AppRoutes() {
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/estudos" element={<Studies />} />
         <Route path="/reunioes" element={<MeetingCopilot />} />
+        <Route path="/reunioes/:sessionId" element={<MeetingCopilot />} />
         <Route path="/meeting-copilot" element={<MeetingCopilot />} />
             <Route path="/import" element={<ImportPage />} />
             
