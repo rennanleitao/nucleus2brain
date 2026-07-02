@@ -10,51 +10,14 @@ import { Hono } from "npm:hono@4";
 import { McpServer, StreamableHttpTransport } from "npm:mcp-lite@^0.10.0";
 import { z } from "npm:zod@3";
 import { zodToJsonSchema } from "npm:zod-to-json-schema@3";
-import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, getBaseUrl } from "../_shared/mcp-auth.ts";
+import { type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { authenticateMcpRequest, corsHeaders, unauthorized, userClient } from "../_shared/mcp-auth.ts";
 import { callLovableAI } from "../_shared/lovable-ai.ts";
 import {
   type EntityType,
   type Operation,
   urlFor,
 } from "./_envelope.ts";
-
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SUPA_URL = Deno.env.get("SUPABASE_URL")!;
-
-function unauthorized(): Response {
-  const resourceMetadata = `${getBaseUrl()}/oauth-metadata?type=resource`;
-  return new Response(JSON.stringify({ error: "unauthorized" }), {
-    status: 401,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
-      "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadata}"`,
-    },
-  });
-}
-
-async function authenticate(req: Request): Promise<
-  { user: { id: string; email?: string }; token: string } | null
-> {
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) return null;
-  const token = auth.slice(7).trim();
-  if (!token) return null;
-  const anon = createClient(SUPA_URL, ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await anon.auth.getUser(token);
-  if (error || !data.user) return null;
-  return { user: { id: data.user.id, email: data.user.email ?? undefined }, token };
-}
-
-function clientFor(token: string): SupabaseClient {
-  return createClient(SUPA_URL, ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 // ---------- Tool helpers ----------
 type Ctx = { userId: string; supabase: SupabaseClient };
@@ -2248,12 +2211,12 @@ app.all("*", async (c) => {
     } catch { /* ignore */ }
   }
 
-  const auth = await authenticate(req);
+  const auth = await authenticateMcpRequest(req);
   if (!auth && !allowAnon) return unauthorized();
 
   const effectiveUserId = auth?.user.id ?? "00000000-0000-0000-0000-000000000000";
-  const effectiveToken = auth?.token ?? ANON_KEY;
-  const supabase = clientFor(effectiveToken);
+  const effectiveToken = auth?.token ?? Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabase = auth?.supabase ?? userClient(effectiveToken);
   const server = buildServer({ userId: effectiveUserId, supabase });
   const transport = new StreamableHttpTransport();
   const handleMcpRequest = transport.bind(server);

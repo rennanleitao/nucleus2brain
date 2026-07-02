@@ -51,7 +51,7 @@ serve(async (req) => {
     const meetingUrl = typeof body.meeting_url === "string" ? body.meeting_url.trim() : "";
     const botName = typeof body.bot_name === "string" && body.bot_name.trim()
       ? body.bot_name.trim()
-      : "Nucleus Reuniões";
+      : "Helena";
     const languageCode = typeof body.language_code === "string" && body.language_code.trim()
       ? body.language_code.trim()
       : "pt";

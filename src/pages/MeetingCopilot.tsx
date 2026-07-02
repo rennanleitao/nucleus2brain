@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bot,
   Brain,
   CheckCircle2,
   CircleHelp,
   Download,
-  Hash,
-  Link2,
+  History,
+  Laptop,
   ListChecks,
   Mic,
   MicOff,
   Play,
-  Plus,
   Radio,
   Send,
   Square,
@@ -25,14 +23,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import {
   EMPTY_MEETING_ANALYSIS,
-  MEETING_COPILOT_PROFILES,
   type MeetingCopilotAnalysis,
-  type MeetingCopilotProfile,
   type MeetingCopilotSession,
   normalizeMeetingAnalysis,
   useCreateMeetingCopilotSegment,
@@ -43,15 +38,6 @@ import {
 } from "@/hooks/useMeetingCopilot";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const AUTO_ANALYZE_DELAY = 1600;
-
-const CAPTURE_TYPES = [
-  { value: "conversation", label: "Conversa" },
-  { value: "meeting", label: "Reunião" },
-  { value: "quick_note", label: "Nota rápida" },
-  { value: "interview", label: "Entrevista" },
-] as const;
 
 interface BrowserSpeechRecognitionAlternative {
   transcript: string;
@@ -86,6 +72,7 @@ interface BrowserSpeechRecognition extends EventTarget {
 }
 
 type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
+type MeetingMode = "in_person" | "online";
 
 declare global {
   interface Window {
@@ -94,66 +81,112 @@ declare global {
   }
 }
 
+const MEETING_TYPES = [
+  { value: "general", label: "Geral" },
+  { value: "sales", label: "Cliente/Vendas" },
+  { value: "relationship", label: "Relacionamento" },
+  { value: "process", label: "Processos" },
+] as const;
+
 export default function MeetingCopilot() {
   const { data: sessions = [] } = useMeetingCopilotSessions();
   const createSession = useCreateMeetingCopilotSession();
   const updateSession = useUpdateMeetingCopilotSession();
   const createSegment = useCreateMeetingCopilotSegment();
 
+  const [mode, setMode] = useState<MeetingMode | null>(null);
   const [activeSession, setActiveSession] = useState<MeetingCopilotSession | null>(null);
-  const [title, setTitle] = useState("Conversa sem título");
+  const [title, setTitle] = useState("Reunião sem título");
+  const [meetingWith, setMeetingWith] = useState("");
   const [theme, setTheme] = useState("");
-  const [captureType, setCaptureType] = useState("conversation");
-  const [profile, setProfile] = useState<MeetingCopilotProfile>("executive");
-  const [incomingText, setIncomingText] = useState("");
+  const [meetingType, setMeetingType] = useState("general");
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [botName, setBotName] = useState("Helena");
+  const [manualText, setManualText] = useState("");
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<MeetingCopilotAnalysis>(EMPTY_MEETING_ANALYSIS);
-  const [autoAnalyze, setAutoAnalyze] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
   const [recording, setRecording] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [invitingBot, setInvitingBot] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [interimTranscript, setInterimTranscript] = useState("");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [meetingUrl, setMeetingUrl] = useState("");
-  const [botName, setBotName] = useState("Helena");
-  const [invitingBot, setInvitingBot] = useState(false);
-  const [lastAnalyzedAt, setLastAnalyzedAt] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const recordingRef = useRef(false);
-  const processedRef = useRef("");
-  const processIncomingRef = useRef<(text: string, source?: "manual" | "browser" | "recall") => Promise<void>>(async () => {});
 
   const { data: segments = [] } = useMeetingCopilotSegments(activeSession?.id);
-  const activeProfile = MEETING_COPILOT_PROFILES.find((item) => item.id === profile);
-  const hasSession = !!activeSession;
-  const speechSupported = typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-  const recordingSupported = typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined";
+  const canRecord = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+
+  const derivedTitle = useMemo(() => {
+    if (title.trim() && title !== "Reunião sem título") return title.trim();
+    if (meetingWith.trim() && theme.trim()) return `${meetingWith.trim()} - ${theme.trim()}`;
+    if (meetingWith.trim()) return `Reunião com ${meetingWith.trim()}`;
+    if (theme.trim()) return `Reunião sobre ${theme.trim()}`;
+    return "Reunião sem título";
+  }, [meetingWith, theme, title]);
+
+  useEffect(() => {
+    if (!recordingStartedAt || !recording) return;
+    const interval = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - recordingStartedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [recording, recordingStartedAt]);
+
+  useEffect(() => {
+    return () => {
+      recordingRef.current = false;
+      recognitionRef.current?.stop();
+      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
+
+  const resetMeeting = () => {
+    setActiveSession(null);
+    setTitle("Reunião sem título");
+    setMeetingWith("");
+    setTheme("");
+    setMeetingType("general");
+    setMeetingUrl("");
+    setBotName("Helena");
+    setManualText("");
+    setTranscript("");
+    setAnalysis(EMPTY_MEETING_ANALYSIS);
+    setSpeechError(null);
+    setInterimTranscript("");
+    setElapsedSeconds(0);
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
+  };
 
   const ensureSession = useCallback(async () => {
     if (activeSession) return activeSession;
+
     const created = await createSession.mutateAsync({
-      title,
-      profile,
+      title: derivedTitle,
+      profile: meetingType === "sales" ? "sales" : meetingType === "relationship" ? "csc" : meetingType === "process" ? "rpa" : "executive",
       theme: theme.trim() || null,
-      capture_type: captureType,
+      capture_type: mode === "online" ? "online_meeting" : "in_person_meeting",
     });
     setActiveSession(created);
     return created;
-  }, [activeSession, captureType, createSession, profile, theme, title]);
+  }, [activeSession, createSession, derivedTitle, meetingType, mode, theme]);
 
-  const analyzeCapture = useCallback(async (nextTranscript: string, latestSegment: string, sessionId: string) => {
+  const analyze = useCallback(async (nextTranscript: string, latestSegment: string, sessionId: string) => {
     setAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke("meeting-copilot", {
         body: {
-          profile,
+          profile: meetingType === "sales" ? "sales" : meetingType === "relationship" ? "csc" : meetingType === "process" ? "rpa" : "executive",
           theme: theme.trim(),
-          capture_type: captureType,
+          meeting_with: meetingWith.trim(),
+          capture_type: mode === "online" ? "online_meeting" : "in_person_meeting",
           transcript: nextTranscript,
           latest_segment: latestSegment,
           previous_analysis: analysis,
@@ -164,13 +197,11 @@ export default function MeetingCopilot() {
 
       const nextAnalysis = normalizeMeetingAnalysis(data?.analysis);
       setAnalysis(nextAnalysis);
-      setLastAnalyzedAt(new Date().toISOString());
       await updateSession.mutateAsync({
         id: sessionId,
-        title,
-        profile,
+        title: derivedTitle,
         theme: theme.trim() || nextAnalysis.theme_suggestion || null,
-        capture_type: captureType,
+        capture_type: mode === "online" ? "online_meeting" : "in_person_meeting",
         transcript: nextTranscript,
         analysis: nextAnalysis,
       });
@@ -178,64 +209,40 @@ export default function MeetingCopilot() {
     } finally {
       setAnalyzing(false);
     }
-  }, [analysis, captureType, profile, theme, title, updateSession]);
+  }, [analysis, derivedTitle, meetingType, meetingWith, mode, theme, updateSession]);
 
-  const processIncomingText = useCallback(async (text: string, source: "manual" | "browser" | "recall" = "manual") => {
+  const processText = useCallback(async (text: string, source: "manual" | "browser" | "recall" = "manual") => {
     const clean = text.trim();
-    if (!clean || clean === processedRef.current) return;
-
-    processedRef.current = clean;
-    const session = await ensureSession();
-    const nextTranscript = [transcript, clean].filter(Boolean).join("\n\n");
-    setTranscript(nextTranscript);
-    setIncomingText("");
+    if (!clean) return;
 
     try {
-      const nextAnalysis = await analyzeCapture(nextTranscript, clean, session.id);
+      const session = await ensureSession();
+      const context = [
+        meetingWith.trim() ? `Com quem: ${meetingWith.trim()}` : "",
+        theme.trim() ? `Tema: ${theme.trim()}` : "",
+        `Tipo: ${mode === "online" ? "online" : "presencial"}`,
+      ].filter(Boolean).join("\n");
+      const content = context ? `${context}\n\n${clean}` : clean;
+      const nextTranscript = [transcript, content].filter(Boolean).join("\n\n");
+      setTranscript(nextTranscript);
+      setManualText("");
+
+      const nextAnalysis = await analyze(nextTranscript, content, session.id);
       await createSegment.mutateAsync({
         session_id: session.id,
-        content: clean,
+        content,
         analysis_snapshot: nextAnalysis,
         source,
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível processar a captura");
+      toast.error(error instanceof Error ? error.message : "Não foi possível organizar a reunião");
     }
-  }, [analyzeCapture, createSegment, ensureSession, transcript]);
-
-  useEffect(() => {
-    processIncomingRef.current = processIncomingText;
-  }, [processIncomingText]);
-
-  useEffect(() => {
-    if (!autoAnalyze || !incomingText.trim()) return;
-    const timer = window.setTimeout(() => {
-      processIncomingText(incomingText);
-    }, AUTO_ANALYZE_DELAY);
-    return () => window.clearTimeout(timer);
-  }, [autoAnalyze, incomingText, processIncomingText]);
-
-  useEffect(() => {
-    if (!recordingStartedAt || !recording) return;
-    const interval = window.setInterval(() => {
-      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - recordingStartedAt) / 1000)));
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [recording, recordingStartedAt]);
-
-  useEffect(() => {
-    return () => {
-      recordingRef.current = false;
-      recognitionRef.current?.stop();
-      mediaRecorderRef.current?.stop();
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-    };
-  }, [audioUrl]);
+  }, [analyze, createSegment, ensureSession, meetingWith, mode, theme, transcript]);
 
   const startSpeechRecognition = useCallback(() => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
-      setSpeechError("Transcrição automática indisponível neste navegador. A gravação de áudio ainda funciona; você também pode colar notas manualmente.");
+      setSpeechError("Este navegador não transcreve automaticamente. O áudio será gravado; você ainda pode colar a transcrição depois.");
       return;
     }
 
@@ -250,21 +257,20 @@ export default function MeetingCopilot() {
 
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index];
-        const transcriptText = result[0]?.transcript?.trim() ?? "";
-        if (!transcriptText) continue;
-        if (result.isFinal) finalText = [finalText, transcriptText].filter(Boolean).join(" ");
-        else interimText = [interimText, transcriptText].filter(Boolean).join(" ");
+        const text = result[0]?.transcript?.trim() ?? "";
+        if (!text) continue;
+        if (result.isFinal) finalText = [finalText, text].filter(Boolean).join(" ");
+        else interimText = [interimText, text].filter(Boolean).join(" ");
       }
 
       setInterimTranscript(interimText);
-      if (finalText) processIncomingRef.current(finalText, "browser");
+      if (finalText) processText(finalText, "browser");
     };
 
     recognition.onerror = (event) => {
-      const message = event.error === "not-allowed"
-        ? "Permissão de microfone negada. Autorize o microfone para gravar e transcrever."
-        : `Erro na transcrição: ${event.error}`;
-      setSpeechError(message);
+      setSpeechError(event.error === "not-allowed"
+        ? "Microfone bloqueado. Autorize o microfone no navegador."
+        : `Transcrição automática indisponível: ${event.error}`);
     };
 
     recognition.onend = () => {
@@ -272,30 +278,32 @@ export default function MeetingCopilot() {
       try {
         recognition.start();
       } catch {
-        setSpeechError("A transcrição automática parou. A gravação continua se o navegador permitir.");
+        setSpeechError("A transcrição automática parou, mas a gravação de áudio continua.");
       }
     };
 
     recognitionRef.current = recognition;
     try {
       recognition.start();
-    } catch (error) {
-      setSpeechError(error instanceof Error ? error.message : "Não foi possível iniciar a transcrição automática.");
+    } catch {
+      setSpeechError("Não foi possível iniciar a transcrição automática.");
     }
-  }, []);
+  }, [processText]);
 
   const startRecording = useCallback(async () => {
-    if (!recordingSupported) {
-      setSpeechError("Seu navegador não oferece gravação de áudio por MediaRecorder. Use a entrada manual de texto.");
+    if (!canRecord) {
+      setSpeechError("Este navegador não suporta gravação de áudio. Use Chrome, Edge ou Safari atualizado.");
       return;
     }
 
     try {
-      await ensureSession();
+      setSpeechError(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunksRef.current = [];
+      await ensureSession();
+
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       setAudioUrl(null);
+      audioChunksRef.current = [];
 
       const recorder = new MediaRecorder(stream);
       recorder.ondataavailable = (event) => {
@@ -310,7 +318,6 @@ export default function MeetingCopilot() {
       mediaRecorderRef.current = recorder;
       recordingRef.current = true;
       setRecording(true);
-      setSpeechError(null);
       setInterimTranscript("");
       setElapsedSeconds(0);
       setRecordingStartedAt(Date.now());
@@ -322,7 +329,7 @@ export default function MeetingCopilot() {
       setRecording(false);
       toast.error(error instanceof Error ? error.message : "Não foi possível iniciar a gravação");
     }
-  }, [audioUrl, ensureSession, recordingSupported, startSpeechRecognition]);
+  }, [audioUrl, canRecord, ensureSession, startSpeechRecognition]);
 
   const stopRecording = useCallback(async () => {
     recordingRef.current = false;
@@ -333,25 +340,30 @@ export default function MeetingCopilot() {
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
 
     if (activeSession) {
-      const ended = await updateSession.mutateAsync({
-        id: activeSession.id,
-        status: "ended",
-        ended_at: new Date().toISOString(),
-        title,
-        theme: theme.trim() || analysis.theme_suggestion || null,
-        capture_type: captureType,
-        transcript,
-        analysis,
-      });
-      setActiveSession(ended);
+      try {
+        const ended = await updateSession.mutateAsync({
+          id: activeSession.id,
+          status: "ended",
+          ended_at: new Date().toISOString(),
+          title: derivedTitle,
+          theme: theme.trim() || analysis.theme_suggestion || null,
+          capture_type: "in_person_meeting",
+          transcript,
+          analysis,
+        });
+        setActiveSession(ended);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "A gravação parou, mas não foi possível salvar a reunião");
+        return;
+      }
     }
-    toast.success("Captura encerrada");
-  }, [activeSession, analysis, captureType, theme, title, transcript, updateSession]);
+    toast.success("Gravação encerrada");
+  }, [activeSession, analysis, derivedTitle, theme, transcript, updateSession]);
 
-  const inviteMeetingBot = useCallback(async () => {
+  const inviteOnlineAgent = useCallback(async () => {
     const cleanUrl = meetingUrl.trim();
     if (!cleanUrl) {
-      toast.error("Informe o link da video-call.");
+      toast.error("Cole o link da reunião online.");
       return;
     }
 
@@ -368,370 +380,258 @@ export default function MeetingCopilot() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
       setActiveSession(data.session);
-      setMeetingUrl(cleanUrl);
-      toast.success("Agente convidado para a video-call");
+      toast.success("Agente enviado para a reunião online");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível convidar o agente");
+      toast.error(error instanceof Error ? error.message : "Não foi possível enviar o agente");
     } finally {
       setInvitingBot(false);
     }
   }, [botName, ensureSession, meetingUrl]);
 
-  const startNewSession = () => {
-    setActiveSession(null);
-    setTitle("Conversa sem título");
-    setTheme("");
-    setCaptureType("conversation");
-    setProfile("executive");
-    setIncomingText("");
-    setTranscript("");
-    setAnalysis(EMPTY_MEETING_ANALYSIS);
-    setMeetingUrl("");
-    setBotName("Helena");
-    setLastAnalyzedAt(null);
-    setInterimTranscript("");
-    setSpeechError(null);
-    setElapsedSeconds(0);
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl(null);
-    processedRef.current = "";
-  };
-
   const loadSession = (session: MeetingCopilotSession) => {
+    setMode(session.meeting_url ? "online" : "in_person");
     setActiveSession(session);
     setTitle(session.title);
     setTheme(session.theme ?? "");
-    setCaptureType(session.capture_type ?? "conversation");
-    setProfile(session.profile);
-    setIncomingText("");
-    setTranscript(session.transcript ?? "");
-    setAnalysis(normalizeMeetingAnalysis(session.analysis));
+    setMeetingType(session.profile === "sales" ? "sales" : session.profile === "csc" ? "relationship" : session.profile === "rpa" ? "process" : "general");
     setMeetingUrl(session.meeting_url ?? "");
     setBotName(session.bot_name ?? "Helena");
-    setLastAnalyzedAt(session.updated_at);
-    setInterimTranscript("");
+    setTranscript(session.transcript ?? "");
+    setAnalysis(normalizeMeetingAnalysis(session.analysis));
+    setManualText("");
     setSpeechError(null);
+    setInterimTranscript("");
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
-    processedRef.current = "";
   };
 
-  const stats = useMemo(() => [
-    { label: "Trechos", value: segments.length },
-    { label: "Decisões", value: analysis.decisions.length },
-    { label: "Tarefas", value: analysis.action_items.length },
-    { label: "Temas", value: [analysis.theme_suggestion, ...analysis.related_themes].filter(Boolean).length },
-  ], [analysis, segments.length]);
-
   return (
-    <div className="flex h-full min-h-[calc(100vh-2rem)] flex-col bg-background">
-      <div className="border-b border-border px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex min-h-[calc(100vh-2rem)] flex-col bg-background">
+      <header className="border-b border-border px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <div>
-            <div className="mb-2 flex flex-wrap items-center gap-2">
+            <div className="mb-2 flex items-center gap-2">
               <Badge variant="secondary" className="gap-1">
-                <Radio className="h-3 w-3" /> Reuniões
+                <Radio className="h-3 w-3" /> Meeting Copilot
               </Badge>
-              <Badge variant="outline">gravação por celular</Badge>
+              {activeSession && <Badge variant="outline">{activeSession.status === "active" ? "ativa" : "salva"}</Badge>}
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Reuniões</h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Grave conversas, reuniões e notas rápidas. O Nucleus transforma a captura em resumo, decisões, tarefas e temas para recuperar depois.
-            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">Meeting Copilot</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Escolha o tipo de reunião e capture somente o que importa.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={startNewSession}>
-              <Plus className="mr-1.5 h-4 w-4" /> Nova captura
-            </Button>
-            <Button
-              size="lg"
-              variant={recording ? "destructive" : "default"}
-              onClick={recording ? stopRecording : startRecording}
-            >
-              {recording ? <Square className="mr-1.5 h-4 w-4" /> : <Mic className="mr-1.5 h-4 w-4" />}
-              {recording ? "Encerrar" : "Gravar"}
-            </Button>
-          </div>
+          <Button variant="outline" onClick={resetMeeting}>Nova reunião</Button>
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="mx-auto grid w-full max-w-6xl flex-1 gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <main className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Mic className="h-4 w-4" /> Captura
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
-                <div className="space-y-2">
-                  <Label htmlFor="capture-title">Título</Label>
-                  <Input
-                    id="capture-title"
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    onBlur={() => activeSession && updateSession.mutate({ id: activeSession.id, title })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <Select value={captureType} onValueChange={setCaptureType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CAPTURE_TYPES.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ModeCard
+              active={mode === "in_person"}
+              icon={Mic}
+              title="Reunião Presencial"
+              description="Grave o áudio pelo celular ou computador e organize por tema, pessoas, decisões e tarefas."
+              onClick={() => setMode("in_person")}
+            />
+            <ModeCard
+              active={mode === "online"}
+              icon={Laptop}
+              title="Reunião Online"
+              description="Envie a Helena para entrar no Google Meet, Teams ou Zoom e capturar a chamada."
+              onClick={() => setMode("online")}
+            />
+          </div>
 
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-                <div className="space-y-2">
-                  <Label htmlFor="capture-theme">Tema</Label>
-                  <Input
-                    id="capture-theme"
-                    value={theme}
-                    onChange={(event) => setTheme(event.target.value)}
-                    onBlur={() => activeSession && updateSession.mutate({ id: activeSession.id, theme: theme.trim() || null })}
-                    placeholder="Produto, Cliente X, Equipe, Pessoal..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Modo de análise</Label>
-                  <Select value={profile} onValueChange={(value) => setProfile(value as MeetingCopilotProfile)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MEETING_COPILOT_PROFILES.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          {!mode && (
+            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              Selecione uma opção acima para começar.
+            </div>
+          )}
 
-              <div className={cn(
-                "grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto]",
-                recording ? "border-primary/30 bg-primary/5" : "border-border bg-muted/20"
-              )}>
-                <div className="flex items-start gap-3">
-                  {recording ? <Mic className="mt-0.5 h-5 w-5 text-primary" /> : <MicOff className="mt-0.5 h-5 w-5 text-muted-foreground" />}
-                  <div>
-                    <p className="text-sm font-medium">
-                      {recording ? `Gravando ${formatDuration(elapsedSeconds)}` : "Pronto para gravar pelo celular"}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      A gravação gera um áudio local nesta sessão e, quando o navegador permitir, transcreve em tempo real para organizar por tema.
-                    </p>
-                    {interimTranscript && (
-                      <p className="mt-3 rounded-md bg-background px-3 py-2 text-sm italic text-muted-foreground">
-                        {interimTranscript}
+          {mode === "in_person" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Mic className="h-4 w-4" /> Reunião Presencial
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <MeetingFields
+                  title={title}
+                  setTitle={setTitle}
+                  meetingWith={meetingWith}
+                  setMeetingWith={setMeetingWith}
+                  theme={theme}
+                  setTheme={setTheme}
+                  meetingType={meetingType}
+                  setMeetingType={setMeetingType}
+                />
+
+                <div className={cn(
+                  "flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between",
+                  recording ? "border-primary/30 bg-primary/5" : "border-border bg-muted/20",
+                )}>
+                  <div className="flex items-start gap-3">
+                    {recording ? <Mic className="mt-0.5 h-5 w-5 text-primary" /> : <MicOff className="mt-0.5 h-5 w-5 text-muted-foreground" />}
+                    <div>
+                      <p className="text-sm font-medium">
+                        {recording ? `Gravando ${formatDuration(elapsedSeconds)}` : "Pronto para gravar"}
                       </p>
-                    )}
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        A transcrição automática depende do navegador. O áudio local fica disponível para baixar ao encerrar.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <Button variant={recording ? "destructive" : "default"} onClick={recording ? stopRecording : startRecording}>
-                  {recording ? <Square className="mr-1.5 h-4 w-4" /> : <Play className="mr-1.5 h-4 w-4" />}
-                  {recording ? "Parar" : "Iniciar"}
-                </Button>
-              </div>
-
-              {speechError && (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {speechError}
-                </p>
-              )}
-
-              {audioUrl && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3">
-                  <audio src={audioUrl} controls className="h-9 max-w-full" />
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={audioUrl} download={`${title || "reuniao"}.webm`}>
-                      <Download className="mr-1.5 h-4 w-4" /> Baixar áudio
-                    </a>
+                  <Button size="lg" variant={recording ? "destructive" : "default"} onClick={recording ? stopRecording : startRecording}>
+                    {recording ? <Square className="mr-1.5 h-4 w-4" /> : <Play className="mr-1.5 h-4 w-4" />}
+                    {recording ? "Parar" : "Gravar"}
                   </Button>
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Label htmlFor="incoming-transcript">Texto manual ou transcrição recebida</Label>
-                  <button
-                    type="button"
-                    onClick={() => setAutoAnalyze((current) => !current)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
-                      autoAnalyze ? "border-primary/30 bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                    )}
-                  >
-                    <Play className="h-3 w-3" /> Auto {autoAnalyze ? "ligado" : "desligado"}
-                  </button>
+                {interimTranscript && (
+                  <p className="rounded-md bg-muted px-3 py-2 text-sm italic text-muted-foreground">{interimTranscript}</p>
+                )}
+                {speechError && (
+                  <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{speechError}</p>
+                )}
+                {audioUrl && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                    <audio src={audioUrl} controls className="h-9 max-w-full" />
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={audioUrl} download={`${derivedTitle}.webm`}>
+                        <Download className="mr-1.5 h-4 w-4" /> Baixar áudio
+                      </a>
+                    </Button>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="manual-notes">Adicionar trecho manual ou transcrição</Label>
+                  <Textarea
+                    id="manual-notes"
+                    value={manualText}
+                    onChange={(event) => setManualText(event.target.value)}
+                    placeholder="Cole aqui um trecho, observação ou transcrição se a captura automática não estiver disponível."
+                    className="min-h-28"
+                  />
+                  <Button variant="outline" onClick={() => processText(manualText)} disabled={!manualText.trim() || analyzing}>
+                    <Brain className="mr-1.5 h-4 w-4" /> Organizar
+                  </Button>
                 </div>
-                <Textarea
-                  id="incoming-transcript"
-                  value={incomingText}
-                  onChange={(event) => setIncomingText(event.target.value)}
-                  placeholder="Cole uma anotação, trecho de conversa ou transcrição. O Nucleus organiza isso dentro da captura."
-                  className="min-h-32 resize-y"
-                />
-                <Button variant="outline" onClick={() => processIncomingText(incomingText)} disabled={!incomingText.trim() || analyzing}>
-                  <Brain className="mr-1.5 h-4 w-4" /> Processar texto
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          <div className="grid gap-3 sm:grid-cols-4">
-            {stats.map((item) => (
-              <Card key={item.label}>
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                  <p className="mt-1 text-2xl font-semibold">{item.value}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Link2 className="h-4 w-4" /> Video-calls
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <p className="max-w-2xl text-sm text-muted-foreground">
-                  Camada futura dentro de Reuniões: convide um agente para Meet, Zoom ou Teams quando quiser capturar chamadas automaticamente.
-                </p>
-                <BotStatusBadge session={activeSession} />
-              </div>
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
-                <Input
-                  value={meetingUrl}
-                  onChange={(event) => setMeetingUrl(event.target.value)}
-                  placeholder="Link da video-call"
+          {mode === "online" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Laptop className="h-4 w-4" /> Reunião Online
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <MeetingFields
+                  title={title}
+                  setTitle={setTitle}
+                  meetingWith={meetingWith}
+                  setMeetingWith={setMeetingWith}
+                  theme={theme}
+                  setTheme={setTheme}
+                  meetingType={meetingType}
+                  setMeetingType={setMeetingType}
                 />
-                <Input
-                  value={botName}
-                  onChange={(event) => setBotName(event.target.value)}
-                  placeholder="Nome do agente"
-                />
-                <Button onClick={inviteMeetingBot} disabled={invitingBot || !meetingUrl.trim()}>
-                  <Send className="mr-1.5 h-4 w-4" />
-                  {invitingBot ? "Convidando..." : "Convidar"}
-                </Button>
-              </div>
-              {activeSession?.bot_error && (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {activeSession.bot_error}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ListChecks className="h-4 w-4" /> Histórico da captura
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {segments.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  Nenhum trecho processado ainda.
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
+                  <div className="space-y-2">
+                    <Label htmlFor="meeting-url">Link da reunião</Label>
+                    <Input
+                      id="meeting-url"
+                      value={meetingUrl}
+                      onChange={(event) => setMeetingUrl(event.target.value)}
+                      placeholder="Google Meet, Teams ou Zoom"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-name">Agente</Label>
+                    <Input id="bot-name" value={botName} onChange={(event) => setBotName(event.target.value)} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={inviteOnlineAgent} disabled={invitingBot || !meetingUrl.trim()} className="w-full">
+                      <Send className="mr-1.5 h-4 w-4" />
+                      {invitingBot ? "Enviando..." : "Enviar"}
+                    </Button>
+                  </div>
                 </div>
-              ) : (
-                <ScrollArea className="h-[260px] pr-3">
+                <BotStatus session={activeSession} />
+              </CardContent>
+            </Card>
+          )}
+
+          {segments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <History className="h-4 w-4" /> Trechos capturados
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-56 pr-3">
                   <div className="space-y-3">
                     {segments.map((segment, index) => (
-                      <div key={segment.id} className="rounded-lg border bg-card p-3">
-                        <div className="mb-2 flex items-center justify-between gap-2">
+                      <div key={segment.id} className="rounded-lg border p-3">
+                        <div className="mb-2 flex items-center justify-between">
                           <Badge variant="outline">Trecho {index + 1}</Badge>
                           <span className="text-xs text-muted-foreground">
                             {new Date(segment.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         </div>
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{segment.content}</p>
-                        {(segment.speaker_name || segment.source) && (
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            {segment.speaker_name ? `${segment.speaker_name} · ` : ""}{segment.source}
-                          </p>
-                        )}
+                        <p className="whitespace-pre-wrap text-sm text-muted-foreground">{segment.content}</p>
                       </div>
                     ))}
                   </div>
                 </ScrollArea>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </main>
 
         <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b bg-muted/30 pb-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Brain className="h-4 w-4" /> Nota organizada
-                  </CardTitle>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {analyzing ? "Organizando novo trecho..." : lastAnalyzedAt ? `Atualizada ${new Date(lastAnalyzedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "Aguardando captura"}
-                  </p>
-                </div>
-                {analyzing && <Badge variant="secondary" className="animate-pulse">IA</Badge>}
-              </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Brain className="h-4 w-4" /> Organizado
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="h-[calc(100vh-210px)] min-h-[560px]">
-                <div className="space-y-4 p-4">
-                  <AnalysisSection icon={Brain} title="Resumo" items={analysis.summary ? [analysis.summary] : []} empty="Sem resumo ainda." featured />
-                  <AnalysisSection icon={Hash} title="Tópicos" items={analysis.key_topics} empty="Nenhum tópico identificado." />
-                  <AnalysisSection icon={CheckCircle2} title="Decisões" items={analysis.decisions} empty="Nenhuma decisão explícita." />
-                  <AnalysisSection icon={ListChecks} title="Tarefas" items={analysis.action_items} empty="Nenhuma tarefa clara." />
-                  <AnalysisSection icon={CircleHelp} title="Perguntas abertas" items={analysis.open_questions} empty="Nenhuma pergunta aberta." />
-                  <AnalysisSection icon={Users} title="Pessoas citadas" items={analysis.people} empty="Nenhuma pessoa identificada." />
-                  <AnalysisSection
-                    icon={Tag}
-                    title="Temas e tags"
-                    items={[analysis.theme_suggestion, ...analysis.related_themes, ...analysis.tags].filter(Boolean)}
-                    empty="Nenhum tema sugerido."
-                  />
-                </div>
-              </ScrollArea>
+            <CardContent className="space-y-3">
+              {analyzing && <Badge variant="secondary" className="animate-pulse">Organizando...</Badge>}
+              <AnalysisBlock icon={Brain} title="Resumo" items={analysis.summary ? [analysis.summary] : []} empty="Nada organizado ainda." featured />
+              <AnalysisBlock icon={Tag} title="Tema" items={[analysis.theme_suggestion, ...analysis.related_themes, ...analysis.tags].filter(Boolean)} empty="Sem tema." />
+              <AnalysisBlock icon={CheckCircle2} title="Decisões" items={analysis.decisions} empty="Sem decisões." />
+              <AnalysisBlock icon={ListChecks} title="Tarefas" items={analysis.action_items} empty="Sem tarefas." />
+              <AnalysisBlock icon={CircleHelp} title="Perguntas" items={analysis.open_questions} empty="Sem perguntas abertas." />
+              <AnalysisBlock icon={Users} title="Pessoas" items={analysis.people} empty="Sem pessoas identificadas." />
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Capturas salvas</CardTitle>
+            <CardHeader>
+              <CardTitle className="text-base">Reuniões recentes</CardTitle>
             </CardHeader>
             <CardContent>
               {sessions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma captura salva ainda.</p>
+                <p className="text-sm text-muted-foreground">Nenhuma reunião salva.</p>
               ) : (
                 <div className="space-y-2">
-                  {sessions.slice(0, 8).map((session) => (
+                  {sessions.slice(0, 6).map((session) => (
                     <button
                       key={session.id}
                       onClick={() => loadSession(session)}
                       className={cn(
                         "w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent",
-                        activeSession?.id === session.id && "border-primary bg-primary/5"
+                        activeSession?.id === session.id && "border-primary bg-primary/5",
                       )}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="line-clamp-1 text-sm font-medium">{session.title}</span>
-                        <Badge variant={session.status === "active" ? "secondary" : "outline"} className="text-[10px]">
-                          {session.status === "active" ? "ativa" : "salva"}
-                        </Badge>
-                      </div>
+                      <p className="line-clamp-1 text-sm font-medium">{session.title}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {new Date(session.updated_at).toLocaleDateString("pt-BR")} · {session.theme || normalizeMeetingAnalysis(session.analysis).theme_suggestion || "sem tema"}
                       </p>
@@ -747,14 +647,101 @@ export default function MeetingCopilot() {
   );
 }
 
-function BotStatusBadge({ session }: { session: MeetingCopilotSession | null }) {
-  if (!session?.bot_id) return <Badge variant="outline">agente não convidado</Badge>;
-  const status = session.bot_status ?? "created";
-  const label = status === "transcribing" ? "transcrevendo" : status;
-  return <Badge variant={status === "transcribing" ? "secondary" : "outline"}>{label}</Badge>;
+function ModeCard({
+  active,
+  icon: Icon,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  icon: typeof Mic;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-lg border p-4 text-left transition-colors hover:bg-accent",
+        active ? "border-primary bg-primary/5" : "border-border bg-card",
+      )}
+    >
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+        <Icon className="h-5 w-5" />
+      </div>
+      <p className="font-medium">{title}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    </button>
+  );
 }
 
-function AnalysisSection({
+function MeetingFields({
+  title,
+  setTitle,
+  meetingWith,
+  setMeetingWith,
+  theme,
+  setTheme,
+  meetingType,
+  setMeetingType,
+}: {
+  title: string;
+  setTitle: (value: string) => void;
+  meetingWith: string;
+  setMeetingWith: (value: string) => void;
+  theme: string;
+  setTheme: (value: string) => void;
+  meetingType: string;
+  setMeetingType: (value: string) => void;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      <div className="space-y-2">
+        <Label htmlFor="meeting-title">Título</Label>
+        <Input id="meeting-title" value={title} onChange={(event) => setTitle(event.target.value)} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="meeting-with">Com quem</Label>
+        <Input id="meeting-with" value={meetingWith} onChange={(event) => setMeetingWith(event.target.value)} placeholder="Pessoa, cliente ou equipe" />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="meeting-theme">Tema</Label>
+        <Input id="meeting-theme" value={theme} onChange={(event) => setTheme(event.target.value)} placeholder="Produto, proposta, alinhamento..." />
+      </div>
+      <div className="space-y-2">
+        <Label>Tipo</Label>
+        <Select value={meetingType} onValueChange={setMeetingType}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MEETING_TYPES.map((item) => (
+              <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function BotStatus({ session }: { session: MeetingCopilotSession | null }) {
+  if (!session?.bot_id) {
+    return <p className="text-sm text-muted-foreground">O agente ainda não foi enviado.</p>;
+  }
+  return (
+    <div className="rounded-lg border p-3 text-sm">
+      <p className="font-medium">Agente enviado</p>
+      <p className="mt-1 text-muted-foreground">Status: {session.bot_status === "transcribing" ? "transcrevendo" : session.bot_status ?? "criado"}</p>
+      {session.bot_error && <p className="mt-2 text-destructive">{session.bot_error}</p>}
+    </div>
+  );
+}
+
+function AnalysisBlock({
   icon: Icon,
   title,
   items,
@@ -778,14 +765,10 @@ function AnalysisSection({
       ) : (
         <div className="space-y-2">
           {items.map((item, index) => (
-            <div key={`${title}-${index}`} className="flex gap-2 text-sm leading-relaxed">
-              {!featured && <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />}
-              <p className={cn(featured ? "font-medium text-foreground" : "text-muted-foreground")}>{item}</p>
-            </div>
+            <p key={`${title}-${index}`} className="text-sm leading-relaxed text-muted-foreground">{item}</p>
           ))}
         </div>
       )}
-      <Separator className="mt-3 opacity-0" />
     </section>
   );
 }
