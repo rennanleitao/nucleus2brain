@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -634,9 +635,7 @@ export default function MeetingCopilot() {
                             </div>
                           </div>
                           <audio src={clip.url} controls className="h-9 w-full max-w-full" />
-                          {clip.transcript && (
-                            <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{clip.transcript}</p>
-                          )}
+                          {clip.transcript && <AudioTranscriptPreview text={clip.transcript} />}
                         </div>
                       ))}
                     </div>
@@ -966,6 +965,23 @@ function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function AudioTranscriptPreview({ text }: { text: string }) {
+  return (
+    <Collapsible>
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="mt-2 h-8 w-fit px-2 text-xs text-muted-foreground">
+          Ver texto organizado
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <ScrollArea className="mt-2 max-h-40 rounded-md border bg-muted/30 p-3">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{text}</p>
+        </ScrollArea>
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
