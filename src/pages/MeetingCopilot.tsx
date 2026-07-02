@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
   Brain,
   CheckCircle2,
@@ -33,6 +33,7 @@ import {
   normalizeMeetingAnalysis,
   useCreateMeetingCopilotSegment,
   useCreateMeetingCopilotSession,
+  useDeleteMeetingCopilotSession,
   useMeetingCopilotSegments,
   useMeetingCopilotSessions,
   useUpdateMeetingCopilotSession,
@@ -105,6 +106,7 @@ export default function MeetingCopilot() {
   const createSession = useCreateMeetingCopilotSession();
   const updateSession = useUpdateMeetingCopilotSession();
   const createSegment = useCreateMeetingCopilotSegment();
+  const deleteSession = useDeleteMeetingCopilotSession();
 
   const [mode, setMode] = useState<MeetingMode | null>(null);
   const [activeSession, setActiveSession] = useState<MeetingCopilotSession | null>(null);
@@ -482,6 +484,20 @@ export default function MeetingCopilot() {
     setAudioClips([]);
   };
 
+  const handleDeleteSession = async (session: MeetingCopilotSession, event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    const confirmed = window.confirm(`Excluir "${session.title}" e todos os trechos capturados?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteSession.mutateAsync(session.id);
+      if (activeSession?.id === session.id) resetMeeting();
+      toast.success("Reunião excluída");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir a reunião");
+    }
+  };
+
   return (
     <div className="flex min-h-[calc(100vh-2rem)] flex-col bg-background">
       <header className="border-b border-border px-4 py-4 sm:px-6">
@@ -603,7 +619,7 @@ export default function MeetingCopilot() {
                                 disabled={transcribingClipId === clip.id}
                               >
                                 <Brain className="mr-1.5 h-4 w-4" />
-                                {transcribingClipId === clip.id ? "Transcrevendo..." : "Transcrever"}
+                                {transcribingClipId === clip.id ? "Organizando..." : "Transcrever e organizar"}
                               </Button>
                               <Button
                                 variant="outline"
@@ -687,52 +703,92 @@ export default function MeetingCopilot() {
             </Card>
           )}
 
-          {segments.length > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Brain className="h-4 w-4" /> Organização da reunião
+                </CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Resumo, decisões, tarefas e contexto extraídos automaticamente da transcrição.
+                </p>
+              </div>
+              {analyzing && <Badge variant="secondary" className="shrink-0 animate-pulse">Organizando...</Badge>}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!transcript && segments.length === 0 && !analyzing ? (
+                <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                  Grave e transcreva um áudio para gerar o registro organizado da reunião.
+                </div>
+              ) : (
+                <>
+                  <AnalysisBlock icon={Brain} title="Resumo" items={analysis.summary ? [analysis.summary] : []} empty="Aguardando transcrição." featured />
+                  <div className="grid gap-3 xl:grid-cols-2">
+                    <AnalysisBlock icon={CheckCircle2} title="Decisões" items={analysis.decisions} empty="Sem decisões." />
+                    <AnalysisBlock icon={ListChecks} title="Tarefas" items={analysis.action_items} empty="Sem tarefas." />
+                    <AnalysisBlock icon={Tag} title="Temas e tags" items={[analysis.theme_suggestion, ...analysis.key_topics, ...analysis.related_themes, ...analysis.tags].filter(Boolean)} empty="Sem tema." />
+                    <AnalysisBlock icon={Users} title="Pessoas" items={analysis.people} empty="Sem pessoas identificadas." />
+                    <AnalysisBlock icon={CircleHelp} title="Perguntas abertas" items={analysis.open_questions} empty="Sem perguntas abertas." />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {(activeSession || transcript || segments.length > 0) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <History className="h-4 w-4" /> Trechos capturados
+                  <History className="h-4 w-4" /> Registro da reunião
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-56 pr-3">
-                  <div className="space-y-3">
-                    {segments.map((segment, index) => (
-                      <div key={segment.id} className="rounded-lg border p-3">
-                        <div className="mb-2 flex items-center justify-between">
-                          <Badge variant="outline">Trecho {index + 1}</Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(segment.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">{mode === "online" ? "Online" : "Presencial"}</Badge>
+                  {meetingWith.trim() && <Badge variant="outline">Com {meetingWith.trim()}</Badge>}
+                  {(theme.trim() || analysis.theme_suggestion) && <Badge variant="outline">{theme.trim() || analysis.theme_suggestion}</Badge>}
+                  {activeSession?.started_at && (
+                    <Badge variant="outline">
+                      {new Date(activeSession.started_at).toLocaleDateString("pt-BR")} às {new Date(activeSession.started_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Transcrição consolidada</Label>
+                  {transcript ? (
+                    <ScrollArea className="h-48 rounded-lg border bg-muted/20 p-3">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{transcript}</p>
+                    </ScrollArea>
+                  ) : (
+                    <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Nenhuma transcrição consolidada ainda.</p>
+                  )}
+                </div>
+
+                {segments.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Trechos capturados</Label>
+                    <div className="space-y-2">
+                      {segments.map((segment, index) => (
+                        <div key={segment.id} className="rounded-lg border p-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <Badge variant="outline">Trecho {index + 1}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(segment.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{segment.content}</p>
                         </div>
-                        <p className="whitespace-pre-wrap text-sm text-muted-foreground">{segment.content}</p>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </ScrollArea>
+                )}
               </CardContent>
             </Card>
           )}
         </main>
 
         <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Brain className="h-4 w-4" /> Organizado
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {analyzing && <Badge variant="secondary" className="animate-pulse">Organizando...</Badge>}
-              <AnalysisBlock icon={Brain} title="Resumo" items={analysis.summary ? [analysis.summary] : []} empty="Nada organizado ainda." featured />
-              <AnalysisBlock icon={Tag} title="Tema" items={[analysis.theme_suggestion, ...analysis.related_themes, ...analysis.tags].filter(Boolean)} empty="Sem tema." />
-              <AnalysisBlock icon={CheckCircle2} title="Decisões" items={analysis.decisions} empty="Sem decisões." />
-              <AnalysisBlock icon={ListChecks} title="Tarefas" items={analysis.action_items} empty="Sem tarefas." />
-              <AnalysisBlock icon={CircleHelp} title="Perguntas" items={analysis.open_questions} empty="Sem perguntas abertas." />
-              <AnalysisBlock icon={Users} title="Pessoas" items={analysis.people} empty="Sem pessoas identificadas." />
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Reuniões recentes</CardTitle>
@@ -743,19 +799,31 @@ export default function MeetingCopilot() {
               ) : (
                 <div className="space-y-2">
                   {sessions.slice(0, 6).map((session) => (
-                    <button
+                    <div
                       key={session.id}
-                      onClick={() => loadSession(session)}
                       className={cn(
-                        "w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent",
+                        "flex w-full items-start justify-between gap-2 rounded-lg border p-2 transition-colors hover:bg-accent",
                         activeSession?.id === session.id && "border-primary bg-primary/5",
                       )}
                     >
-                      <p className="line-clamp-1 text-sm font-medium">{session.title}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {new Date(session.updated_at).toLocaleDateString("pt-BR")} · {session.theme || normalizeMeetingAnalysis(session.analysis).theme_suggestion || "sem tema"}
-                      </p>
-                    </button>
+                      <button type="button" onClick={() => loadSession(session)} className="min-w-0 flex-1 p-1 text-left">
+                        <p className="line-clamp-1 text-sm font-medium">{session.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(session.updated_at).toLocaleDateString("pt-BR")} · {session.theme || normalizeMeetingAnalysis(session.analysis).theme_suggestion || "sem tema"}
+                        </p>
+                      </button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={(event) => handleDeleteSession(session, event)}
+                        disabled={deleteSession.isPending}
+                        title={`Excluir ${session.title}`}
+                        aria-label={`Excluir ${session.title}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}
