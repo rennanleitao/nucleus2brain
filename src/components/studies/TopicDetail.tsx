@@ -26,7 +26,7 @@ import {
   NotebookPen,
   Pencil,
   Plus,
-  Quote,
+  
   Search,
   Sparkles,
   Trash2,
