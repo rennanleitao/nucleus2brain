@@ -85,11 +85,15 @@ Deno.serve(async (req) => {
         google_email: userInfo.email,
       }));
 
+      // URLSearchParams preserves base64 characters such as "+" during the redirect.
+      const redirectUrl = new URL(appRedirectUri);
+      redirectUrl.searchParams.set("gcal_tokens", tokenData);
+
       // Redirect back to the app with token data
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${appRedirectUri}?gcal_tokens=${tokenData}`,
+          Location: redirectUrl.toString(),
         },
       });
     }

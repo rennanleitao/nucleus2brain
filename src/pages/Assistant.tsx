@@ -56,14 +56,16 @@ export default function Assistant() {
       try {
         const now = new Date();
         const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const { data: calEvents } = await supabase.functions.invoke("google-calendar-api", {
+        const { data: calEvents, error: calendarError } = await supabase.functions.invoke("google-calendar-api", {
           body: { action: "list_events", time_min: now.toISOString(), time_max: nextWeek.toISOString() },
         });
-        if (calEvents?.events) {
-          context.calendar_events = calEvents.events.slice(0, 15).map((e: any) => ({
+        if (!calendarError && Array.isArray(calEvents)) {
+          context.calendar_events = calEvents.slice(0, 15).map((e: any) => ({
             summary: e.summary, start: e.start?.dateTime || e.start?.date, end: e.end?.dateTime || e.end?.date,
           }));
           context.calendar_connected = true;
+        } else {
+          context.calendar_connected = false;
         }
       } catch {
         context.calendar_connected = false;
@@ -150,8 +152,8 @@ export default function Assistant() {
               body: {
                 action: "create_event",
                 summary: action.summary,
-                start_time: startDateTime,
-                end_time: endDateTime,
+                start: { dateTime: startDateTime, timeZone: "America/Sao_Paulo" },
+                end: { dateTime: endDateTime, timeZone: "America/Sao_Paulo" },
                 description: action.description || "",
                 location: action.location || "",
               },

@@ -83,13 +83,16 @@ export default function CalendarPage() {
 
   // ----- Connection check -----
   useEffect(() => {
-    checkStatus();
-    const params = new URLSearchParams(window.location.search);
-    const tokenData = params.get("gcal_tokens");
-    if (tokenData) {
-      handleOAuthCallback(tokenData);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
+    void (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const tokenData = params.get("gcal_tokens");
+      if (tokenData) {
+        window.history.replaceState({}, "", window.location.pathname);
+        await handleOAuthCallback(tokenData);
+        return;
+      }
+      await checkStatus();
+    })();
   }, []);
 
   const checkStatus = async () => {
@@ -102,6 +105,7 @@ export default function CalendarPage() {
         { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
       );
       const statusData = await statusRes.json();
+      if (!statusRes.ok) throw new Error(statusData.error || "Erro ao verificar Google Calendar");
       setConnected(statusData.connected);
       setConnectedEmail(statusData.email);
       if (statusData.connected) await loadCalendars(session.access_token);
@@ -123,13 +127,16 @@ export default function CalendarPage() {
         { method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify(tokens) }
       );
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Erro ao salvar conexão com Google Calendar");
       toast.success("Google Calendar conectado!");
       setConnected(true);
       setConnectedEmail(tokens.google_email);
       await loadCalendars(session.access_token);
     } catch (err: any) {
+      setConnected(false);
       toast.error("Erro ao conectar: " + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -167,6 +174,14 @@ export default function CalendarPage() {
         { headers: { Authorization: `Bearer ${accessToken}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
       );
       const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 404) {
+          setConnected(false);
+          setConnectedEmail(null);
+          return;
+        }
+        throw new Error(data.error || "Erro ao carregar calendários");
+      }
       if (Array.isArray(data)) {
         setCalendars(data);
         const { data: selections } = await supabase.from("google_calendar_selections").select("calendar_id, enabled");
@@ -178,7 +193,10 @@ export default function CalendarPage() {
         }
         setSelectedCalendars(selMap);
       }
-    } catch (err) { console.error("Failed to load calendars:", err); }
+    } catch (err: any) {
+      console.error("Failed to load calendars:", err);
+      toast.error(err.message);
+    }
   };
 
   // ----- Load events + tasks for current range -----
