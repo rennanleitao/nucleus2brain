@@ -538,11 +538,7 @@ export default function MeetingCopilot() {
     navigate("/reunioes");
   };
 
-  const handleDeleteSession = async (session: MeetingCopilotSession, event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    const confirmed = window.confirm(`Excluir "${session.title}" e todos os trechos capturados?`);
-    if (!confirmed) return;
-
+  const handleDeleteSession = async (session: MeetingCopilotSession) => {
     try {
       await deleteSession.mutateAsync(session.id);
       if (activeSession?.id === session.id) {
