@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { getBrtToday } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionErrors";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
 import { NoteAIChat } from "@/components/NoteAIChat";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
@@ -436,7 +437,7 @@ export default function Notes() {
       setDirty(true);
       toast.success(`${clip.name} inserido na nota`);
     } catch (err: any) {
-      toast.error(err?.message || "Não foi possível transcrever este áudio");
+      toast.error(getEdgeFunctionErrorMessage(err, "Não foi possível transcrever este áudio"));
     } finally {
       setTranscribingClipId(null);
     }

@@ -39,6 +39,7 @@ import {
   useUpdateMeetingCopilotSession,
 } from "@/hooks/useMeetingCopilot";
 import { cn } from "@/lib/utils";
+import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionErrors";
 import { toast } from "sonner";
 
 interface BrowserSpeechRecognitionAlternative {
@@ -284,7 +285,7 @@ export default function MeetingCopilot() {
       await processText(clipTranscript, "manual");
       toast.success(`${clip.name} transcrito e organizado`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível transcrever este áudio");
+      toast.error(getEdgeFunctionErrorMessage(error, "Não foi possível transcrever este áudio"));
     } finally {
       setTranscribingClipId(null);
     }
