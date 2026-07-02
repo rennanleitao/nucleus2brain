@@ -1072,7 +1072,7 @@ function buildAudioCaptureHtml(clip: NoteAudioClip, transcript: string) {
     <section>
       <h2>Nota organizada por áudio - ${recordedAt}</h2>
       <p><strong>Duração:</strong> ${formatDuration(clip.durationSeconds)}</p>
-      <blockquote>${escapedTranscript}</blockquote>
+      ${escapedTranscript.split("<br />").map((line) => `<p>${line}</p>`).join("")}
     </section>
   `;
 }
