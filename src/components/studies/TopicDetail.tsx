@@ -402,12 +402,7 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
           onClick={query ? undefined : onAdd}
         />
       ) : (
-        <div className="mx-auto max-w-7xl overflow-hidden rounded-xl border border-border bg-card">
-          <div className="hidden grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)_88px] border-b border-border bg-muted/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid">
-            <span>Fontes</span>
-            <span>Resumo e principais takeaways</span>
-            <span className="text-right">Ações</span>
-          </div>
+        <div className="space-y-6">
           {filteredEntries.map((entry) => (
             <KnowledgeCard
               key={entry.id}
@@ -421,6 +416,7 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
           ))}
         </div>
       )}
+
     </section>
   );
 }
