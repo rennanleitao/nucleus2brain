@@ -63,7 +63,8 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
+        max_tokens: 16000,
         messages: [{
           role: "user",
           content: [
