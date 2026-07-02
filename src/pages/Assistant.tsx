@@ -19,7 +19,7 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 export default function Assistant() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
-    { id: "1", role: "assistant", content: "Hello! I'm your Nucleus AI assistant. I can help you create tasks, prioritize your work, and manage your productivity. What would you like to do?" },
+    { id: "1", role: "assistant", content: "Olá! Sou Helena, sua assistente do Nucleus. Posso criar tarefas, priorizar seu trabalho e ajudar na produtividade. O que você gostaria de fazer?" },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -184,9 +184,9 @@ export default function Assistant() {
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
       <div className="p-4 border-b border-border">
         <h1 className="text-h1 flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" /> Assistant
+          <Bot className="h-5 w-5 text-primary" /> Helena
         </h1>
-        <p className="text-micro text-muted-foreground">Crie tasks, priorize, planeje — com ajuda de IA</p>
+        <p className="text-micro text-muted-foreground">Sua assistente de IA — crie tasks, priorize e planeje</p>
       </div>
 
       <div className="flex-1 overflow-auto">

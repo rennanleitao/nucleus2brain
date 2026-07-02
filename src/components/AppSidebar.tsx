@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItemsAll = [
-  { key: "assistant", title: "Personal Assistant", url: "/", icon: Bot },
+  { key: "assistant", title: "Helena", url: "/", icon: Bot },
   { key: "dashboard", title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { key: "spaces", title: "Spaces", url: "/spaces", icon: FolderOpen },
   { key: "notes", title: "Notes", url: "/notes", icon: FileText },

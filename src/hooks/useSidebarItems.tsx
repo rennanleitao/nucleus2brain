@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 
 export const SIDEBAR_ITEMS = [
-  { key: "assistant", title: "Personal Assistant", url: "/" },
+  { key: "assistant", title: "Helena", url: "/" },
   { key: "dashboard", title: "Dashboard", url: "/dashboard" },
   { key: "spaces", title: "Spaces", url: "/spaces" },
   { key: "notes", title: "Notes", url: "/notes" },
@@ -72,7 +72,7 @@ export function useSidebarItems() {
 
   const toggle = useCallback((key: SidebarItemKey) => {
     setVisible((prev) => {
-      // Always keep at least one item (Personal Assistant fallback)
+      // Always keep at least one item (Helena fallback)
       const has = prev.includes(key);
       let next = has ? prev.filter((k) => k !== key) : [...prev, key];
       if (next.length === 0) next = ["assistant"];
