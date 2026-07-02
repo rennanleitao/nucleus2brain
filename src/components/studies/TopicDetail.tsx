@@ -41,7 +41,10 @@ import {
   useMoveEntry,
   useStudyAreas,
   useStudyEntries,
+  useUpdateEntry,
 } from "@/hooks/useStudies";
+import { RichTextEditor } from "@/components/RichTextEditor";
+
 import { formatRelative } from "@/lib/studyDate";
 import { ensureHtml, getSourceHost, htmlToPlainText, parseRepositorySources } from "@/lib/studyRepository";
 import { cn } from "@/lib/utils";
