@@ -27,6 +27,8 @@ const REQUIRED_TOOLS = [
   "find_related_content","extract_action_items","summarize_space",
   "get_context_for_chat",
   "add_event_entry","add_knowledge_entry","add_book_summary","search_study_content",
+  "create_study_repository_item","list_study_repository_items","get_study_repository_item",
+  "update_study_repository_item","delete_study_repository_item",
 ];
 
 function jsonRpc(id: number, method: string, params: unknown = {}) {

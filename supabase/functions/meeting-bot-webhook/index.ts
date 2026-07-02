@@ -8,10 +8,10 @@ const corsHeaders = {
 };
 
 const profiles = {
-  sales: "Sales Copilot: foco em intenção de compra, objeções, stakeholders, urgência, orçamento e próximos passos comerciais.",
-  csc: "CSC Copilot: foco em sucesso do cliente, adoção, riscos de churn, expansão, bloqueios operacionais e próximos passos de relacionamento.",
-  rpa: "RPA Copilot: foco em processos, automações, exceções, integrações, dados necessários, ganhos de eficiência e riscos técnicos.",
-  executive: "Executive Copilot: foco em decisões, riscos estratégicos, lacunas de informação, oportunidades, alinhamento e próximos passos executivos.",
+  sales: "Cliente/Vendas: foco em clientes, oportunidades, objeções, stakeholders e follow-ups comerciais.",
+  csc: "Relacionamento: foco em acompanhamento, satisfação, expectativas, riscos, bloqueios e próximos passos.",
+  rpa: "Processos: foco em operações, automações, exceções, integrações, dados necessários e melhorias.",
+  executive: "Geral: foco em resumo objetivo, decisões, tarefas, temas, pessoas citadas e perguntas abertas.",
 } as const;
 
 type Profile = keyof typeof profiles;
@@ -20,14 +20,22 @@ function normalizeAnalysis(value: unknown) {
   const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const pickArray = (key: string) => Array.isArray(source[key]) ? source[key] as string[] : [];
   return {
-    executive_summary: typeof source.executive_summary === "string" ? source.executive_summary : "",
+    summary: typeof source.summary === "string"
+      ? source.summary
+      : typeof source.executive_summary === "string" ? source.executive_summary : "",
+    theme_suggestion: typeof source.theme_suggestion === "string" ? source.theme_suggestion : "",
+    related_themes: pickArray("related_themes"),
+    key_topics: pickArray("key_topics"),
     decisions: pickArray("decisions"),
-    risks: pickArray("risks"),
-    unanswered_questions: pickArray("unanswered_questions"),
-    next_best_question: typeof source.next_best_question === "string" ? source.next_best_question : "",
-    objections: pickArray("objections"),
-    buying_signals: pickArray("buying_signals"),
-    next_steps: pickArray("next_steps"),
+    action_items: Array.isArray(source.action_items)
+      ? source.action_items as string[]
+      : Array.isArray(source.next_steps) ? source.next_steps as string[] : [],
+    open_questions: Array.isArray(source.open_questions)
+      ? source.open_questions as string[]
+      : Array.isArray(source.unanswered_questions) ? source.unanswered_questions as string[] : [],
+    people: pickArray("people"),
+    tags: pickArray("tags"),
+    confidence: typeof source.confidence === "number" ? source.confidence : 0,
   };
 }
 
@@ -99,12 +107,14 @@ async function analyze(req: Request, profile: Profile, transcript: string, lates
       messages: [
         {
           role: "system",
-          content: `Você é o Meeting Copilot do Nucleus, um assessor executivo em tempo real durante reuniões.
+          content: `Você é o organizador do módulo Reuniões do Nucleus.
 
 Perfil de análise ativo:
 ${profiles[profile]}
 
-Atualize o painel com base no novo trecho transcrito. Seja objetivo, não invente fatos, e responda em português do Brasil.`,
+Atualize a nota organizada com base no novo trecho transcrito da video-call.
+Gere resumo, temas, tópicos, decisões, tarefas, perguntas abertas, pessoas citadas e tags.
+Não invente fatos. Extraia tarefas apenas quando houver ação clara. Responda em português do Brasil.`,
         },
         {
           role: "user",
@@ -115,27 +125,29 @@ Atualize o painel com base no novo trecho transcrito. Seja objetivo, não invent
         {
           type: "function",
           function: {
-            name: "analyze_meeting",
-            description: "Structured meeting analysis for Nucleus Meeting Copilot.",
+            name: "organize_capture",
+            description: "Structured conversation, meeting, and voice note organization for Nucleus Reuniões.",
             parameters: {
               type: "object",
               properties: {
-                executive_summary: { type: "string" },
+                summary: { type: "string" },
+                theme_suggestion: { type: "string" },
+                related_themes: { type: "array", items: { type: "string" } },
+                key_topics: { type: "array", items: { type: "string" } },
                 decisions: { type: "array", items: { type: "string" } },
-                risks: { type: "array", items: { type: "string" } },
-                unanswered_questions: { type: "array", items: { type: "string" } },
-                next_best_question: { type: "string" },
-                objections: { type: "array", items: { type: "string" } },
-                buying_signals: { type: "array", items: { type: "string" } },
-                next_steps: { type: "array", items: { type: "string" } },
+                action_items: { type: "array", items: { type: "string" } },
+                open_questions: { type: "array", items: { type: "string" } },
+                people: { type: "array", items: { type: "string" } },
+                tags: { type: "array", items: { type: "string" } },
+                confidence: { type: "number" },
               },
-              required: ["executive_summary", "decisions", "risks", "unanswered_questions", "next_best_question", "objections", "buying_signals", "next_steps"],
+              required: ["summary", "theme_suggestion", "related_themes", "key_topics", "decisions", "action_items", "open_questions", "people", "tags", "confidence"],
               additionalProperties: false,
             },
           },
         },
       ],
-      tool_choice: { type: "function", function: { name: "analyze_meeting" } },
+      tool_choice: { type: "function", function: { name: "organize_capture" } },
       max_tokens: 1800,
     },
     { defaultModel: "google/gemini-3-flash-preview" },
@@ -194,7 +206,7 @@ serve(async (req) => {
     const { data: sessions, error: sessionError } = await sessionQuery;
     if (sessionError) throw sessionError;
     const session = sessions?.[0];
-    if (!session) throw new Error("Meeting Copilot session not found for Recall webhook");
+    if (!session) throw new Error("Sessão de Reuniões não encontrada para o webhook da Recall");
 
     const displayContent = speakerName ? `${speakerName}: ${content}` : content;
     const transcript = [session.transcript, displayContent].filter(Boolean).join("\n\n");

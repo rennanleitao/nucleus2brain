@@ -5,14 +5,16 @@ import { useAuth } from "@/hooks/useAuth";
 export type MeetingCopilotProfile = "sales" | "csc" | "rpa" | "executive";
 
 export interface MeetingCopilotAnalysis {
-  executive_summary: string;
+  summary: string;
+  theme_suggestion: string;
+  related_themes: string[];
+  key_topics: string[];
   decisions: string[];
-  risks: string[];
-  unanswered_questions: string[];
-  next_best_question: string;
-  objections: string[];
-  buying_signals: string[];
-  next_steps: string[];
+  action_items: string[];
+  open_questions: string[];
+  people: string[];
+  tags: string[];
+  confidence: number;
 }
 
 export interface MeetingCopilotSession {
@@ -20,6 +22,8 @@ export interface MeetingCopilotSession {
   user_id: string;
   title: string;
   profile: MeetingCopilotProfile;
+  theme: string | null;
+  capture_type: string | null;
   status: "active" | "ended";
   provider: string | null;
   meeting_url: string | null;
@@ -73,14 +77,16 @@ const db = supabase as unknown as {
 };
 
 export const EMPTY_MEETING_ANALYSIS: MeetingCopilotAnalysis = {
-  executive_summary: "",
+  summary: "",
+  theme_suggestion: "",
+  related_themes: [],
+  key_topics: [],
   decisions: [],
-  risks: [],
-  unanswered_questions: [],
-  next_best_question: "",
-  objections: [],
-  buying_signals: [],
-  next_steps: [],
+  action_items: [],
+  open_questions: [],
+  people: [],
+  tags: [],
+  confidence: 0,
 };
 
 export const MEETING_COPILOT_PROFILES: Array<{
@@ -90,37 +96,46 @@ export const MEETING_COPILOT_PROFILES: Array<{
 }> = [
   {
     id: "executive",
-    label: "Executive Copilot",
-    description: "Decisões, riscos estratégicos, lacunas e próximos passos executivos.",
+    label: "Geral",
+    description: "Resumo objetivo, decisões, tarefas e perguntas abertas da conversa.",
   },
   {
     id: "sales",
-    label: "Sales Copilot",
-    description: "Sinais de compra, objeções, stakeholders, urgência e avanço comercial.",
+    label: "Cliente/Vendas",
+    description: "Conversas comerciais, clientes, objeções, próximos passos e follow-ups.",
   },
   {
     id: "csc",
-    label: "CSC Copilot",
-    description: "Adoção, relacionamento, expansão, riscos de churn e bloqueios do cliente.",
+    label: "Relacionamento",
+    description: "Acompanhamentos, alinhamentos, expectativas, bloqueios e satisfação.",
   },
   {
     id: "rpa",
-    label: "RPA Copilot",
-    description: "Processos, automações, exceções, integrações e ganhos operacionais.",
+    label: "Processos",
+    description: "Processos, operações, automações, exceções, integrações e melhorias.",
   },
 ];
 
 export function normalizeMeetingAnalysis(value: unknown): MeetingCopilotAnalysis {
   const source = value && typeof value === "object" ? value as Partial<MeetingCopilotAnalysis> : {};
+  const legacy = value && typeof value === "object" ? value as Record<string, unknown> : {};
   return {
-    executive_summary: typeof source.executive_summary === "string" ? source.executive_summary : "",
+    summary: typeof source.summary === "string"
+      ? source.summary
+      : typeof legacy.executive_summary === "string" ? legacy.executive_summary : "",
+    theme_suggestion: typeof source.theme_suggestion === "string" ? source.theme_suggestion : "",
+    related_themes: Array.isArray(source.related_themes) ? source.related_themes : [],
+    key_topics: Array.isArray(source.key_topics) ? source.key_topics : [],
     decisions: Array.isArray(source.decisions) ? source.decisions : [],
-    risks: Array.isArray(source.risks) ? source.risks : [],
-    unanswered_questions: Array.isArray(source.unanswered_questions) ? source.unanswered_questions : [],
-    next_best_question: typeof source.next_best_question === "string" ? source.next_best_question : "",
-    objections: Array.isArray(source.objections) ? source.objections : [],
-    buying_signals: Array.isArray(source.buying_signals) ? source.buying_signals : [],
-    next_steps: Array.isArray(source.next_steps) ? source.next_steps : [],
+    action_items: Array.isArray(source.action_items)
+      ? source.action_items
+      : Array.isArray(legacy.next_steps) ? legacy.next_steps as string[] : [],
+    open_questions: Array.isArray(source.open_questions)
+      ? source.open_questions
+      : Array.isArray(legacy.unanswered_questions) ? legacy.unanswered_questions as string[] : [],
+    people: Array.isArray(source.people) ? source.people : [],
+    tags: Array.isArray(source.tags) ? source.tags : [],
+    confidence: typeof source.confidence === "number" ? source.confidence : 0,
   };
 }
 
@@ -164,13 +179,15 @@ export function useCreateMeetingCopilotSession() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (input: { title: string; profile: MeetingCopilotProfile }) => {
+    mutationFn: async (input: { title: string; profile: MeetingCopilotProfile; theme?: string | null; capture_type?: string | null }) => {
       const { data, error } = await db
         .from("meeting_copilot_sessions")
         .insert({
           user_id: user!.id,
           title: input.title,
           profile: input.profile,
+          theme: input.theme ?? null,
+          capture_type: input.capture_type ?? "conversation",
           status: "active",
           analysis: EMPTY_MEETING_ANALYSIS,
         })

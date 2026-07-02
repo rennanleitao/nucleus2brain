@@ -161,6 +161,12 @@ const TOOL_META: Record<string, { entity: EntityType; op: Operation }> = {
   add_knowledge_entry: { entity: "study_entry", op: "create" },
   add_book_summary: { entity: "study_entry", op: "create" },
   search_study_content: { entity: "study_entry", op: "search" },
+  // study topic repository (knowledge entries scoped to a topic)
+  create_study_repository_item: { entity: "study_entry", op: "create" },
+  list_study_repository_items: { entity: "study_entry", op: "list" },
+  get_study_repository_item: { entity: "study_entry", op: "get" },
+  update_study_repository_item: { entity: "study_entry", op: "update" },
+  delete_study_repository_item: { entity: "study_entry", op: "delete" },
   // semantic / AI
   search_everything: { entity: "search_result", op: "search" },
   get_recent_activity: { entity: "activity", op: "list" },
@@ -1160,6 +1166,150 @@ const buildServer = (ctx: Ctx) => {
       const { data, error } = await q;
       if (error) return fail(error.message);
       return ok(data);
+    },
+  });
+
+  // ---------- STUDY TOPIC REPOSITORY ----------
+  // The frontend Repositório tab reads study_entries scoped by topic_id and
+  // filters kind === "knowledge". These tools expose that exact model without
+  // introducing a new table or changing existing study_entry tools.
+  const repositoryItemSelect = "*";
+  const repositoryContentType = z.string().min(1).max(80)
+    .describe("Maps to study_entries.category. Examples: article, note, reference, analysis");
+  type RepositoryItemRow = { category?: string | null } & Record<string, unknown>;
+  const repositoryItem = (row: RepositoryItemRow | null) =>
+    row ? ({ ...row, content_type: row.category ?? null }) : row;
+
+  s.tool("create_study_repository_item", {
+    description:
+      "Create an item in the internal Repositório tab of a study topic. " +
+      "Uses study_entries with kind='knowledge' and the provided topic_id, so it appears inside that topic's Repositório.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      title: z.string().min(1).max(500),
+      content: z.string().min(1).describe("Repository content or personal summary/relevance text."),
+      source_url: z.string().url().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+      content_type: repositoryContentType.optional(),
+      summary: z.string().min(1).optional().describe("Optional shorter summary. Defaults to content when omitted."),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_entries").insert({
+        user_id: ctx.userId,
+        topic_id: input.topic_id,
+        kind: "knowledge",
+        entry_date: null,
+        title: input.title,
+        summary: input.summary ?? input.content,
+        content: input.content,
+        source_url: input.source_url ?? null,
+        category: input.content_type ?? null,
+        highlight: null,
+        notes: null,
+        tags: input.tags ?? [],
+      }).select(repositoryItemSelect).single();
+      if (error) return fail(error.message);
+      return ok(repositoryItem(data));
+    },
+  });
+
+  s.tool("list_study_repository_items", {
+    description:
+      "List items from the internal Repositório tab of one study topic. " +
+      "Only returns study_entries where kind='knowledge' for the required topic_id.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      query: z.string().optional(),
+      content_type: repositoryContentType.optional(),
+      tag: z.string().optional(),
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+    handler: async (input) => {
+      let q = db.from("study_entries").select(repositoryItemSelect)
+        .eq("topic_id", input.topic_id)
+        .eq("kind", "knowledge")
+        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(input.limit ?? 100);
+      if (input.content_type) q = q.eq("category", input.content_type);
+      if (input.tag) q = q.contains("tags", [input.tag]);
+      if (input.query) {
+        const v = input.query.replace(/[,()]/g, " ");
+        q = q.or(`title.ilike.%${v}%,summary.ilike.%${v}%,content.ilike.%${v}%,source_url.ilike.%${v}%`);
+      }
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok((data ?? []).map(repositoryItem));
+    },
+  });
+
+  s.tool("get_study_repository_item", {
+    description:
+      "Get one item from a topic's internal Repositório. Requires both topic_id and id, and only reads kind='knowledge'.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      id: z.string().uuid(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_entries").select(repositoryItemSelect)
+        .eq("topic_id", input.topic_id)
+        .eq("id", input.id)
+        .eq("kind", "knowledge")
+        .single();
+      if (error) return fail(error.message);
+      return ok(repositoryItem(data));
+    },
+  });
+
+  s.tool("update_study_repository_item", {
+    description:
+      "Update an item in a topic's internal Repositório. Requires topic_id and id, and keeps the row as kind='knowledge'.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      id: z.string().uuid(),
+      title: z.string().min(1).max(500).optional(),
+      content: z.string().min(1).optional(),
+      source_url: z.string().url().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+      content_type: repositoryContentType.nullable().optional(),
+      summary: z.string().min(1).optional(),
+    }),
+    handler: async (input) => {
+      const patch: Record<string, unknown> = { kind: "knowledge" };
+      if (input.title !== undefined) patch.title = input.title;
+      if (input.content !== undefined) patch.content = input.content;
+      if (input.source_url !== undefined) patch.source_url = input.source_url;
+      if (input.tags !== undefined) patch.tags = input.tags;
+      if (input.content_type !== undefined) patch.category = input.content_type;
+      if (input.summary !== undefined) patch.summary = input.summary;
+
+      const { data, error } = await db.from("study_entries").update(patch)
+        .eq("topic_id", input.topic_id)
+        .eq("id", input.id)
+        .eq("kind", "knowledge")
+        .select(repositoryItemSelect)
+        .single();
+      if (error) return fail(error.message);
+      return ok(repositoryItem(data));
+    },
+  });
+
+  s.tool("delete_study_repository_item", {
+    description:
+      "Delete one item from a topic's internal Repositório. Requires topic_id and id, and only deletes kind='knowledge'.",
+    inputSchema: z.object({
+      topic_id: z.string().uuid(),
+      id: z.string().uuid(),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("study_entries").delete()
+        .eq("topic_id", input.topic_id)
+        .eq("id", input.id)
+        .eq("kind", "knowledge")
+        .select("id,topic_id,title,kind,category")
+        .single();
+      if (error) return fail(error.message);
+      return ok({ deleted: true, ...repositoryItem(data) });
     },
   });
 
