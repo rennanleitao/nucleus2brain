@@ -79,6 +79,7 @@ serve(async (req) => {
     const latestSegment = typeof body.latest_segment === "string" ? body.latest_segment.trim() : "";
     const profile: Profile = body.profile in profiles ? body.profile : "executive";
     const theme = typeof body.theme === "string" ? body.theme.trim() : "";
+    const meetingWith = typeof body.meeting_with === "string" ? body.meeting_with.trim() : "";
     const captureType = typeof body.capture_type === "string" ? body.capture_type.trim() : "conversation";
     const previousAnalysis = body.previous_analysis ?? null;
 
@@ -115,6 +116,7 @@ Missão:
             content: JSON.stringify({
               profile,
               theme,
+              meeting_with: meetingWith,
               capture_type: captureType,
               latest_segment: latestSegment,
               transcript,

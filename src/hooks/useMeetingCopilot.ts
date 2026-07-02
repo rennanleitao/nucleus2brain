@@ -180,19 +180,39 @@ export function useCreateMeetingCopilotSession() {
   const { user } = useAuth();
   return useMutation({
     mutationFn: async (input: { title: string; profile: MeetingCopilotProfile; theme?: string | null; capture_type?: string | null }) => {
-      const { data, error } = await db
+      const payload = {
+        user_id: user!.id,
+        title: input.title,
+        profile: input.profile,
+        theme: input.theme ?? null,
+        capture_type: input.capture_type ?? "conversation",
+        status: "active",
+        analysis: EMPTY_MEETING_ANALYSIS,
+      };
+
+      let { data, error } = await db
         .from("meeting_copilot_sessions")
-        .insert({
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error && error.message.toLowerCase().includes("column")) {
+        const fallbackPayload = {
           user_id: user!.id,
           title: input.title,
           profile: input.profile,
-          theme: input.theme ?? null,
-          capture_type: input.capture_type ?? "conversation",
           status: "active",
           analysis: EMPTY_MEETING_ANALYSIS,
-        })
-        .select()
-        .single();
+        };
+        const fallback = await db
+          .from("meeting_copilot_sessions")
+          .insert(fallbackPayload)
+          .select()
+          .single();
+        data = fallback.data;
+        error = fallback.error;
+      }
+
       if (error) throw error;
       return data as MeetingCopilotSession;
     },
@@ -204,12 +224,25 @@ export function useUpdateMeetingCopilotSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: Partial<MeetingCopilotSession> & { id: string }) => {
-      const { data, error } = await db
+      let { data, error } = await db
         .from("meeting_copilot_sessions")
         .update(patch)
         .eq("id", id)
         .select()
         .single();
+
+      if (error && error.message.toLowerCase().includes("column")) {
+        const { theme: _theme, capture_type: _captureType, ...fallbackPatch } = patch;
+        const fallback = await db
+          .from("meeting_copilot_sessions")
+          .update(fallbackPatch)
+          .eq("id", id)
+          .select()
+          .single();
+        data = fallback.data;
+        error = fallback.error;
+      }
+
       if (error) throw error;
       return data as MeetingCopilotSession;
     },
