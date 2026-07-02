@@ -14,6 +14,7 @@ import {
   Send,
   Square,
   Tag,
+  Trash2,
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,14 @@ interface BrowserSpeechRecognition extends EventTarget {
 type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
 type MeetingMode = "in_person" | "online";
 
+interface RecordedAudio {
+  id: string;
+  url: string;
+  name: string;
+  durationSeconds: number;
+  createdAt: string;
+}
+
 declare global {
   interface Window {
     SpeechRecognition?: BrowserSpeechRecognitionConstructor;
@@ -110,14 +119,16 @@ export default function MeetingCopilot() {
   const [invitingBot, setInvitingBot] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioClips, setAudioClips] = useState<RecordedAudio[]>([]);
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioClipsRef = useRef<RecordedAudio[]>([]);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const recordingRef = useRef(false);
+  const shouldRestartRecognitionRef = useRef(false);
 
   const { data: segments = [] } = useMeetingCopilotSegments(activeSession?.id);
   const canRecord = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
@@ -139,13 +150,18 @@ export default function MeetingCopilot() {
   }, [recording, recordingStartedAt]);
 
   useEffect(() => {
+    audioClipsRef.current = audioClips;
+  }, [audioClips]);
+
+  useEffect(() => {
     return () => {
       recordingRef.current = false;
+      shouldRestartRecognitionRef.current = false;
       recognitionRef.current?.stop();
       if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      audioClipsRef.current.forEach((clip) => URL.revokeObjectURL(clip.url));
     };
-  }, [audioUrl]);
+  }, []);
 
   const resetMeeting = () => {
     setActiveSession(null);
@@ -161,8 +177,8 @@ export default function MeetingCopilot() {
     setSpeechError(null);
     setInterimTranscript("");
     setElapsedSeconds(0);
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl(null);
+    audioClips.forEach((clip) => URL.revokeObjectURL(clip.url));
+    setAudioClips([]);
   };
 
   const ensureSession = useCallback(async () => {
@@ -268,24 +284,31 @@ export default function MeetingCopilot() {
     };
 
     recognition.onerror = (event) => {
+      if (event.error === "network" || event.error === "service-not-allowed" || event.error === "not-allowed") {
+        shouldRestartRecognitionRef.current = false;
+        recognition.stop();
+      }
       setSpeechError(event.error === "not-allowed"
-        ? "Microfone bloqueado. Autorize o microfone no navegador."
-        : `Transcrição automática indisponível: ${event.error}`);
+        ? "Microfone bloqueado para transcrição. Se a gravação de áudio estiver rodando, ela continua salva."
+        : "Transcrição automática indisponível neste navegador agora. O áudio continua sendo gravado e você pode transcrever ou colar o texto depois.");
     };
 
     recognition.onend = () => {
-      if (!recordingRef.current) return;
+      if (!recordingRef.current || !shouldRestartRecognitionRef.current) return;
       try {
         recognition.start();
       } catch {
+        shouldRestartRecognitionRef.current = false;
         setSpeechError("A transcrição automática parou, mas a gravação de áudio continua.");
       }
     };
 
     recognitionRef.current = recognition;
+    shouldRestartRecognitionRef.current = true;
     try {
       recognition.start();
     } catch {
+      shouldRestartRecognitionRef.current = false;
       setSpeechError("Não foi possível iniciar a transcrição automática.");
     }
   }, [processText]);
@@ -301,9 +324,8 @@ export default function MeetingCopilot() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       await ensureSession();
 
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
       audioChunksRef.current = [];
+      const startedAt = Date.now();
 
       const recorder = new MediaRecorder(stream);
       recorder.ondataavailable = (event) => {
@@ -311,7 +333,17 @@ export default function MeetingCopilot() {
       };
       recorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
-        if (blob.size > 0) setAudioUrl(URL.createObjectURL(blob));
+        if (blob.size > 0) {
+          const createdAt = new Date().toISOString();
+          const nextClip: RecordedAudio = {
+            id: `${createdAt}-${Math.random().toString(36).slice(2)}`,
+            url: URL.createObjectURL(blob),
+            name: `Áudio ${audioClips.length + 1}`,
+            durationSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
+            createdAt,
+          };
+          setAudioClips((current) => [...current, nextClip]);
+        }
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -329,10 +361,11 @@ export default function MeetingCopilot() {
       setRecording(false);
       toast.error(error instanceof Error ? error.message : "Não foi possível iniciar a gravação");
     }
-  }, [audioUrl, canRecord, ensureSession, startSpeechRecognition]);
+  }, [audioClips.length, canRecord, ensureSession, startSpeechRecognition]);
 
   const stopRecording = useCallback(async () => {
     recordingRef.current = false;
+    shouldRestartRecognitionRef.current = false;
     setRecording(false);
     setRecordingStartedAt(null);
     setInterimTranscript("");
@@ -359,6 +392,14 @@ export default function MeetingCopilot() {
     }
     toast.success("Gravação encerrada");
   }, [activeSession, analysis, derivedTitle, theme, transcript, updateSession]);
+
+  const deleteAudioClip = (clipId: string) => {
+    setAudioClips((current) => {
+      const clip = current.find((item) => item.id === clipId);
+      if (clip) URL.revokeObjectURL(clip.url);
+      return current.filter((item) => item.id !== clipId);
+    });
+  };
 
   const inviteOnlineAgent = useCallback(async () => {
     const cleanUrl = meetingUrl.trim();
@@ -402,8 +443,8 @@ export default function MeetingCopilot() {
     setManualText("");
     setSpeechError(null);
     setInterimTranscript("");
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl(null);
+    audioClips.forEach((clip) => URL.revokeObjectURL(clip.url));
+    setAudioClips([]);
   };
 
   return (
@@ -493,16 +534,48 @@ export default function MeetingCopilot() {
                   <p className="rounded-md bg-muted px-3 py-2 text-sm italic text-muted-foreground">{interimTranscript}</p>
                 )}
                 {speechError && (
-                  <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{speechError}</p>
+                  <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">{speechError}</p>
                 )}
-                {audioUrl && (
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
-                    <audio src={audioUrl} controls className="h-9 max-w-full" />
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={audioUrl} download={`${derivedTitle}.webm`}>
-                        <Download className="mr-1.5 h-4 w-4" /> Baixar áudio
-                      </a>
-                    </Button>
+
+                {audioClips.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>Áudios gravados</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {audioClips.length} {audioClips.length === 1 ? "trecho" : "trechos"}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {audioClips.map((clip, index) => (
+                        <div key={clip.id} className="rounded-lg border p-3">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium">{clip.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDuration(clip.durationSeconds)} · {new Date(clip.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm" asChild title={`Baixar ${clip.name}`}>
+                                <a href={clip.url} download={`${derivedTitle}-audio-${index + 1}.webm`}>
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => deleteAudioClip(clip.id)}
+                                title={`Excluir ${clip.name}`}
+                                aria-label={`Excluir ${clip.name}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <audio src={clip.url} controls className="h-9 w-full max-w-full" />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
