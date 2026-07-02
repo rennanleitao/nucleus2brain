@@ -720,11 +720,4 @@ function SectionEyebrow({
   );
 }
 
-function splitParagraphs(value: string): string[] {
-  return value
-    .replace(/\r\n/g, "\n")
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
-}
 
