@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical, ListTodo, PanelLeftClose, PanelLeftOpen,
+  Mic, Square, Play, Download, Brain,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
@@ -26,6 +27,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SpaceIcon } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+interface NoteAudioClip {
+  id: string;
+  url: string;
+  blob: Blob;
+  mimeType: string;
+  name: string;
+  durationSeconds: number;
+  createdAt: string;
+  transcript?: string;
+}
 
 export default function Notes() {
   const navigate = useNavigate();
@@ -58,6 +70,16 @@ export default function Notes() {
   const editorRef = useRef<RichTextEditorHandle>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
+  const [recordingAudio, setRecordingAudio] = useState(false);
+  const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [audioClips, setAudioClips] = useState<NoteAudioClip[]>([]);
+  const [transcribingClipId, setTranscribingClipId] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioClipsRef = useRef<NoteAudioClip[]>([]);
+  const discardStoppedAudioRef = useRef(false);
+  const canRecordAudio = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
 
   const load = async () => {
     try {
@@ -87,6 +109,25 @@ export default function Notes() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    audioClipsRef.current = audioClips;
+  }, [audioClips]);
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+      audioClipsRef.current.forEach((clip) => URL.revokeObjectURL(clip.url));
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!recordingStartedAt || !recordingAudio) return;
+    const interval = window.setInterval(() => {
+      setRecordingSeconds(Math.floor((Date.now() - recordingStartedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [recordingAudio, recordingStartedAt]);
 
   useEffect(() => {
     const noteId = searchParams.get("note");
@@ -148,6 +189,7 @@ export default function Notes() {
     if (dirty && selectedNote) {
       handleSave();
     }
+    clearAudioCapture();
     setSelectedNote(note);
     setEditTitle(note.title);
     setEditContent(note.content || "");
@@ -160,6 +202,7 @@ export default function Notes() {
     try {
       const newNote = await createNote({ title: "Nova nota", content: "", tags: [] });
       await load();
+      clearAudioCapture();
       setSelectedNote(newNote);
       setEditTitle(newNote.title);
       setEditContent("");
@@ -280,8 +323,124 @@ export default function Notes() {
 
   const handleBack = () => {
     if (dirty) handleSave();
+    clearAudioCapture();
     setSelectedNote(null);
   };
+
+  const clearAudioCapture = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      discardStoppedAudioRef.current = true;
+      mediaRecorderRef.current.stop();
+    }
+    audioClipsRef.current.forEach((clip) => URL.revokeObjectURL(clip.url));
+    setAudioClips([]);
+    setRecordingAudio(false);
+    setRecordingStartedAt(null);
+    setRecordingSeconds(0);
+    setTranscribingClipId(null);
+  };
+
+  const startAudioCapture = useCallback(async () => {
+    if (!selectedNote) {
+      toast.error("Selecione ou crie uma nota antes de gravar.");
+      return;
+    }
+    if (!canRecordAudio) {
+      toast.error("Este navegador não suporta gravação de áudio.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const startedAt = Date.now();
+      const recorder = new MediaRecorder(stream);
+      discardStoppedAudioRef.current = false;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        if (discardStoppedAudioRef.current) {
+          discardStoppedAudioRef.current = false;
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        if (blob.size > 0) {
+          const createdAt = new Date().toISOString();
+          const nextClip: NoteAudioClip = {
+            id: `${createdAt}-${Math.random().toString(36).slice(2)}`,
+            url: URL.createObjectURL(blob),
+            blob,
+            mimeType: recorder.mimeType || blob.type || "audio/webm",
+            name: `Áudio ${audioClipsRef.current.length + 1}`,
+            durationSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
+            createdAt,
+          };
+          setAudioClips((current) => [...current, nextClip]);
+        }
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorderRef.current = recorder;
+      setRecordingAudio(true);
+      setRecordingSeconds(0);
+      setRecordingStartedAt(startedAt);
+      recorder.start();
+      toast.success("Captura de áudio iniciada");
+    } catch (err: any) {
+      setRecordingAudio(false);
+      setRecordingStartedAt(null);
+      toast.error(err?.message || "Não foi possível iniciar a captura de áudio");
+    }
+  }, [canRecordAudio, selectedNote]);
+
+  const stopAudioCapture = useCallback(() => {
+    setRecordingAudio(false);
+    setRecordingStartedAt(null);
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+    toast.success("Captura de áudio encerrada");
+  }, []);
+
+  const deleteAudioClip = (clipId: string) => {
+    setAudioClips((current) => {
+      const clip = current.find((item) => item.id === clipId);
+      if (clip) URL.revokeObjectURL(clip.url);
+      return current.filter((item) => item.id !== clipId);
+    });
+  };
+
+  const transcribeAudioClip = useCallback(async (clip: NoteAudioClip) => {
+    setTranscribingClipId(clip.id);
+    try {
+      const audioBase64 = await blobToBase64(clip.blob);
+      const { data, error } = await supabase.functions.invoke("transcribe-meeting-audio", {
+        body: {
+          audio_base64: audioBase64,
+          mime_type: clip.mimeType,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const transcript = typeof data?.transcript === "string" ? data.transcript.trim() : "";
+      if (!transcript) throw new Error("A transcrição voltou vazia.");
+
+      setAudioClips((current) => current.map((item) => (
+        item.id === clip.id ? { ...item, transcript } : item
+      )));
+      editorRef.current?.insertHtml(buildAudioCaptureHtml(clip, transcript));
+      setDirty(true);
+      toast.success(`${clip.name} inserido na nota`);
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível transcrever este áudio");
+    } finally {
+      setTranscribingClipId(null);
+    }
+  }, []);
 
   const handleApplyTemplate = async (template: NoteTemplate, action: "insert" | "organize") => {
     if (!selectedNote) return;
@@ -664,6 +823,80 @@ export default function Notes() {
                 </div>
               </div>
 
+              <div className="border-b border-border bg-muted/20 px-3 py-2 sm:px-4">
+                <div className="flex flex-col gap-2 rounded-lg border bg-background p-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-2">
+                      <Mic className={`mt-0.5 h-4 w-4 ${recordingAudio ? "text-primary" : "text-muted-foreground"}`} />
+                      <div>
+                        <p className="text-sm font-medium">
+                          {recordingAudio ? `Capturando áudio ${formatDuration(recordingSeconds)}` : "Captura de áudio"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Grave a conversa e continue escrevendo na nota ao mesmo tempo.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={recordingAudio ? "destructive" : "outline"}
+                      onClick={recordingAudio ? stopAudioCapture : startAudioCapture}
+                    >
+                      {recordingAudio ? <Square className="mr-1.5 h-4 w-4" /> : <Play className="mr-1.5 h-4 w-4" />}
+                      {recordingAudio ? "Parar" : "Gravar áudio"}
+                    </Button>
+                  </div>
+
+                  {audioClips.length > 0 && (
+                    <div className="space-y-2">
+                      {audioClips.map((clip, index) => (
+                        <div key={clip.id} className="flex flex-col gap-2 rounded-md border bg-muted/20 p-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium">{clip.name}</p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {formatDuration(clip.durationSeconds)} · {new Date(clip.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Button variant="ghost" size="sm" className="h-8 px-2" asChild title={`Baixar ${clip.name}`}>
+                                <a href={clip.url} download={`${editTitle || "nota"}-audio-${index + 1}.${getAudioExtension(clip.mimeType)}`}>
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => transcribeAudioClip(clip)}
+                                disabled={transcribingClipId === clip.id}
+                              >
+                                <Brain className="mr-1.5 h-4 w-4" />
+                                {transcribingClipId === clip.id ? "Inserindo..." : "Transcrever e inserir"}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                                onClick={() => deleteAudioClip(clip.id)}
+                                title={`Excluir ${clip.name}`}
+                                aria-label={`Excluir ${clip.name}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <audio src={clip.url} controls className="h-8 w-full max-w-full" />
+                          {clip.transcript && (
+                            <p className="rounded-md bg-background px-2 py-1.5 text-xs leading-relaxed text-muted-foreground">{clip.transcript}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex-1 overflow-auto flex flex-col">
                 <div className="flex-1">
                   <RichTextEditor
@@ -797,4 +1030,58 @@ export default function Notes() {
       )}
     </div>
   );
+}
+
+function formatDuration(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      resolve(result.split(",")[1] || "");
+    };
+    reader.onerror = () => reject(new Error("Não foi possível preparar o áudio para transcrição"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function getAudioExtension(mimeType: string) {
+  const normalized = mimeType.toLowerCase();
+  if (normalized.includes("mpeg") || normalized.includes("mp3")) return "mp3";
+  if (normalized.includes("mp4") || normalized.includes("m4a")) return "m4a";
+  if (normalized.includes("wav")) return "wav";
+  return "webm";
+}
+
+function buildAudioCaptureHtml(clip: NoteAudioClip, transcript: string) {
+  const recordedAt = new Date(clip.createdAt).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const escapedTranscript = escapeHtml(transcript).replace(/\n/g, "<br />");
+
+  return `
+    <section>
+      <h2>Captura de áudio - ${recordedAt}</h2>
+      <p><strong>Duração:</strong> ${formatDuration(clip.durationSeconds)}</p>
+      <blockquote>${escapedTranscript}</blockquote>
+    </section>
+  `;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
