@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
+  ArrowLeft,
   Brain,
+  CalendarDays,
   CheckCircle2,
   CircleHelp,
   Download,
@@ -17,6 +19,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +38,7 @@ import {
   useCreateMeetingCopilotSegment,
   useCreateMeetingCopilotSession,
   useDeleteMeetingCopilotSession,
+  useMeetingCopilotSession,
   useMeetingCopilotSegments,
   useMeetingCopilotSessions,
   useUpdateMeetingCopilotSession,
@@ -104,7 +108,10 @@ const MEETING_TYPES = [
 ] as const;
 
 export default function MeetingCopilot() {
+  const navigate = useNavigate();
+  const { sessionId } = useParams<{ sessionId?: string }>();
   const { data: sessions = [] } = useMeetingCopilotSessions();
+  const { data: routedSession } = useMeetingCopilotSession(sessionId);
   const createSession = useCreateMeetingCopilotSession();
   const updateSession = useUpdateMeetingCopilotSession();
   const createSegment = useCreateMeetingCopilotSegment();
@@ -140,6 +147,7 @@ export default function MeetingCopilot() {
 
   const { data: segments = [] } = useMeetingCopilotSegments(activeSession?.id);
   const canRecord = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+  const isSessionPage = Boolean(sessionId);
 
   const derivedTitle = useMemo(() => {
     if (title.trim() && title !== "Reunião sem título") return title.trim();
@@ -469,7 +477,7 @@ export default function MeetingCopilot() {
     }
   }, [botName, ensureSession, meetingUrl]);
 
-  const loadSession = (session: MeetingCopilotSession) => {
+  const loadSession = useCallback((session: MeetingCopilotSession) => {
     setMode(session.meeting_url ? "online" : "in_person");
     setActiveSession(session);
     setTitle(session.title);
@@ -484,6 +492,20 @@ export default function MeetingCopilot() {
     setInterimTranscript("");
     audioClips.forEach((clip) => URL.revokeObjectURL(clip.url));
     setAudioClips([]);
+  }, [audioClips]);
+
+  useEffect(() => {
+    if (!routedSession || activeSession?.id === routedSession.id) return;
+    loadSession(routedSession);
+  }, [activeSession?.id, loadSession, routedSession]);
+
+  const openSessionPage = (session: MeetingCopilotSession) => {
+    navigate(`/reunioes/${session.id}`);
+  };
+
+  const startNewMeeting = () => {
+    resetMeeting();
+    navigate("/reunioes");
   };
 
   const handleDeleteSession = async (session: MeetingCopilotSession, event: MouseEvent<HTMLButtonElement>) => {
@@ -493,7 +515,10 @@ export default function MeetingCopilot() {
 
     try {
       await deleteSession.mutateAsync(session.id);
-      if (activeSession?.id === session.id) resetMeeting();
+      if (activeSession?.id === session.id) {
+        resetMeeting();
+        navigate("/reunioes");
+      }
       toast.success("Reunião excluída");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível excluir a reunião");
@@ -514,36 +539,47 @@ export default function MeetingCopilot() {
             <h1 className="text-2xl font-semibold tracking-tight">Meeting Copilot</h1>
             <p className="mt-1 text-sm text-muted-foreground">Escolha o tipo de reunião e capture somente o que importa.</p>
           </div>
-          <Button variant="outline" onClick={resetMeeting}>Nova reunião</Button>
+          <Button variant="outline" onClick={startNewMeeting}>Nova reunião</Button>
         </div>
       </header>
 
       <div className="mx-auto grid w-full max-w-6xl flex-1 gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <main className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ModeCard
-              active={mode === "in_person"}
-              icon={Mic}
-              title="Reunião Presencial"
-              description="Grave o áudio pelo celular ou computador e organize por tema, pessoas, decisões e tarefas."
-              onClick={() => setMode("in_person")}
+          {isSessionPage && activeSession ? (
+            <SessionPageHeader
+              session={activeSession}
+              mode={mode}
+              theme={theme || analysis.theme_suggestion}
+              onBack={() => navigate("/reunioes")}
             />
-            <ModeCard
-              active={mode === "online"}
-              icon={Laptop}
-              title="Reunião Online"
-              description="Envie a Helena para entrar no Google Meet, Teams ou Zoom e capturar a chamada."
-              onClick={() => setMode("online")}
-            />
-          </div>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ModeCard
+                  active={mode === "in_person"}
+                  icon={Mic}
+                  title="Reunião Presencial"
+                  description="Grave o áudio pelo celular ou computador e organize por tema, pessoas, decisões e tarefas."
+                  onClick={() => setMode("in_person")}
+                />
+                <ModeCard
+                  active={mode === "online"}
+                  icon={Laptop}
+                  title="Reunião Online"
+                  description="Envie a Helena para entrar no Google Meet, Teams ou Zoom e capturar a chamada."
+                  onClick={() => setMode("online")}
+                />
+              </div>
 
-          {!mode && (
-            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-              Selecione uma opção acima para começar.
-            </div>
+              {!mode && (
+                <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  Selecione uma opção acima para começar.
+                </div>
+              )}
+            </>
           )}
 
-          {mode === "in_person" && (
+          {mode === "in_person" && !isSessionPage && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -659,7 +695,7 @@ export default function MeetingCopilot() {
             </Card>
           )}
 
-          {mode === "online" && (
+          {mode === "online" && !isSessionPage && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -798,7 +834,10 @@ export default function MeetingCopilot() {
                 <p className="text-sm text-muted-foreground">Nenhuma reunião salva.</p>
               ) : (
                 <div className="space-y-2">
-                  {sessions.slice(0, 6).map((session) => (
+                  {sessions.slice(0, 12).map((session) => {
+                    const cardTitle = getSessionCardTitle(session);
+                    const cardSubtitle = getSessionCardSubtitle(session, cardTitle);
+                    return (
                     <div
                       key={session.id}
                       className={cn(
@@ -806,10 +845,10 @@ export default function MeetingCopilot() {
                         activeSession?.id === session.id && "border-primary bg-primary/5",
                       )}
                     >
-                      <button type="button" onClick={() => loadSession(session)} className="min-w-0 flex-1 p-1 text-left">
-                        <p className="line-clamp-1 text-sm font-medium">{session.title}</p>
+                      <button type="button" onClick={() => openSessionPage(session)} className="min-w-0 flex-1 p-1 text-left">
+                        <p className="line-clamp-2 text-sm font-medium leading-snug">{cardTitle}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {new Date(session.updated_at).toLocaleDateString("pt-BR")} · {session.theme || normalizeMeetingAnalysis(session.analysis).theme_suggestion || "sem tema"}
+                          {cardSubtitle}
                         </p>
                       </button>
                       <Button
@@ -824,7 +863,8 @@ export default function MeetingCopilot() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -832,6 +872,43 @@ export default function MeetingCopilot() {
         </aside>
       </div>
     </div>
+  );
+}
+
+function SessionPageHeader({
+  session,
+  mode,
+  theme,
+  onBack,
+}: {
+  session: MeetingCopilotSession;
+  mode: MeetingMode | null;
+  theme: string;
+  onBack: () => void;
+}) {
+  return (
+    <section className="rounded-lg border bg-card p-5">
+      <Button variant="ghost" size="sm" onClick={onBack} className="mb-4 h-8 px-2 text-muted-foreground">
+        <ArrowLeft className="mr-1.5 h-4 w-4" />
+        Voltar ao histórico
+      </Button>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{mode === "online" ? "Online" : "Presencial"}</Badge>
+            <Badge variant="secondary">{session.status === "active" ? "ativa" : "salva"}</Badge>
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{session.title}</h2>
+            {theme && <p className="mt-2 max-w-3xl text-base leading-relaxed text-muted-foreground">{theme}</p>}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+          <CalendarDays className="h-4 w-4" />
+          {new Date(session.started_at).toLocaleDateString("pt-BR")}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -959,6 +1036,35 @@ function AnalysisBlock({
       )}
     </section>
   );
+}
+
+function getSessionCardTitle(session: MeetingCopilotSession) {
+  const analysis = normalizeMeetingAnalysis(session.analysis);
+  const theme = cleanSessionTheme(session.theme || analysis.theme_suggestion);
+  if (theme) return theme;
+  if (session.transcript?.trim()) return "Registro organizado";
+  return "Reunião sem conteúdo suficiente";
+}
+
+function getSessionCardSubtitle(session: MeetingCopilotSession, cardTitle: string) {
+  const date = new Date(session.updated_at).toLocaleDateString("pt-BR");
+  const type = session.meeting_url ? "online" : "presencial";
+  const title = session.title?.trim();
+  const titlePart = title && title !== cardTitle ? ` · ${title}` : "";
+  return `${date} · ${type}${titlePart}`;
+}
+
+function cleanSessionTheme(value?: string | null) {
+  const text = value?.trim();
+  if (!text) return "";
+  const weakSignals = [
+    "no suggestions possible",
+    "lack of content",
+    "sem tema",
+    "sem conteúdo",
+    "sem conteudo",
+  ];
+  return weakSignals.some((signal) => text.toLowerCase().includes(signal)) ? "" : text;
 }
 
 function formatDuration(totalSeconds: number) {
