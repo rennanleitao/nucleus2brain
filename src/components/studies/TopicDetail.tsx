@@ -26,7 +26,9 @@ import {
   NotebookPen,
   Pencil,
   Plus,
+  Quote,
   Search,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import {
