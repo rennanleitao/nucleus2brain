@@ -236,7 +236,6 @@ export type Database = {
           bot_left_at: string | null
           bot_name: string | null
           bot_status: string | null
-          capture_type: string
           created_at: string
           ended_at: string | null
           id: string
@@ -245,7 +244,6 @@ export type Database = {
           provider: string | null
           started_at: string
           status: string
-          theme: string | null
           title: string
           transcript: string
           updated_at: string
@@ -259,7 +257,6 @@ export type Database = {
           bot_left_at?: string | null
           bot_name?: string | null
           bot_status?: string | null
-          capture_type?: string
           created_at?: string
           ended_at?: string | null
           id?: string
@@ -268,7 +265,6 @@ export type Database = {
           provider?: string | null
           started_at?: string
           status?: string
-          theme?: string | null
           title?: string
           transcript?: string
           updated_at?: string
@@ -282,7 +278,6 @@ export type Database = {
           bot_left_at?: string | null
           bot_name?: string | null
           bot_status?: string | null
-          capture_type?: string
           created_at?: string
           ended_at?: string | null
           id?: string
@@ -291,7 +286,6 @@ export type Database = {
           provider?: string | null
           started_at?: string
           status?: string
-          theme?: string | null
           title?: string
           transcript?: string
           updated_at?: string
