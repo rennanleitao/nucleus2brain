@@ -241,6 +241,16 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
           </div>
         </header>
 
+        {hasOverview && (
+          <TopicOverview
+            notes={topic.notes}
+            takeaways={takeaways}
+            focusMode={focusMode}
+          />
+        )}
+
+
+
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as WorkspaceTab)}
