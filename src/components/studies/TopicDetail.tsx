@@ -613,62 +613,76 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
   const hasSources = sources.some((source) => source.title || source.url || source.text);
   const summaryHtml = ensureHtml(entry.summary);
   return (
-    <div className="group border-b border-border last:border-b-0 transition-colors hover:bg-muted/20">
-      <div className="grid gap-4 p-4 md:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)_88px] md:p-5">
-        <div className="min-w-0 space-y-3">
-          <div>
-            <h3 className="text-base font-medium leading-snug">{entry.title}</h3>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-              {entry.category && <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal">{entry.category}</Badge>}
-              <span>Atualizado {formatRelative(entry.updated_at)}</span>
-            </div>
+    <article className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/20">
+      <header className="flex items-start justify-between gap-4 border-b border-border/60 px-6 py-5 md:px-10 md:py-7">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            {entry.category && <span>{entry.category}</span>}
+            {entry.category && <span className="text-border">•</span>}
+            <span>Atualizado {formatRelative(entry.updated_at)}</span>
           </div>
+          <h3 className="text-xl font-semibold leading-tight tracking-tight md:text-2xl">{entry.title}</h3>
+        </div>
+        <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
+      </header>
 
-          <div className="space-y-2">
+      <div className="space-y-8 px-6 py-7 md:px-10 md:py-9">
+        {entry.highlight && (
+          <section>
+            <SectionEyebrow icon={Sparkles} label="Principais takeaways" />
+            <blockquote className="mt-4 border-l-2 border-primary/50 pl-5 text-[15px] italic leading-[1.75] text-foreground/90 md:text-base">
+              <Quote className="mr-1 inline h-3.5 w-3.5 -translate-y-0.5 text-primary/60" aria-hidden />
+              {entry.highlight}
+            </blockquote>
+          </section>
+        )}
+
+        <section>
+          <SectionEyebrow icon={FileText} label="Conteúdo" />
+          <div
+            className="prose prose-base mt-4 max-w-none font-serif text-foreground/90 dark:prose-invert prose-headings:font-sans prose-headings:tracking-tight prose-p:leading-[1.8] prose-p:text-foreground/85 prose-li:my-1 prose-li:leading-[1.75]"
+            dangerouslySetInnerHTML={{ __html: summaryHtml }}
+          />
+        </section>
+
+        <section>
+          <SectionEyebrow icon={Link2} label="Fontes e referências" count={hasSources ? sources.length : undefined} />
+          <div className="mt-4 space-y-2">
             {hasSources ? sources.map((source) => (
-              <div key={source.id} className="rounded-lg border border-border bg-background/70 p-3">
-                <div className="mb-1 flex items-center gap-1.5 text-xs font-medium">
+              <div key={source.id} className="rounded-lg border border-border bg-background/60 p-4">
+                <div className="mb-1.5 flex items-center gap-2 text-sm font-medium">
                   {source.kind === "link" ? <Link2 className="h-3.5 w-3.5 text-primary" /> : <FileText className="h-3.5 w-3.5 text-primary" />}
                   <span className="min-w-0 truncate">{source.title || (source.url ? getSourceHost(source.url) : "Texto livre")}</span>
                 </div>
                 {source.url ? (
-                  <a href={source.url} target="_blank" rel="noreferrer" className="flex items-start gap-1.5 break-all text-xs text-primary hover:underline">
+                  <a href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-start gap-1.5 break-all text-xs text-primary hover:underline">
                     <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" /> {source.url}
                   </a>
                 ) : source.text ? (
-                  <p className="line-clamp-4 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">{source.text}</p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{source.text}</p>
                 ) : (
                   <p className="text-xs text-muted-foreground">Fonte sem conteúdo preenchido.</p>
                 )}
               </div>
             )) : (
-              <div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
-                Sem fonte adicionada.
-              </div>
+              <p className="text-sm text-muted-foreground">Nenhuma fonte adicionada.</p>
             )}
           </div>
-        </div>
+        </section>
 
-        <div className="min-w-0 space-y-4">
-          <div
-            className="prose prose-sm max-w-none text-foreground dark:prose-invert prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1"
-            dangerouslySetInnerHTML={{ __html: summaryHtml }}
-          />
-          <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
+        {(entry.tags?.length || true) && (
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-5">
             <div className="flex flex-wrap gap-1.5">
               {entry.tags?.map((tag) => <Badge key={tag} variant="secondary" className="text-[10px] font-normal">#{tag}</Badge>)}
             </div>
             <EntryAIAssist topic={topic} entry={entry} mode="enrich" />
-          </div>
-        </div>
-
-        <div className="flex justify-end md:pt-1">
-          <EntryActions onEdit={onEdit} onMove={onMove} onDuplicate={onDuplicate} onDelete={onDelete} />
-        </div>
+          </footer>
+        )}
       </div>
-    </div>
+    </article>
   );
 }
+
 
 function EntryFooter({ entry }: { entry: StudyEntry }) {
   if (!entry.source_url && !entry.tags?.length) return null;
