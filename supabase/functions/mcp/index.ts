@@ -515,9 +515,9 @@ const buildServer = (ctx: Ctx) => {
         lines.push(`- **Capturado em:** ${input.source.captured_at ?? today}`);
       }
 
-      const section = lines.join("\n");
+      const sectionHtml = toEditorHtml(lines.join("\n"));
       const prev = note.content ?? "";
-      const merged = prev ? `${prev}\n\n---\n\n${section}` : section;
+      const merged = prev ? `${prev}\n<hr>\n${sectionHtml}` : sectionHtml;
 
       const { data, error } = await db.from("notes")
         .update({ content: merged }).eq("id", input.id).select().single();
