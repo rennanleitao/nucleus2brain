@@ -11,6 +11,7 @@ import { McpServer, StreamableHttpTransport } from "npm:mcp-lite@^0.10.0";
 import { z } from "npm:zod@3";
 import { zodToJsonSchema } from "npm:zod-to-json-schema@3";
 import { type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { marked } from "npm:marked@12";
 import { authenticateMcpRequest, corsHeaders, unauthorized, userClient } from "../_shared/mcp-auth.ts";
 import { callLovableAI } from "../_shared/lovable-ai.ts";
 import {
