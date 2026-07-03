@@ -40,7 +40,8 @@ async function parseBody(req: Request): Promise<Record<string, string>> {
   return {};
 }
 
-const REFRESH_TTL_DAYS = 60;
+// Keep ChatGPT/Nucleus OAuth sessions long-lived while access tokens stay short-lived.
+const REFRESH_TTL_DAYS = 365;
 const ACCESS_TTL_SECONDS = 3600;
 
 async function issueTokens(opts: {
