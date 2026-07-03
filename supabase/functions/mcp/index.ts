@@ -429,7 +429,9 @@ const buildServer = (ctx: Ctx) => {
     handler: async (input) => {
       const { data: note, error: gErr } = await db.from("notes").select("content").eq("id", input.id).single();
       if (gErr) return fail(gErr.message);
-      const merged = `${note.content ?? ""}${note.content ? "\n\n" : ""}${input.content}`;
+      const prev = note.content ?? "";
+      const addition = toEditorHtml(input.content);
+      const merged = prev ? `${prev}\n${addition}` : addition;
       const { data, error } = await db.from("notes").update({ content: merged }).eq("id", input.id).select().single();
       if (error) return fail(error.message);
       return ok(data);
