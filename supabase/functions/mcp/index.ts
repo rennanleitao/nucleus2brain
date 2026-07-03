@@ -36,6 +36,30 @@ function fail(message: string, code = "db_error") {
   };
 }
 
+// Notes are stored as HTML (rendered by the TipTap editor). Agents (ChatGPT,
+// etc.) typically send Markdown, which would otherwise be shown verbatim in
+// the editor — flattening headings/lists into raw text like "## Itens 1. …".
+// Convert Markdown → HTML before persisting, unless the content already looks
+// like HTML (contains block-level tags).
+function toEditorHtml(input: string | null | undefined): string {
+  if (input == null) return "";
+  const s = String(input);
+  if (!s.trim()) return "";
+  // Heuristic: treat as HTML if it already contains block-level tags.
+  const looksLikeHtml = /<(p|h[1-6]|ul|ol|li|blockquote|pre|table|div|br|hr|img|figure|iframe)\b/i.test(s);
+  if (looksLikeHtml) return s;
+  try {
+    return marked.parse(s, { async: false, gfm: true, breaks: true }) as string;
+  } catch {
+    // Fallback: preserve line breaks as <br> inside a paragraph.
+    const escaped = s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return `<p>${escaped.replace(/\n/g, "<br>")}</p>`;
+  }
+}
+
 // Map tool name -> (entity_type, operation) used by the envelope.
 const TOOL_META: Record<string, { entity: EntityType; op: Operation }> = {
   ping: { entity: "generic", op: "compute" },
