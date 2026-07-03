@@ -203,6 +203,26 @@ export default function Notes() {
     return matchSearch && matchTag;
   });
 
+  // Group filtered notes by space, preserving `spaces` display order and
+  // pushing "Sem space" to the end. Empty groups are omitted.
+  const groupedNotes = useMemo(() => {
+    const bySpace = new Map<string, any[]>();
+    for (const n of filteredNotes) {
+      const key = n.space_id || NO_SPACE_KEY;
+      const list = bySpace.get(key) ?? [];
+      list.push(n);
+      bySpace.set(key, list);
+    }
+    const groups: { key: string; label: string; icon?: string; notes: any[] }[] = [];
+    for (const s of spaces) {
+      const list = bySpace.get(s.id);
+      if (list?.length) groups.push({ key: s.id, label: s.name, icon: s.icon, notes: list });
+    }
+    const orphan = bySpace.get(NO_SPACE_KEY);
+    if (orphan?.length) groups.push({ key: NO_SPACE_KEY, label: "Sem space", notes: orphan });
+    return groups;
+  }, [filteredNotes, spaces]);
+
   const selectNote = (note: any) => {
     if (dirty && selectedNote) {
       handleSave();
