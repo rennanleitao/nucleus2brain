@@ -403,9 +403,10 @@ const buildServer = (ctx: Ctx) => {
     }),
     handler: async (input) => {
       const patch: Record<string, unknown> = {};
-      for (const k of ["title", "content", "space_id", "tags"] as const) {
+      for (const k of ["title", "space_id", "tags"] as const) {
         if (input[k] !== undefined) patch[k] = input[k];
       }
+      if (input.content !== undefined) patch.content = toEditorHtml(input.content);
       const { data, error } = await db.from("notes").update(patch).eq("id", input.id).select().single();
       if (error) return fail(error.message);
       return ok(data);
