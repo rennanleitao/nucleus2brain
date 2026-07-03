@@ -375,7 +375,7 @@ const buildServer = (ctx: Ctx) => {
       const { data, error } = await db.from("notes").insert({
         user_id: ctx.userId,
         title: input.title,
-        content: input.content ?? "",
+        content: toEditorHtml(input.content),
         space_id: input.space_id ?? null,
         tags: input.tags ?? [],
       }).select().single();
