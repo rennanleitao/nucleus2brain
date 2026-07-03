@@ -51,6 +51,22 @@ export default function Notes() {
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [filterTag, setFilterTag] = useState<string | null>(null);
+  const NO_SPACE_KEY = "__none__";
+  const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem("notes.collapsedSpaces");
+      if (raw) return new Set(JSON.parse(raw));
+    } catch {}
+    return new Set();
+  });
+  const toggleSpaceCollapsed = (key: string) => {
+    setCollapsedSpaces(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      try { localStorage.setItem("notes.collapsedSpaces", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
 
   // Editor state
   const [editTitle, setEditTitle] = useState("");
