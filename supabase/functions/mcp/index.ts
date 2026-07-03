@@ -11,6 +11,7 @@ import { McpServer, StreamableHttpTransport } from "npm:mcp-lite@^0.10.0";
 import { z } from "npm:zod@3";
 import { zodToJsonSchema } from "npm:zod-to-json-schema@3";
 import { type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { marked } from "npm:marked@12";
 import { authenticateMcpRequest, corsHeaders, unauthorized, userClient } from "../_shared/mcp-auth.ts";
 import { callLovableAI } from "../_shared/lovable-ai.ts";
 import {
@@ -33,6 +34,30 @@ function fail(message: string, code = "db_error") {
     isError: true,
     content: [{ type: "text" as const, text: JSON.stringify({ __mcp_error: true, error_code: code, error: message }) }],
   };
+}
+
+// Notes are stored as HTML (rendered by the TipTap editor). Agents (ChatGPT,
+// etc.) typically send Markdown, which would otherwise be shown verbatim in
+// the editor — flattening headings/lists into raw text like "## Itens 1. …".
+// Convert Markdown → HTML before persisting, unless the content already looks
+// like HTML (contains block-level tags).
+function toEditorHtml(input: string | null | undefined): string {
+  if (input == null) return "";
+  const s = String(input);
+  if (!s.trim()) return "";
+  // Heuristic: treat as HTML if it already contains block-level tags.
+  const looksLikeHtml = /<(p|h[1-6]|ul|ol|li|blockquote|pre|table|div|br|hr|img|figure|iframe)\b/i.test(s);
+  if (looksLikeHtml) return s;
+  try {
+    return marked.parse(s, { async: false, gfm: true, breaks: true }) as string;
+  } catch {
+    // Fallback: preserve line breaks as <br> inside a paragraph.
+    const escaped = s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return `<p>${escaped.replace(/\n/g, "<br>")}</p>`;
+  }
 }
 
 // Map tool name -> (entity_type, operation) used by the envelope.
@@ -350,7 +375,7 @@ const buildServer = (ctx: Ctx) => {
       const { data, error } = await db.from("notes").insert({
         user_id: ctx.userId,
         title: input.title,
-        content: input.content ?? "",
+        content: toEditorHtml(input.content),
         space_id: input.space_id ?? null,
         tags: input.tags ?? [],
       }).select().single();
@@ -378,9 +403,10 @@ const buildServer = (ctx: Ctx) => {
     }),
     handler: async (input) => {
       const patch: Record<string, unknown> = {};
-      for (const k of ["title", "content", "space_id", "tags"] as const) {
+      for (const k of ["title", "space_id", "tags"] as const) {
         if (input[k] !== undefined) patch[k] = input[k];
       }
+      if (input.content !== undefined) patch.content = toEditorHtml(input.content);
       const { data, error } = await db.from("notes").update(patch).eq("id", input.id).select().single();
       if (error) return fail(error.message);
       return ok(data);
@@ -403,7 +429,9 @@ const buildServer = (ctx: Ctx) => {
     handler: async (input) => {
       const { data: note, error: gErr } = await db.from("notes").select("content").eq("id", input.id).single();
       if (gErr) return fail(gErr.message);
-      const merged = `${note.content ?? ""}${note.content ? "\n\n" : ""}${input.content}`;
+      const prev = note.content ?? "";
+      const addition = toEditorHtml(input.content);
+      const merged = prev ? `${prev}\n${addition}` : addition;
       const { data, error } = await db.from("notes").update({ content: merged }).eq("id", input.id).select().single();
       if (error) return fail(error.message);
       return ok(data);
@@ -487,9 +515,9 @@ const buildServer = (ctx: Ctx) => {
         lines.push(`- **Capturado em:** ${input.source.captured_at ?? today}`);
       }
 
-      const section = lines.join("\n");
+      const sectionHtml = toEditorHtml(lines.join("\n"));
       const prev = note.content ?? "";
-      const merged = prev ? `${prev}\n\n---\n\n${section}` : section;
+      const merged = prev ? `${prev}\n<hr>\n${sectionHtml}` : sectionHtml;
 
       const { data, error } = await db.from("notes")
         .update({ content: merged }).eq("id", input.id).select().single();
