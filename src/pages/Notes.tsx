@@ -545,8 +545,8 @@ export default function Notes() {
     <div className="flex h-[calc(100vh-3.5rem)] w-full max-w-full min-w-0 overflow-hidden animate-fade-in">
       {/* Sidebar - Note list */}
       {showList && (
-        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border flex flex-col bg-muted/40 flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
-          <div className="p-3 border-b border-border space-y-2 min-w-0">
+        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
+          <div className="p-3 border-b border-border/60 space-y-2.5 min-w-0">
             <div className="flex items-center justify-between">
               <h2 className="text-small font-semibold flex items-center gap-1.5">
                 <FileText className="h-4 w-4 text-muted-foreground" /> Notas
