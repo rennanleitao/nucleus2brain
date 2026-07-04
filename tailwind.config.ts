@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ["'Figtree'", "'Inter'", "system-ui", "-apple-system", "'Segoe UI'", "Roboto", "sans-serif"],
         display: ["'Outfit'", "'Figtree'", "system-ui", "sans-serif"],
+        serif: ["'Instrument Serif'", "'Iowan Old Style'", "Georgia", "serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "monospace"],
       },
       colors: {
