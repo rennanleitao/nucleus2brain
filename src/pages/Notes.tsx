@@ -618,66 +618,75 @@ export default function Notes() {
           </div>
 
           <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden">
-            <div className="w-full min-w-0 max-w-full overflow-x-hidden p-3 space-y-2.5">
-              {filteredNotes.map(note => {
-                const isSelected = selectedNote?.id === note.id;
+            <div className="w-full min-w-0 max-w-full overflow-x-hidden py-2">
+              {groupedNotes.map(group => {
+                const isCollapsed = collapsedSpaces.has(group.key);
                 return (
-                  <div
-                    key={note.id}
-                    onClick={() => selectNote(note)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
-                    className={`group relative w-full max-w-full min-w-0 text-left rounded-xl border transition-all touch-manipulation active:scale-[0.995] overflow-hidden cursor-pointer ${
-                      isSelected
-                        ? "bg-card border-foreground/20 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] ring-1 ring-foreground/5"
-                        : "bg-card border-border/70 hover:border-foreground/15 hover:shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]"
-                    }`}
-                  >
-                    <div className="px-3.5 pt-3 pb-2.5 pr-10 min-w-0 max-w-full overflow-hidden">
-                      <p className="text-[13.5px] font-semibold tracking-tight text-foreground truncate leading-tight">
-                        {note.title}
-                      </p>
-                      <p className="text-[11.5px] line-clamp-2 mt-1.5 whitespace-pre-line leading-[1.5] text-muted-foreground/90 break-words [overflow-wrap:anywhere]">
-                        {stripHtml(note.content || "") || "Sem conteúdo"}
-                      </p>
-                    </div>
-
-                    {/* Botão de excluir aparece no hover */}
+                  <div key={group.key} className="mb-1">
                     <button
                       type="button"
-                      aria-label={`Excluir nota ${note.title}`}
-                      title="Excluir nota"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(`Excluir a nota "${note.title}"?`)) {
-                          handleDelete(note.id);
-                        }
-                      }}
-                      className="absolute top-1.5 right-1.5 h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                      onClick={() => toggleSpaceCollapsed(group.key)}
+                      className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground hover:text-foreground transition-colors sticky top-0 bg-muted/40 backdrop-blur-sm z-10 border-b border-border/40"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <ChevronDown className={`h-3 w-3 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
+                      {group.icon && group.key !== NO_SPACE_KEY && <SpaceIcon iconKey={group.icon} className="h-3 w-3" />}
+                      <span className="truncate flex-1 text-left">{group.label}</span>
+                      <span className="text-muted-foreground/60 font-medium normal-case tracking-normal">{group.notes.length}</span>
                     </button>
 
-                    {(note.spaces?.name || (note.tags || []).length > 0) && (
-                      <div className="flex min-w-0 max-w-full items-center gap-1.5 px-3.5 py-2 border-t border-border/50 bg-muted/30 flex-wrap overflow-hidden">
-                        {note.spaces?.name && (
-                          <span className="min-w-0 max-w-full text-[10px] font-medium uppercase tracking-wide text-muted-foreground truncate">
-                            {note.spaces.name}
-                          </span>
-                        )}
-                        {note.spaces?.name && (note.tags || []).length > 0 && (
-                          <span className="text-[10px] text-muted-foreground/40">·</span>
-                        )}
-                        {(note.tags || []).slice(0, 2).map((tag: string) => (
-                          <span
-                            key={tag}
-                            className="min-w-0 max-w-full text-[10px] font-medium text-muted-foreground/80 bg-background border border-border/60 rounded-md px-1.5 py-0.5 truncate"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
+                    {!isCollapsed && (
+                      <ul className="divide-y divide-border/40">
+                        {group.notes.map(note => {
+                          const isSelected = selectedNote?.id === note.id;
+                          const preview = stripHtml(note.content || "").replace(/\n+/g, " ");
+                          return (
+                            <li
+                              key={note.id}
+                              onClick={() => selectNote(note)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
+                              className={`group relative w-full px-3 py-2 cursor-pointer touch-manipulation transition-colors overflow-hidden ${
+                                isSelected
+                                  ? "bg-background border-l-2 border-l-foreground"
+                                  : "border-l-2 border-l-transparent hover:bg-background/70"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0 pr-6">
+                                <span className="text-[12.5px] font-medium tracking-tight text-foreground truncate leading-tight flex-shrink-0 max-w-[55%]">
+                                  {note.title}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground/80 truncate leading-tight min-w-0 flex-1">
+                                  {preview || "Sem conteúdo"}
+                                </span>
+                                {(note.tags || []).slice(0, 1).map((tag: string) => (
+                                  <span
+                                    key={tag}
+                                    className="hidden sm:inline text-[10px] font-medium text-muted-foreground/80 bg-background border border-border/60 rounded px-1 py-px flex-shrink-0"
+                                  >
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+
+                              <button
+                                type="button"
+                                aria-label={`Excluir nota ${note.title}`}
+                                title="Excluir nota"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`Excluir a nota "${note.title}"?`)) {
+                                    handleDelete(note.id);
+                                  }
+                                }}
+                                className="absolute top-1/2 -translate-y-1/2 right-1.5 h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     )}
                   </div>
                 );
