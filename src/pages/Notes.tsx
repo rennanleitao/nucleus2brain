@@ -575,7 +575,7 @@ export default function Notes() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   type="text" placeholder="Buscar notas..." value={search} onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-primary"
+                  className="w-full bg-muted/60 border border-transparent rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:bg-background focus:border-border transition-colors"
                 />
               </div>
               {allTags.length > 0 && (
