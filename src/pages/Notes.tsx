@@ -545,8 +545,8 @@ export default function Notes() {
     <div className="flex h-[calc(100vh-3.5rem)] w-full max-w-full min-w-0 overflow-hidden animate-fade-in">
       {/* Sidebar - Note list */}
       {showList && (
-        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border flex flex-col bg-muted/40 flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
-          <div className="p-3 border-b border-border space-y-2 min-w-0">
+        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
+          <div className="p-3 border-b border-border/60 space-y-2.5 min-w-0">
             <div className="flex items-center justify-between">
               <h2 className="text-small font-semibold flex items-center gap-1.5">
                 <FileText className="h-4 w-4 text-muted-foreground" /> Notas
@@ -575,7 +575,7 @@ export default function Notes() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <input
                   type="text" placeholder="Buscar notas..." value={search} onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:border-primary"
+                  className="w-full bg-muted/60 border border-transparent rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:bg-background focus:border-border transition-colors"
                 />
               </div>
               {allTags.length > 0 && (
@@ -618,53 +618,68 @@ export default function Notes() {
           </div>
 
           <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden">
-            <div className="w-full min-w-0 max-w-full overflow-x-hidden py-2">
+            <div className="w-full min-w-0 max-w-full overflow-x-hidden px-2 py-4">
               {groupedNotes.map(group => {
                 const isCollapsed = collapsedSpaces.has(group.key);
                 return (
-                  <div key={group.key} className="mb-1">
+                  <section key={group.key} className="mb-6 last:mb-2">
+                    {/* Space header — quiet uppercase label + count pill */}
                     <button
                       type="button"
                       onClick={() => toggleSpaceCollapsed(group.key)}
-                      className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground hover:text-foreground transition-colors sticky top-0 bg-muted/40 backdrop-blur-sm z-10 border-b border-border/40"
+                      className="w-full flex items-center gap-1.5 px-3 mb-2 group/hdr"
                     >
-                      <ChevronDown className={`h-3 w-3 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
-                      {group.icon && group.key !== NO_SPACE_KEY && <SpaceIcon iconKey={group.icon} className="h-3 w-3" />}
-                      <span className="truncate flex-1 text-left">{group.label}</span>
-                      <span className="text-muted-foreground/60 font-medium normal-case tracking-normal">{group.notes.length}</span>
+                      <ChevronDown className={`h-3 w-3 text-muted-foreground/60 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
+                      {group.icon && group.key !== NO_SPACE_KEY && (
+                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/70" />
+                      )}
+                      <h3 className="flex-1 text-left text-[10px] font-bold tracking-[0.1em] uppercase text-muted-foreground/70 group-hover/hdr:text-foreground transition-colors truncate">
+                        {group.label}
+                      </h3>
+                      <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded border border-border/60">
+                        {group.notes.length}
+                      </span>
                     </button>
 
+                    {/* Notes rail — subtle vertical line, no dividers between rows */}
                     {!isCollapsed && (
-                      <ul className="divide-y divide-border/40">
+                      <div className="relative ml-3 border-l border-border/60">
                         {group.notes.map(note => {
                           const isSelected = selectedNote?.id === note.id;
                           const preview = stripHtml(note.content || "").replace(/\n+/g, " ");
                           return (
-                            <li
+                            <div
                               key={note.id}
                               onClick={() => selectNote(note)}
                               role="button"
                               tabIndex={0}
                               onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
-                              className={`group relative w-full px-3 py-2 cursor-pointer touch-manipulation transition-colors overflow-hidden ${
+                              className={`relative flex items-center h-10 px-4 group cursor-pointer touch-manipulation transition-colors overflow-hidden ${
                                 isSelected
-                                  ? "bg-background border-l-2 border-l-foreground"
-                                  : "border-l-2 border-l-transparent hover:bg-background/70"
+                                  ? "bg-muted/70 rounded-r-md -ml-[1px]"
+                                  : "hover:bg-muted/40"
                               }`}
                             >
-                              <div className="flex items-center gap-2 min-w-0 pr-6">
-                                <span className="text-[12.5px] font-medium tracking-tight text-foreground truncate leading-tight flex-shrink-0 max-w-[55%]">
+                              {isSelected && (
+                                <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-foreground" />
+                              )}
+                              <div className="flex items-center w-full min-w-0 pr-6 gap-2">
+                                <span
+                                  className={`text-[13px] truncate leading-none shrink-0 max-w-[55%] ${
+                                    isSelected ? "font-semibold text-foreground" : "font-medium text-foreground/85"
+                                  }`}
+                                >
                                   {note.title}
                                 </span>
-                                <span className="text-[11px] text-muted-foreground/80 truncate leading-tight min-w-0 flex-1">
+                                <span className="text-[11.5px] text-muted-foreground/75 truncate leading-none min-w-0 flex-1 font-normal">
                                   {preview || "Sem conteúdo"}
                                 </span>
                                 {(note.tags || []).slice(0, 1).map((tag: string) => (
                                   <span
                                     key={tag}
-                                    className="hidden sm:inline text-[10px] font-medium text-muted-foreground/80 bg-background border border-border/60 rounded px-1 py-px flex-shrink-0"
+                                    className="hidden sm:inline ml-auto text-[9px] font-bold uppercase tracking-tight text-muted-foreground/70 border border-border/60 px-1 rounded shrink-0"
                                   >
-                                    #{tag}
+                                    {tag}
                                   </span>
                                 ))}
                               </div>
@@ -683,12 +698,12 @@ export default function Notes() {
                               >
                                 <Trash2 className="h-3 w-3" />
                               </button>
-                            </li>
+                            </div>
                           );
                         })}
-                      </ul>
+                      </div>
                     )}
-                  </div>
+                  </section>
                 );
               })}
               {filteredNotes.length === 0 && (
