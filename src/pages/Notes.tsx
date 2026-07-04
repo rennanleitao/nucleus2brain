@@ -545,37 +545,47 @@ export default function Notes() {
     <div className="flex h-[calc(100vh-3.5rem)] w-full max-w-full min-w-0 overflow-hidden animate-fade-in">
       {/* Sidebar - Note list */}
       {showList && (
-        <div className={`${isMobile ? "w-full" : "w-80"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
-          <div className="p-3 border-b border-border/60 space-y-2.5 min-w-0">
-            <div className="flex items-center justify-between">
-              <h2 className="text-small font-semibold flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-muted-foreground" /> Notas
-                <Badge variant="secondary" className="text-[10px] ml-1">{notes.length}</Badge>
-              </h2>
-              <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" className="h-10 w-10 touch-manipulation" onClick={handleCreateNote}>
-                  <Plus className="h-5 w-5" />
-                </Button>
+        <div className={`${isMobile ? "w-full" : "w-[340px]"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
+          <div className="px-5 pt-5 pb-4 border-b border-border/60 space-y-4 min-w-0">
+            <div className="flex items-end justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="font-serif text-[32px] leading-none tracking-tight text-foreground">
+                  Notas
+                </h2>
+                <p className="mt-1.5 text-[11px] tracking-wide uppercase text-muted-foreground/70">
+                  {notes.length} {notes.length === 1 ? "registro" : "registros"}
+                </p>
+              </div>
+              <div className="flex items-center gap-0.5 -mb-0.5">
                 {!isMobile && (
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     onClick={() => setListCollapsed(true)}
                     title="Ocultar lista"
                   >
                     <PanelLeftClose className="h-4 w-4" />
                   </Button>
                 )}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-foreground hover:bg-muted"
+                  onClick={handleCreateNote}
+                  title="Nova nota"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 
             <div className="flex items-center gap-1.5">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70" />
                 <input
-                  type="text" placeholder="Buscar notas..." value={search} onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-muted/60 border border-transparent rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none focus:bg-background focus:border-border transition-colors"
+                  type="text" placeholder="Buscar notas" value={search} onChange={e => setSearch(e.target.value)}
+                  className="w-full bg-muted/50 border border-transparent rounded-md pl-9 pr-3 py-2 text-[12.5px] outline-none focus:bg-background focus:border-border transition-colors placeholder:text-muted-foreground/60"
                 />
               </div>
               {allTags.length > 0 && (
@@ -618,103 +628,104 @@ export default function Notes() {
           </div>
 
           <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden">
-            <div className="w-full min-w-0 max-w-full overflow-x-hidden px-2 py-4">
-              {groupedNotes.map(group => {
+            <div className="w-full min-w-0 max-w-full overflow-x-hidden px-4 py-5">
+              {groupedNotes.map((group, groupIdx) => {
                 const isCollapsed = collapsedSpaces.has(group.key);
                 return (
-                  <section key={group.key} className="mb-6 last:mb-2">
-                    {/* Space header — quiet uppercase label + count pill */}
+                  <section key={group.key} className={`${groupIdx > 0 ? "mt-7" : ""}`}>
+                    {/* Editorial group header: serif italic label + hairline rule */}
                     <button
                       type="button"
                       onClick={() => toggleSpaceCollapsed(group.key)}
-                      className="w-full flex items-center gap-1.5 px-3 mb-2 group/hdr"
+                      className="w-full flex items-baseline gap-2 mb-3 group/hdr"
                     >
-                      <ChevronDown className={`h-3 w-3 text-muted-foreground/60 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
                       {group.icon && group.key !== NO_SPACE_KEY && (
-                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/70" />
+                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/60 self-center" />
                       )}
-                      <h3 className="flex-1 text-left text-[10px] font-bold tracking-[0.1em] uppercase text-muted-foreground/70 group-hover/hdr:text-foreground transition-colors truncate">
+                      <h3 className="font-serif italic text-[15px] leading-none text-foreground/85 group-hover/hdr:text-foreground transition-colors truncate">
                         {group.label}
                       </h3>
-                      <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded border border-border/60">
+                      <span className="text-[11px] tabular-nums text-muted-foreground/60 font-sans">
                         {group.notes.length}
                       </span>
+                      <span className="flex-1 h-px bg-border/60 ml-1" />
+                      <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
                     </button>
 
-                    {/* Notes rail — subtle vertical line, no dividers between rows */}
                     {!isCollapsed && (
-                      <div className="relative ml-3 border-l border-border/60">
+                      <ul className="space-y-0.5">
                         {group.notes.map(note => {
                           const isSelected = selectedNote?.id === note.id;
                           const preview = stripHtml(note.content || "").replace(/\n+/g, " ");
                           return (
-                            <div
-                              key={note.id}
-                              onClick={() => selectNote(note)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
-                              className={`relative flex items-center h-10 px-4 group cursor-pointer touch-manipulation transition-colors overflow-hidden ${
-                                isSelected
-                                  ? "bg-muted/70 rounded-r-md -ml-[1px]"
-                                  : "hover:bg-muted/40"
-                              }`}
-                            >
-                              {isSelected && (
-                                <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-foreground" />
-                              )}
-                              <div className="flex items-center w-full min-w-0 pr-6 gap-2">
-                                <span
-                                  className={`text-[13px] truncate leading-none shrink-0 max-w-[55%] ${
-                                    isSelected ? "font-semibold text-foreground" : "font-medium text-foreground/85"
-                                  }`}
-                                >
-                                  {note.title}
-                                </span>
-                                <span className="text-[11.5px] text-muted-foreground/75 truncate leading-none min-w-0 flex-1 font-normal">
-                                  {preview || "Sem conteúdo"}
-                                </span>
-                                {(note.tags || []).slice(0, 1).map((tag: string) => (
-                                  <span
-                                    key={tag}
-                                    className="hidden sm:inline ml-auto text-[9px] font-bold uppercase tracking-tight text-muted-foreground/70 border border-border/60 px-1 rounded shrink-0"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-
-                              <button
-                                type="button"
-                                aria-label={`Excluir nota ${note.title}`}
-                                title="Excluir nota"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (confirm(`Excluir a nota "${note.title}"?`)) {
-                                    handleDelete(note.id);
-                                  }
-                                }}
-                                className="absolute top-1/2 -translate-y-1/2 right-1.5 h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                            <li key={note.id}>
+                              <div
+                                onClick={() => selectNote(note)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
+                                className={`relative flex flex-col justify-center min-h-[46px] px-3 py-2 rounded-md group cursor-pointer touch-manipulation transition-colors overflow-hidden ${
+                                  isSelected
+                                    ? "bg-muted/70"
+                                    : "hover:bg-muted/40"
+                                }`}
                               >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className={`text-[13.5px] truncate leading-tight min-w-0 ${
+                                      isSelected ? "font-semibold text-foreground" : "font-medium text-foreground/90"
+                                    }`}
+                                  >
+                                    {note.title}
+                                  </span>
+                                  {(note.tags || []).slice(0, 1).map((tag: string) => (
+                                    <span
+                                      key={tag}
+                                      className="ml-auto text-[9.5px] font-medium uppercase tracking-wider text-muted-foreground/70 shrink-0"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                                {preview && (
+                                  <span className="mt-0.5 text-[11.5px] text-muted-foreground/70 truncate leading-tight font-normal">
+                                    {preview}
+                                  </span>
+                                )}
+
+                                <button
+                                  type="button"
+                                  aria-label={`Excluir nota ${note.title}`}
+                                  title="Excluir nota"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Excluir a nota "${note.title}"?`)) {
+                                      handleDelete(note.id);
+                                    }
+                                  }}
+                                  className="absolute top-1/2 -translate-y-1/2 right-1.5 h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-background/80"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </li>
                           );
                         })}
-                      </div>
+                      </ul>
                     )}
                   </section>
                 );
               })}
               {filteredNotes.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-xs text-muted-foreground">Nenhuma nota encontrada</p>
+                <div className="text-center py-12">
+                  <p className="font-serif italic text-[15px] text-muted-foreground/70">Nenhuma nota encontrada</p>
                 </div>
               )}
             </div>
           </div>
         </div>
       )}
+
 
       {/* Main editor area */}
       {showEditor && (
