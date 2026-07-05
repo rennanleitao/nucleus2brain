@@ -76,8 +76,8 @@ export function KanbanView({
         icon: AlertTriangle,
         tasks: overdue,
         color: "text-destructive",
-        borderColor: "border-destructive/30",
-        bgColor: "bg-destructive/5",
+        borderColor: "border-border/60",
+        bgColor: "bg-background",
       },
       {
         key: "backlog",
@@ -85,8 +85,8 @@ export function KanbanView({
         icon: Inbox,
         tasks: backlog,
         color: "text-muted-foreground",
-        borderColor: "border-border",
-        bgColor: "bg-muted/30",
+        borderColor: "border-border/60",
+        bgColor: "bg-background",
       },
       {
         key: "upcoming",
@@ -94,8 +94,8 @@ export function KanbanView({
         icon: CalendarDays,
         tasks: upcoming,
         color: "text-primary",
-        borderColor: "border-primary/30",
-        bgColor: "bg-primary/5",
+        borderColor: "border-border/60",
+        bgColor: "bg-background",
       },
     ];
   }, [tasks]);
@@ -116,10 +116,10 @@ export function KanbanView({
           key={col.key}
           className={`flex-shrink-0 w-[300px] sm:w-[340px] rounded-xl border ${col.borderColor} ${col.bgColor} flex flex-col max-h-[calc(100vh-280px)]`}
         >
-          <div className="flex items-center gap-2 p-3 border-b border-border/50">
-            <col.icon className={`h-4 w-4 ${col.color}`} />
-            <h3 className={`text-sm font-semibold ${col.color}`}>{col.label}</h3>
-            <span className="text-micro text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded-md ml-auto">
+          <div className="flex items-center gap-2 px-3 py-3 border-b border-border/60">
+            <col.icon className={`h-3.5 w-3.5 ${col.color}`} />
+            <h3 className={`font-serif italic text-[15px] font-normal leading-none ${col.color}`}>{col.label}</h3>
+            <span className="text-[10px] font-medium text-muted-foreground tabular-nums ml-auto">
               {col.tasks.length}
             </span>
           </div>
