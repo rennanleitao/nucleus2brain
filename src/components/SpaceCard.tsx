@@ -31,17 +31,17 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
       <button
         ref={ref}
         onClick={handleClick}
-        className="flex items-center gap-3 w-full px-4 py-3 bg-card border border-border rounded-xl hover:border-foreground/20 hover:shadow-sm transition-all text-left animate-fade-in touch-manipulation active:scale-[0.99] group"
+        className="flex items-center gap-3 w-full px-4 py-3.5 bg-transparent border-b border-border/60 hover:bg-muted/40 transition-colors text-left animate-fade-in touch-manipulation group"
       >
-        <SpaceIcon iconKey={space.icon} className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+        <SpaceIcon iconKey={space.icon} className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <h3 className="text-small font-medium truncate">{space.name}</h3>
+          <h3 className="font-serif text-[16px] font-normal leading-tight tracking-[-0.01em] truncate">{space.name}</h3>
         </div>
-        <div className="flex items-center gap-3 text-micro text-muted-foreground flex-shrink-0">
+        <div className="flex items-center gap-4 text-[11px] text-muted-foreground tabular-nums flex-shrink-0">
           <span>{taskCount} tasks</span>
           <span>{noteCount} notes</span>
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 group-hover:text-muted-foreground transition-colors" />
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0 group-hover:text-muted-foreground transition-colors" />
       </button>
     );
   }
@@ -50,17 +50,18 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
     <button
       ref={ref}
       onClick={handleClick}
-      className="flex flex-col gap-3 p-5 rounded-xl border border-border bg-card hover:shadow-elevated hover:border-primary/20 transition-all text-left animate-fade-in touch-manipulation active:scale-[0.98]"
+      className="flex flex-col gap-3 p-5 rounded-xl border border-border/60 bg-card hover:border-border transition-colors text-left animate-fade-in touch-manipulation active:scale-[0.99]"
     >
-      <SpaceIcon iconKey={space.icon} className="h-6 w-6 text-muted-foreground" />
+      <SpaceIcon iconKey={space.icon} className="h-5 w-5 text-muted-foreground" />
       <div>
-        <h3 className="text-small font-semibold">{space.name}</h3>
+        <h3 className="font-serif text-[20px] font-normal leading-tight tracking-[-0.012em]">{space.name}</h3>
         {space.description && (
-          <p className="text-micro text-muted-foreground mt-0.5">{space.description}</p>
+          <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{space.description}</p>
         )}
       </div>
-      <div className="flex gap-3 text-micro text-muted-foreground">
+      <div className="flex gap-3 text-[11px] text-muted-foreground tabular-nums pt-1 border-t border-border/40">
         <span>{taskCount} tasks</span>
+        <span>·</span>
         <span>{noteCount} notes</span>
       </div>
     </button>
