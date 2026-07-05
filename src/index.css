@@ -147,28 +147,28 @@
   }
 
   h1, h2, h3, h4, h5, h6,
-  .text-title, .text-h1, .text-h2 {
-    font-family: var(--font-display);
-    letter-spacing: -0.018em;
-    font-weight: 600;
+  .text-title, .text-h1, .text-h2, .text-h3 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.012em;
+    font-weight: 400;
   }
 
   h1 {
-    font-size: 1.375rem; /* 22px */
-    line-height: 1.25;
-    font-weight: 600;
+    font-size: 1.75rem; /* 28px */
+    line-height: 1.15;
+    font-weight: 400;
   }
 
   h2 {
-    font-size: 1.125rem; /* 18px */
-    line-height: 1.3;
-    font-weight: 500;
+    font-size: 1.375rem; /* 22px */
+    line-height: 1.2;
+    font-weight: 400;
   }
 
   h3 {
-    font-size: 1rem; /* 16px */
-    line-height: 1.4;
-    font-weight: 600;
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.25;
+    font-weight: 400;
   }
 
   code, pre {
