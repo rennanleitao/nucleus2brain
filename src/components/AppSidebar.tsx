@@ -124,24 +124,24 @@ export function AppSidebar() {
   const navItems = navItemsAll.filter((item) => visible.includes(item.key as SidebarItemKey));
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="p-4">
+    <Sidebar collapsible="icon" className="border-r border-border/60">
+      <SidebarHeader className="p-4 border-b border-border/60">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
             <Zap className="h-4 w-4 text-primary-foreground" />
           </div>
           {!collapsed && (
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-sidebar-accent-foreground">Nucleus</span>
-              <span className="text-[10px] text-sidebar-foreground">Your executive assistant. For life.</span>
+            <div className="flex flex-col leading-tight">
+              <span className="font-serif text-[17px] tracking-tight text-sidebar-accent-foreground">Nucleus</span>
+              <span className="text-[10px] italic font-serif text-sidebar-foreground/70">Your executive assistant. For life.</span>
             </div>
           )}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-micro uppercase tracking-widest text-sidebar-foreground/50">
+        <SidebarGroup className="pt-3">
+          <SidebarGroupLabel className="font-serif italic text-[12px] tracking-normal text-sidebar-foreground/60 px-3 mb-1">
             Navigate
           </SidebarGroupLabel>
           <SidebarGroupContent>
