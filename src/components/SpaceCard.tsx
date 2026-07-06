@@ -49,9 +49,10 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
           <span>{noteCount} notes</span>
         </div>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0 group-hover:text-muted-foreground transition-colors" />
-      </button>
+      </div>
     );
   }
+
 
 
   return (
