@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send, LayoutGrid, RotateCcw, Link2 } from "lucide-react";
+import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send, LayoutGrid, RotateCcw, Link2, Volume2 } from "lucide-react";
 import { useSidebarItems } from "@/hooks/useSidebarItems";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ interface ProviderOption {
 
 const ALL_FEATURES = "Assistente, notas, textos, tarefas, agenda, estudos e voz";
 const MCP_SERVER_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`;
+const ELEVENLABS_PROVIDER = "elevenlabs";
 
 const PROVIDERS: ProviderOption[] = [
   {
@@ -138,6 +139,14 @@ export default function SettingsPage() {
   const [keyStatusError, setKeyStatusError] = useState<string | null>(null);
   const [testedUnsavedKey, setTestedUnsavedKey] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
+  const [voiceApiKey, setVoiceApiKey] = useState("");
+  const [voiceApiKeyConfigured, setVoiceApiKeyConfigured] = useState(false);
+  const [editingVoiceApiKey, setEditingVoiceApiKey] = useState(true);
+  const [voiceKeyStatusLoading, setVoiceKeyStatusLoading] = useState(false);
+  const [voiceKeyStatusError, setVoiceKeyStatusError] = useState<string | null>(null);
+  const [testedUnsavedVoiceKey, setTestedUnsavedVoiceKey] = useState(false);
+  const [testingVoiceConnection, setTestingVoiceConnection] = useState(false);
+  const [savingVoiceKey, setSavingVoiceKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
@@ -187,6 +196,20 @@ export default function SettingsPage() {
             setKeyStatusLoading(false);
           }
         }
+      }
+
+      setVoiceKeyStatusLoading(true);
+      setVoiceKeyStatusError(null);
+      try {
+        const configured = await hasStoredApiKey(ELEVENLABS_PROVIDER);
+        setVoiceApiKeyConfigured(configured);
+        setEditingVoiceApiKey(!configured);
+      } catch {
+        setVoiceApiKeyConfigured(false);
+        setEditingVoiceApiKey(true);
+        setVoiceKeyStatusError("Não foi possível verificar se a chave ElevenLabs está salva.");
+      } finally {
+        setVoiceKeyStatusLoading(false);
       }
 
       // Load WhatsApp settings
@@ -318,6 +341,65 @@ export default function SettingsPage() {
     }
   };
 
+  const handleTestVoiceConnection = async () => {
+    if (!voiceApiKeyConfigured && !voiceApiKey.trim()) {
+      toast.error("Informe uma API key ElevenLabs para testar");
+      return;
+    }
+
+    setTestingVoiceConnection(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("store-api-key", {
+        body: {
+          action: "test",
+          provider: ELEVENLABS_PROVIDER,
+          ...(voiceApiKey.trim() ? { apiKey: voiceApiKey.trim() } : {}),
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Não foi possível conectar ao ElevenLabs");
+      if (voiceApiKey.trim()) {
+        setTestedUnsavedVoiceKey(true);
+        toast.success("Conexão com ElevenLabs validada. Clique em Salvar voz para guardar a chave.");
+      } else {
+        toast.success("Conexão validada com a chave ElevenLabs salva!");
+      }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Erro ao testar ElevenLabs"));
+    } finally {
+      setTestingVoiceConnection(false);
+    }
+  };
+
+  const handleSaveVoiceKey = async () => {
+    if (!voiceApiKeyConfigured && !voiceApiKey.trim()) {
+      toast.error("API key ElevenLabs é obrigatória");
+      return;
+    }
+
+    if (!voiceApiKey.trim()) {
+      toast.success("Configuração de voz mantida.");
+      return;
+    }
+
+    setSavingVoiceKey(true);
+    try {
+      const { error } = await supabase.functions.invoke("store-api-key", {
+        body: { provider: ELEVENLABS_PROVIDER, apiKey: voiceApiKey.trim() },
+      });
+      if (error) throw error;
+      setVoiceApiKeyConfigured(true);
+      setEditingVoiceApiKey(false);
+      setTestedUnsavedVoiceKey(false);
+      setVoiceApiKey("");
+      toast.success("Voz ElevenLabs salva!");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Erro ao salvar chave ElevenLabs"));
+    } finally {
+      setSavingVoiceKey(false);
+    }
+  };
+
   const requestNotifPermission = async () => {
     if (!("Notification" in window)) {
       toast.error("Seu navegador não suporta notificações");
@@ -407,6 +489,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="ai" className="space-y-4">
         <TabsList className="bg-muted flex-wrap">
           <TabsTrigger value="ai" className="text-xs"><Bot className="h-3 w-3 mr-1" /> Assistant</TabsTrigger>
+          <TabsTrigger value="voice" className="text-xs"><Volume2 className="h-3 w-3 mr-1" /> Voz</TabsTrigger>
           <TabsTrigger value="mcp" className="text-xs"><Link2 className="h-3 w-3 mr-1" /> MCP</TabsTrigger>
           <TabsTrigger value="telegram" className="text-xs"><Send className="h-3 w-3 mr-1" /> Telegram</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs"><MessageSquare className="h-3 w-3 mr-1" /> WhatsApp</TabsTrigger>
@@ -603,6 +686,113 @@ export default function SettingsPage() {
             <Save className="h-4 w-4 mr-1.5" />
             {saving ? "Salvando..." : "Salvar configurações"}
           </Button>
+        </TabsContent>
+
+        {/* VOICE TAB */}
+        <TabsContent value="voice" className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">Voz da Helena</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Configure uma chave ElevenLabs para usar uma voz feminina mais natural nas respostas da Helena. Se não houver chave salva, o app tenta a voz nativa do navegador.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <p><span className="font-medium text-foreground">Voz atual:</span> Helena ElevenLabs</p>
+              <p className="mt-1"><span className="font-medium text-foreground">Voice ID:</span> KHmfNHtEjHhLK9eER20w</p>
+            </div>
+
+            {voiceKeyStatusLoading ? (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Verificando chave ElevenLabs configurada...
+              </div>
+            ) : voiceKeyStatusError ? (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                  <div>
+                    <p className="text-xs font-medium">Não foi possível consultar a chave</p>
+                    <p className="text-[10px] text-muted-foreground">{voiceKeyStatusError} Você pode informar a chave novamente.</p>
+                  </div>
+                </div>
+                <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setVoiceKeyStatusError(null)}>
+                  Informar chave
+                </Button>
+              </div>
+            ) : voiceApiKeyConfigured && !editingVoiceApiKey ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-xs font-medium">Chave ElevenLabs configurada</p>
+                    <p className="text-[10px] text-muted-foreground">A chave permanece protegida no backend.</p>
+                  </div>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditingVoiceApiKey(true)}>
+                  Substituir chave
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <label className="text-xs font-medium text-muted-foreground">ElevenLabs API Key</label>
+                  {voiceApiKeyConfigured && (
+                    <button
+                      type="button"
+                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setVoiceApiKey("");
+                        setEditingVoiceApiKey(false);
+                      }}
+                    >
+                      Cancelar substituição
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  value={voiceApiKey}
+                  onChange={event => {
+                    setVoiceApiKey(event.target.value);
+                    setTestedUnsavedVoiceKey(false);
+                  }}
+                  placeholder="Cole sua ElevenLabs API key..."
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  A chave será armazenada pelo backend e usada apenas para gerar áudio da Helena.
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleTestVoiceConnection}
+                disabled={testingVoiceConnection || voiceKeyStatusLoading || (!voiceApiKeyConfigured && !voiceApiKey.trim())}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                {testingVoiceConnection ? "Testando..." : "Testar ElevenLabs"}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveVoiceKey}
+                disabled={savingVoiceKey || voiceKeyStatusLoading || (!voiceApiKeyConfigured && !voiceApiKey.trim())}
+              >
+                <Save className="h-4 w-4 mr-1.5" />
+                {savingVoiceKey ? "Salvando..." : "Salvar voz"}
+              </Button>
+            </div>
+
+            {testedUnsavedVoiceKey && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] text-muted-foreground">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                <span>A chave foi testada, mas ainda não foi salva. Clique em <strong>Salvar voz</strong>.</span>
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         {/* MCP TAB */}

@@ -33,8 +33,8 @@ export function useHelenaSpeech() {
 
   const speak = useCallback((text: string, onEnd?: () => void) => {
     setError(null);
-    try {
-      service.speak(text, {
+    void service
+      .speak(text, {
         onStart: () => {
           setIsSpeaking(true);
           setIsPaused(false);
@@ -44,19 +44,19 @@ export function useHelenaSpeech() {
           setIsPaused(false);
           onEnd?.();
         },
-        onError: (event) => {
+        onError: (message) => {
           setIsSpeaking(false);
           setIsPaused(false);
-          setError(event.error || "Erro ao reproduzir resposta em voz.");
+          setError(message || "Erro ao reproduzir resposta em voz.");
           onEnd?.();
         },
+      })
+      .catch((err) => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setError(err instanceof Error ? err.message : "Text-to-Speech não está disponível.");
+        onEnd?.();
       });
-    } catch (err) {
-      setIsSpeaking(false);
-      setIsPaused(false);
-      setError(err instanceof Error ? err.message : "Text-to-Speech não está disponível.");
-      onEnd?.();
-    }
   }, [service]);
 
   const pause = useCallback(() => {

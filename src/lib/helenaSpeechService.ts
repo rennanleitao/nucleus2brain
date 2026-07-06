@@ -1,3 +1,5 @@
+import { getFunctionAuthHeaders } from "@/lib/functionAuth";
+
 export interface HelenaSpeechOptions {
   lang?: string;
   rate?: number;
@@ -5,7 +7,7 @@ export interface HelenaSpeechOptions {
   volume?: number;
   onStart?: () => void;
   onEnd?: () => void;
-  onError?: (error: SpeechSynthesisErrorEvent) => void;
+  onError?: (error: string) => void;
 }
 
 const DEFAULT_OPTIONS: Required<Pick<HelenaSpeechOptions, "lang" | "rate" | "pitch" | "volume">> = {
@@ -16,11 +18,14 @@ const DEFAULT_OPTIONS: Required<Pick<HelenaSpeechOptions, "lang" | "rate" | "pit
 };
 
 export class HelenaSpeechService {
+  private currentAudio: HTMLAudioElement | null = null;
+  private currentAudioUrl: string | null = null;
+
   isSupported() {
-    return typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+    return this.isRemoteAudioSupported() || this.isBrowserSpeechSupported();
   }
 
-  speak(text: string, options: HelenaSpeechOptions = {}) {
+  async speak(text: string, options: HelenaSpeechOptions = {}) {
     if (!this.isSupported()) {
       throw new Error("Text-to-Speech não é suportado neste navegador.");
     }
@@ -29,6 +34,109 @@ export class HelenaSpeechService {
     if (!content) return;
 
     this.stop();
+
+    try {
+      await this.speakWithElevenLabs(content, options);
+      return;
+    } catch {
+      this.stopRemoteAudio();
+      if (!this.isBrowserSpeechSupported()) {
+        throw new Error("Text-to-Speech não é suportado neste navegador.");
+      }
+    }
+
+    this.speakWithBrowser(content, options);
+  }
+
+  stop() {
+    this.stopRemoteAudio();
+    if (this.isBrowserSpeechSupported()) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  pause() {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      return;
+    }
+    if (this.isBrowserSpeechSupported()) {
+      window.speechSynthesis.pause();
+    }
+  }
+
+  resume() {
+    if (this.currentAudio) {
+      void this.currentAudio.play();
+      return;
+    }
+    if (this.isBrowserSpeechSupported()) {
+      window.speechSynthesis.resume();
+    }
+  }
+
+  prepareTextForSpeech(text: string) {
+    return text
+      .replace(/```action[\s\S]*?```/g, "")
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+      .replace(/[#>*_`~|-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  private async speakWithElevenLabs(content: string, options: HelenaSpeechOptions) {
+    if (!this.isRemoteAudioSupported()) {
+      throw new Error("Reprodução de áudio remoto não é suportada neste navegador.");
+    }
+
+    const headers = await getFunctionAuthHeaders();
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/helena-tts`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      body: JSON.stringify({ text: content }),
+    });
+
+    if (!response.ok) {
+      const error = await this.readFunctionError(response);
+      throw new Error(error || "ElevenLabs não conseguiu gerar o áudio.");
+    }
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.volume = options.volume ?? DEFAULT_OPTIONS.volume;
+
+    this.currentAudio = audio;
+    this.currentAudioUrl = audioUrl;
+
+    audio.onplay = () => options.onStart?.();
+    audio.onended = () => {
+      this.releaseRemoteAudio(audio);
+      options.onEnd?.();
+    };
+    audio.onerror = () => {
+      this.releaseRemoteAudio(audio);
+      options.onError?.("Erro ao reproduzir áudio da Helena.");
+    };
+
+    try {
+      await audio.play();
+    } catch (error) {
+      this.releaseRemoteAudio(audio);
+      throw error;
+    }
+  }
+
+  private speakWithBrowser(content: string, options: HelenaSpeechOptions) {
+    if (!this.isBrowserSpeechSupported()) {
+      throw new Error("Text-to-Speech não é suportado neste navegador.");
+    }
 
     const utterance = new SpeechSynthesisUtterance(content);
     const merged = { ...DEFAULT_OPTIONS, ...options };
@@ -42,35 +150,44 @@ export class HelenaSpeechService {
 
     utterance.onstart = () => options.onStart?.();
     utterance.onend = () => options.onEnd?.();
-    utterance.onerror = (event) => options.onError?.(event);
+    utterance.onerror = (event) => options.onError?.(event.error || "Erro ao reproduzir resposta em voz.");
 
     window.speechSynthesis.speak(utterance);
   }
 
-  stop() {
-    if (!this.isSupported()) return;
-    window.speechSynthesis.cancel();
+  private isBrowserSpeechSupported() {
+    return typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
   }
 
-  pause() {
-    if (!this.isSupported()) return;
-    window.speechSynthesis.pause();
+  private isRemoteAudioSupported() {
+    return typeof window !== "undefined" && typeof Audio !== "undefined" && typeof URL !== "undefined";
   }
 
-  resume() {
-    if (!this.isSupported()) return;
-    window.speechSynthesis.resume();
+  private stopRemoteAudio() {
+    if (!this.currentAudio) return;
+
+    this.currentAudio.pause();
+    this.currentAudio.currentTime = 0;
+    this.releaseRemoteAudio(this.currentAudio);
   }
 
-  prepareTextForSpeech(text: string) {
-    return text
-      .replace(/```action[\s\S]*?```/g, "")
-      .replace(/```[\s\S]*?```/g, "")
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-      .replace(/[#>*_`~|-]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+  private releaseRemoteAudio(audio: HTMLAudioElement) {
+    if (this.currentAudio === audio) {
+      this.currentAudio = null;
+    }
+    if (this.currentAudioUrl) {
+      URL.revokeObjectURL(this.currentAudioUrl);
+      this.currentAudioUrl = null;
+    }
+  }
+
+  private async readFunctionError(response: Response) {
+    try {
+      const data = await response.json();
+      return typeof data?.error === "string" ? data.error : "";
+    } catch {
+      return "";
+    }
   }
 
   private pickVoice(lang: string) {
