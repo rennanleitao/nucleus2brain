@@ -392,12 +392,47 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
               </span>
             )}
             {!compact && (
-              <span
-                className="text-micro text-muted-foreground flex items-center gap-0.5"
-                title={`Complexidade de Execução: ${getTaskExecutionComplexityLabel(task.execution_complexity)} (${getTaskExecutionComplexityDurationReference(task.execution_complexity)})`}
-              >
-                <Gauge className="h-2.5 w-2.5" />
-                {getTaskExecutionComplexityLabel(task.execution_complexity)}
+              <span onClick={(e) => e.stopPropagation()}>
+                <Popover open={complexityOpen} onOpenChange={setComplexityOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      disabled={savingComplexity}
+                      className="text-micro text-muted-foreground hover:text-primary flex items-center gap-0.5 rounded px-1 -mx-1 hover:bg-muted transition-colors"
+                      title={`Complexidade: ${getTaskExecutionComplexityLabel(localComplexity)} (${getTaskExecutionComplexityDurationReference(localComplexity)}) — clique para alterar`}
+                    >
+                      <Gauge className="h-2.5 w-2.5" />
+                      {getTaskExecutionComplexityLabel(localComplexity)}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-52 p-1" align="start" side="bottom" onClick={(e) => e.stopPropagation()}>
+                    <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Complexidade
+                    </div>
+                    {TASK_EXECUTION_COMPLEXITIES.map((level) => {
+                      const active = (localComplexity || "medium") === level;
+                      return (
+                        <button
+                          key={level}
+                          type="button"
+                          disabled={savingComplexity}
+                          onClick={() => applyComplexity(level)}
+                          className={cn(
+                            "w-full flex items-center gap-2 text-left px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors",
+                            active && "bg-muted",
+                          )}
+                        >
+                          <Gauge className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="flex-1">
+                            <span className="font-medium">{taskExecutionComplexityLabels[level]}</span>
+                            <span className="block text-[10px] text-muted-foreground">{taskExecutionComplexityDurationReference[level]}</span>
+                          </span>
+                          {active && <span className="text-[10px] text-primary font-semibold">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </PopoverContent>
+                </Popover>
               </span>
             )}
           </div>
