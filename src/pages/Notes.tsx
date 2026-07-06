@@ -666,7 +666,7 @@ export default function Notes() {
                     <button
                       type="button"
                       onClick={() => toggleSpaceCollapsed(group.key)}
-                      className="w-full flex items-center gap-2 px-3 py-2 bg-muted/60 border-b border-border/60 group/hdr transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60 group/hdr transition-colors"
                     >
                       {group.icon && group.key !== NO_SPACE_KEY && (
                         <SpaceIcon iconKey={group.icon} className="h-3.5 w-3.5 text-muted-foreground/70" />
