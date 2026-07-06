@@ -206,7 +206,8 @@ export default function Notes() {
     const matchSearch = !search || n.title.toLowerCase().includes(search.toLowerCase()) ||
       (n.content || "").toLowerCase().includes(search.toLowerCase());
     const matchTag = !filterTag || (n.tags || []).includes(filterTag);
-    return matchSearch && matchTag;
+    const matchDate = !selectedDate || parseNoteEntries(n.content || "").some(e => e.date === selectedDate);
+    return matchSearch && matchTag && matchDate;
   });
 
   // Group filtered notes by space, preserving `spaces` display order and
