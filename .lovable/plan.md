@@ -1,77 +1,69 @@
+# Notas com seções datadas + navegação por data
 
-# Restyle editorial global do Nucleus
+Adiciona um sistema de journaling dentro das notas: cada nota é composta por seções datadas ("entradas"). O usuário continua sempre escrevendo na última data usada, com botão explícito para abrir uma nova data. Uma coluna lateral de datas permite pular direto para a seção correspondente — tanto dentro da nota quanto na tela principal de Notas.
 
-Extender o padrão editorial validado no módulo Notes (Instrument Serif, hairlines, hierarquia respirada, densidade calma) para todo o aplicativo em uma passada, com risco controlado via tokens globais primeiro e depois página por página.
+## Comportamento
 
-## Princípios de design (linguagem visual)
+**Dentro de uma nota**
+- O conteúdo é dividido visualmente em seções, cada uma com cabeçalho de data (ex: "06 Jul 2026 · Segunda").
+- Ao abrir a nota, o cursor vai para o fim da última entrada — o usuário continua escrevendo naquela data.
+- Botão "+ Nova data" no topo do editor e no menu lateral: abre um seletor de data (padrão: hoje) e insere um novo cabeçalho + bloco vazio abaixo da entrada atual.
+- Coluna lateral direita ("Datas desta nota") lista todas as datas presentes, ordem decrescente, clicável para rolar até a seção. Data ativa fica destacada conforme o scroll.
 
-- **Tipografia:** `Instrument Serif` em todos os headings (H1, H2, H3) e labels de agrupamento; body/UI segue em `Figtree`/`Inter`. Itálico do serif reservado para labels de seção e metadados editoriais (ex: "Hoje", "Space", contagens).
-- **Hierarquia:** títulos grandes com peso 400 (serif já carrega a presença), body em 13-14px, micro em 11-12px uppercase com tracking largo apenas quando semântico.
-- **Divisão:** hairlines (`border-border/60`, 1px) substituem cards pesados; separação por respiro vertical (space-y-4/6) em vez de fundos coloridos.
-- **Superfícies:** `bg-background` como base; `bg-muted/40` apenas para inputs/pills sutis. Menos cards, mais fluxo editorial.
-- **Cor:** paleta atual preservada (Cloud White + accent primário). Sem gradientes chamativos em headings.
-- **Densidade:** linhas mais respiráveis, mas escaneáveis — padrão de min-h 44-48px em rows, padding p-3/p-4 em containers.
+**Tela principal de Notas**
+- Nova coluna lateral esquerda ("Linha do tempo") lista todas as datas com atividade no conjunto de notas do usuário, agrupadas por mês.
+- Clicar em uma data filtra a lista central para mostrar apenas notas que têm entradas naquele dia, com um preview do trecho daquela data.
+- Botão "Limpar" volta para a listagem exaustiva padrão.
 
-## Fase 1 — Tokens e primitivos globais
+## Implementação técnica
 
-1. Confirmar `Instrument Serif` já carregado (feito no Notes) e expor classe utilitária global.
-2. `src/index.css`:
-   - Reescrever `h1`, `h2`, `h3`, `.text-title`, `.text-h1`, `.text-h2` para usar `var(--font-serif)` com weight 400, letter-spacing -0.01em, sizes ajustados (H1 28-32px, H2 22px, H3 18px).
-   - Adicionar utilitários `.eyebrow` (uppercase micro), `.hairline` (border helper), `.page-header` (padding + border-b padrão).
-3. Ajustar `tailwind.config.ts` — nada estrutural (fontes já mapeadas).
+**Modelo de dados** — usa apenas o conteúdo existente da nota (TipTap/HTML), sem migração de schema:
+- Cabeçalho de data = um nó heading nível 2 com atributo `data-entry-date="YYYY-MM-DD"` e classe visual dedicada. Facilmente parseável a partir do HTML.
+- Função utilitária `parseNoteEntries(html)` retorna `[{date, headingId, snippet}]`, usada tanto para a sidebar da nota quanto para o índice global.
+- "Última data usada" = maior `data-entry-date` presente na nota; se a nota não tem nenhum, criar o primeiro cabeçalho automaticamente com a data de hoje ao começar a editar.
 
-## Fase 2 — Shell (aparece em toda a app)
+**Componentes novos**
+- `src/components/editor/DateEntryExtension.ts` — extensão TipTap que renderiza os headings datados com estilo próprio (badge de data + separador hairline acima).
+- `src/components/NoteDateSidebar.tsx` — coluna direita dentro da página de nota, lista datas + scroll-spy para destacar a ativa.
+- `src/components/NoteDatePicker.tsx` — popover com calendário shadcn que insere `<h2 data-entry-date=...>` na posição atual.
+- `src/components/NotesTimelineSidebar.tsx` — coluna esquerda em `Notes.tsx`, agrupada por mês, com contador de notas por data.
+- `src/lib/noteEntries.ts` — helpers `parseNoteEntries`, `getLastEntryDate`, `insertDateEntry`, `formatEntryLabel`.
 
-- **`AppSidebar.tsx`**: seções com labels serif itálico + hairline, itens mais respirados, contadores em pills sutis.
-- **`AppLayout.tsx`**: header/topbar com hairline inferior, sem sombra, sem fundo cinza.
-- **Breadcrumbs / page titles**: componente comum de `PageHeader` (título serif + eyebrow + hairline).
+**Arquivos alterados**
+- `src/pages/Notes.tsx` — adiciona `NotesTimelineSidebar` à esquerda; estado `selectedDate` filtra a lista central.
+- `src/components/RichTextEditor.tsx` — registra `DateEntryExtension` e expõe API para inserir data e navegar até heading.
+- Página de detalhe/edição de nota (identificar onde o editor é usado em tela cheia) — adiciona `NoteDateSidebar` à direita e botão "+ Nova data" no toolbar.
+- `src/lib/api.ts` — adiciona `getNotesWithDates()` que retorna índice `date → notes[]` para a timeline global (parse client-side sobre notas já carregadas).
 
-## Fase 3 — Páginas principais (uma varredura)
+## Layout
 
-Aplicar `PageHeader` + hierarquia editorial + hairlines + serif nos headings de:
+```text
+┌─ Tela Notas ───────────────────────────────────────────────┐
+│  LINHA DO TEMPO   │  NOTAS (filtradas)                     │
+│                   │                                         │
+│  Julho 2026       │  [busca]                               │
+│  · Hoje       12  │                                         │
+│  · Ontem       3  │  ▸ Reunião cliente X                   │
+│  · 04 Jul      5  │    "…decidimos avançar com…"           │
+│  ─                │                                         │
+│  Junho 2026       │  ▸ Estudo IA                           │
+│  · 28 Jun      2  │    "…paper sobre LoRA…"                │
+└────────────────────────────────────────────────────────────┘
 
-- Dashboard
-- Tasks (lista + Kanban headers de coluna)
-- Spaces (grid de cards com títulos serif)
-- SpaceDetail
-- Calendar (títulos de mês/semana em serif)
-- Studies / Topics
-- History / Accomplishments
-- Pomodoro
-- Assistant
-- Settings
-- Tags
-- Materials / TimeTracking / MeetingCopilot / ImportPage / ChatGPTIntegration
+┌─ Dentro de uma nota ───────────────────────────────────────┐
+│  Título da nota                              [+ Nova data] │
+│                                                             │
+│  ── 06 Jul 2026 · Segunda ──────────  │  DATAS DESTA NOTA │
+│  conteúdo escrito hoje...             │  · 06 Jul (hoje)  │
+│                                        │  · 04 Jul         │
+│  ── 04 Jul 2026 · Sábado ───────────  │  · 28 Jun         │
+│  entrada anterior...                   │                   │
+└────────────────────────────────────────────────────────────┘
+```
 
-Cada página: substituir cards pesados por seções com hairline, títulos serif, labels itálico onde fizer sentido, e reduzir chrome visual (bordas duplas, fundos redundantes).
+Visual mantém o Consulting shell atual: hairlines, sem gradientes, tipografia Inter, badges de data com `text-[10px] uppercase tracking-[0.14em]`.
 
-## Fase 4 — Componentes compartilhados
-
-- **Dialogs** (`CreateTask`, `EditTask`, `CreateNote`, etc.): título em serif, footer com hairline.
-- **TaskCard / SpaceCard / KanbanView**: títulos em serif, metadados em micro uppercase, remover sombras fortes.
-- **DayPlanner / calendar views**: cabeçalhos de dia em serif itálico, grid com hairlines.
-- **NoteAIChat / Assistant prose**: manter `.ai-prose` mas alinhar headings ao serif.
-
-## Fase 5 — Verificação
-
-- Playwright em viewport mobile (393×618) e desktop (1280×1800) capturando: Dashboard, Tasks, Spaces, SpaceDetail, Calendar, Studies, Settings, Notes (regressão).
-- Checar contraste e legibilidade do serif em rótulos pequenos — se ficar frágil em <13px, cair para sans nesses locais específicos.
-- Ler console para erros/regressões pós-restyle.
-
-## Detalhes técnicos
-
-- Não tocar em lógica de negócio, dados ou edge functions.
-- Apenas classes Tailwind e tokens em `index.css`. Sem novos pacotes.
-- Manter compat com dark mode (tokens já cobrem).
-- Serif já está no `index.html` via Google Fonts (não migrar para @fontsource nesta rodada para evitar mudar loader; se a orientação do sistema exigir, faço em passo separado).
-- Escopo: só frontend / apresentação. Nenhum change em rotas, auth, RLS ou schema.
-
-## Riscos e mitigações
-
-- **Serif em telas densas (Kanban, Tasks list)** pode pesar. Mitigação: usar serif só nos títulos de coluna/página; itens de lista permanecem sans.
-- **Regressão visual em dialogs muito populados**: revisar caso a caso, manter compat de spacing.
-- **Volume grande em uma passada**: dividir em commits lógicos por página durante a implementação, verificando cada bloco com screenshot.
-
-## Entregável
-
-App inteiro com linguagem editorial consistente: serif nos headings, hairlines no lugar de bordas pesadas, respiro vertical calibrado, e o mesmo "senioridade" visual do módulo Notes aplicada em toda a navegação, páginas e componentes.
+## Fora de escopo
+- Migração de schema no banco (tudo vive no HTML da nota).
+- Reordenação/edição de datas passadas (só criar novas por enquanto).
+- Sincronização com o calendário do Google.
