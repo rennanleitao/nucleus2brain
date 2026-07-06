@@ -1,6 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchNotes, fetchTaggedSnippets, deleteTaggedSnippet, fetchTasks, renameTag, deleteTag, fetchAllTags } from "@/lib/api";
+import {
+  fetchNotes, fetchTaggedSnippets, deleteTaggedSnippet, fetchTasks,
+  renameTag, deleteTag,
+  addTagToNote, removeTagFromNote, replaceTagOnNote,
+  setSnippetTag, setTaskTag,
+} from "@/lib/api";
 import { getBrtToday } from "@/lib/timezone";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { TagItemActions } from "@/components/TagItemActions";
 
 export default function Tags() {
   const navigate = useNavigate();
