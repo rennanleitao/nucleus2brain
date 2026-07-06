@@ -62,6 +62,8 @@ export interface RichTextEditorHandle {
   insertHtml: (html: string) => void;
   replaceSelectionWithHtml: (html: string) => void;
   setHtml: (html: string) => void;
+  insertDateEntry: (date: string) => void;
+  scrollToEntry: (date: string) => void;
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
