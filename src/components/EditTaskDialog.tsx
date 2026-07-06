@@ -287,7 +287,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
     setLoading(true);
     try {
       const prevStatus = task.status;
-      await updateTask(task.id, {
+      const updatedTask = await updateTask(task.id, {
         title: title.trim(),
         description: description.trim() || null,
         priority,
@@ -300,6 +300,10 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
         recurrence: recurrenceEnabled ? recurrence : null,
       } as any);
+
+      if (executionComplexity !== "medium" && updatedTask && !("execution_complexity" in updatedTask)) {
+        toast.warning("Task atualizada, mas a complexidade ainda não foi salva porque a migration do banco não foi aplicada.");
+      }
 
       // If the task transitioned to completed/cancelled and is recurrent, spawn next occurrence
       const becameTerminal = (status === "completed" || status === "cancelled") && prevStatus !== status;
