@@ -549,7 +549,7 @@ export default function Notes() {
           <div className="px-5 pt-5 pb-4 border-b border-border/60 space-y-4 min-w-0">
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="font-serif text-[32px] leading-none tracking-tight text-foreground">
+                <h2 className="text-[22px] font-semibold leading-none tracking-tight text-foreground">
                   Notas
                 </h2>
                 <p className="mt-1.5 text-[11px] tracking-wide uppercase text-muted-foreground/70">
