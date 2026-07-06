@@ -14,6 +14,8 @@ export default function Spaces() {
   const [loading, setLoading] = useState(true);
   const [editingSpace, setEditingSpace] = useState<any>(null);
   const [search, setSearch] = useState("");
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem("spaces.collapsedCategories");
@@ -21,6 +23,36 @@ export default function Spaces() {
     } catch {}
     return new Set();
   });
+
+  const startRename = (id: string, name: string) => {
+    setRenaming({ id, name });
+  };
+
+  const cancelRename = () => setRenaming(null);
+
+  const confirmRename = async () => {
+    if (!renaming) return;
+    try {
+      await updateSpaceCategory(renaming.id, renaming.name);
+      toast.success("Categoria atualizada");
+      setRenaming(null);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      await deleteSpaceCategory(deletingId);
+      toast.success("Categoria excluída");
+      setDeletingId(null);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const toggleCategoryCollapsed = (key: string) => {
     setCollapsedCategories(prev => {
