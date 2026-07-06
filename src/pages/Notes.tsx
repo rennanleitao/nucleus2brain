@@ -24,10 +24,10 @@ import { LinkNoteDialog } from "@/components/LinkNoteDialog";
 import { NotePreviewDialog } from "@/components/NotePreviewDialog";
 import { NoteTemplatesMenu } from "@/components/NoteTemplatesMenu";
 import type { NoteTemplate } from "@/lib/noteTemplates";
-import { NotesTimelineSidebar } from "@/components/NotesTimelineSidebar";
 import { NoteDateSidebar } from "@/components/NoteDateSidebar";
 import { NoteDatePicker } from "@/components/NoteDatePicker";
-import { parseNoteEntries, getLastEntryDate, buildDateEntryHtml } from "@/lib/noteEntries";
+import { getLastEntryDate, buildDateEntryHtml } from "@/lib/noteEntries";
+import { CalendarDays } from "lucide-react";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
@@ -102,7 +102,16 @@ export default function Notes() {
   const audioClipsRef = useRef<NoteAudioClip[]>([]);
   const discardStoppedAudioRef = useRef(false);
   const canRecordAudio = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [dateSidebarOpen, setDateSidebarOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("notes.dateSidebarOpen") !== "false"; } catch { return true; }
+  });
+  const toggleDateSidebar = () => {
+    setDateSidebarOpen(prev => {
+      const next = !prev;
+      try { localStorage.setItem("notes.dateSidebarOpen", String(next)); } catch {}
+      return next;
+    });
+  };
   const editorScrollRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -206,8 +215,7 @@ export default function Notes() {
     const matchSearch = !search || n.title.toLowerCase().includes(search.toLowerCase()) ||
       (n.content || "").toLowerCase().includes(search.toLowerCase());
     const matchTag = !filterTag || (n.tags || []).includes(filterTag);
-    const matchDate = !selectedDate || parseNoteEntries(n.content || "").some(e => e.date === selectedDate);
-    return matchSearch && matchTag && matchDate;
+    return matchSearch && matchTag;
   });
 
   // Group filtered notes by space, preserving `spaces` display order and
@@ -565,14 +573,6 @@ export default function Notes() {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] w-full max-w-full min-w-0 overflow-hidden animate-fade-in">
-      {/* Timeline: dates across all notes */}
-      {showList && !isMobile && (
-        <NotesTimelineSidebar
-          notes={notes}
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-        />
-      )}
       {/* Sidebar - Note list */}
       {showList && (
         <div className={`${isMobile ? "w-full" : "w-[300px]"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
@@ -1052,13 +1052,33 @@ export default function Notes() {
                   <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
                 </div>
                 {!isMobile && (
-                  <aside className="w-[180px] flex-shrink-0 border-l border-border/60 bg-background/50 overflow-y-auto">
-                    <NoteDateSidebar
-                      html={editContent}
-                      scrollContainer={editorScrollRef.current}
-                      onJump={handleJumpToDate}
-                    />
-                  </aside>
+                  dateSidebarOpen ? (
+                    <aside className="w-[180px] flex-shrink-0 border-l border-border/60 bg-background/50 overflow-y-auto relative">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground z-10"
+                        onClick={toggleDateSidebar}
+                        title="Ocultar coluna de datas"
+                      >
+                        <PanelLeftOpen className="h-3.5 w-3.5" />
+                      </Button>
+                      <NoteDateSidebar
+                        html={editContent}
+                        scrollContainer={editorScrollRef.current}
+                        onJump={handleJumpToDate}
+                      />
+                    </aside>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={toggleDateSidebar}
+                      title="Mostrar coluna de datas"
+                      className="w-7 flex-shrink-0 border-l border-border/60 bg-background/50 hover:bg-muted/40 flex items-start justify-center pt-3 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                    </button>
+                  )
                 )}
               </div>
 
