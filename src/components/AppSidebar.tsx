@@ -141,7 +141,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup className="pt-3">
-          <SidebarGroupLabel className="font-serif italic text-[12px] tracking-normal text-sidebar-foreground/60 px-3 mb-1">
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80 px-3 mb-2">
             Navigate
           </SidebarGroupLabel>
           <SidebarGroupContent>
