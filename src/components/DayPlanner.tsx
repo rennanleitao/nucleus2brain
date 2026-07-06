@@ -443,6 +443,13 @@ export function DayPlanner({
             >
               <FolderOpen className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={() => setView("date-complexity")}
+              className={`p-1.5 transition-colors ${view === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Por Data e Complexidade"
+            >
+              <Gauge className="h-3.5 w-3.5" />
+            </button>
           </div>
           <button
             onClick={() => setShowAISchedule(true)}
