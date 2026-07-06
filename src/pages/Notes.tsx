@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical, ListTodo, PanelLeftClose, PanelLeftOpen,
-  Mic, Square, Play, Download, Brain,
+  Mic, Square, Download, Brain,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
@@ -103,7 +103,7 @@ export default function Notes() {
   const discardStoppedAudioRef = useRef(false);
   const canRecordAudio = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
   const [dateSidebarOpen, setDateSidebarOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem("notes.dateSidebarOpen") !== "false"; } catch { return true; }
+    try { return localStorage.getItem("notes.dateSidebarOpen") === "true"; } catch { return false; }
   });
   const toggleDateSidebar = () => {
     setDateSidebarOpen(prev => {
@@ -891,6 +891,15 @@ export default function Notes() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={`h-8 w-8 touch-manipulation ${recordingAudio ? "text-destructive animate-pulse" : "text-muted-foreground hover:text-primary"}`}
+                      onClick={recordingAudio ? stopAudioCapture : startAudioCapture}
+                      title={recordingAudio ? `Gravando áudio (${formatDuration(recordingSeconds)})` : "Gravar áudio"}
+                    >
+                      {recordingAudio ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </div>
 
