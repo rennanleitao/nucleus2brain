@@ -86,9 +86,9 @@ export function SpaceCategoryQuickEdit({ spaceId, category, onChanged }: Props) 
         <span
           role="button"
           tabIndex={0}
-          onClick={stopClick}
+          onClick={(e) => { e.stopPropagation(); }}
           onDoubleClick={stopClick}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { stopClick(e as any); setOpen(o => !o); } }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); setOpen(o => !o); } }}
           className={
             category
               ? "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border/60 hover:bg-accent hover:text-foreground transition-colors cursor-pointer flex-shrink-0"
