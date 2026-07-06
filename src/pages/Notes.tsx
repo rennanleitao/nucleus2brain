@@ -237,10 +237,25 @@ export default function Notes() {
     clearAudioCapture();
     setSelectedNote(note);
     setEditTitle(note.title);
-    setEditContent(note.content || "");
+    let content = note.content || "";
+    // Seed today's date entry if the note has none — so every note is date-aware.
+    if (!getLastEntryDate(content)) {
+      content = buildDateEntryHtml(getBrtToday()) + content;
+    }
+    setEditContent(content);
     setEditTags(note.tags || []);
     setEditSpaceId(note.space_id || "");
-    setDirty(false);
+    setDirty(content !== (note.content || ""));
+  };
+
+  const handleInsertDate = (date: string) => {
+    if (!editorRef.current) return;
+    editorRef.current.insertDateEntry(date);
+    setDirty(true);
+  };
+
+  const handleJumpToDate = (date: string) => {
+    editorRef.current?.scrollToEntry(date);
   };
 
   const handleCreateNote = async () => {
