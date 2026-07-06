@@ -163,6 +163,48 @@ const TOOL_META: Record<string, { entity: EntityType; op: Operation }> = {
   extract_action_items: { entity: "ai_suggestion", op: "ai" },
   summarize_space: { entity: "summary", op: "ai" },
   get_context_for_chat: { entity: "context", op: "compute" },
+  // time tracking
+  list_time_entries: { entity: "generic", op: "list" },
+  list_running_time_entries: { entity: "generic", op: "list" },
+  start_time_entry: { entity: "generic", op: "create" },
+  stop_time_entry: { entity: "generic", op: "update" },
+  // space categories
+  list_space_categories: { entity: "generic", op: "list" },
+  create_space_category: { entity: "generic", op: "create" },
+  update_space_category: { entity: "generic", op: "update" },
+  delete_space_category: { entity: "generic", op: "delete" },
+  set_space_category: { entity: "space", op: "update" },
+  // space sharing
+  list_space_members: { entity: "generic", op: "list" },
+  list_space_invites: { entity: "generic", op: "list" },
+  invite_to_space: { entity: "generic", op: "create" },
+  remove_space_member: { entity: "generic", op: "delete" },
+  update_member_role: { entity: "generic", op: "update" },
+  delete_space_invite: { entity: "generic", op: "delete" },
+  // reminders
+  list_reminders: { entity: "generic", op: "list" },
+  // tagged snippets
+  create_tagged_snippet: { entity: "generic", op: "create" },
+  list_tagged_snippets: { entity: "generic", op: "list" },
+  delete_tagged_snippet: { entity: "generic", op: "delete" },
+  // task-to-task links
+  link_tasks: { entity: "task", op: "update" },
+  list_task_task_links: { entity: "task", op: "list" },
+  unlink_tasks: { entity: "task", op: "update" },
+  // deleted/restore/duplicate/recurrence
+  list_deleted_tasks: { entity: "task", op: "list" },
+  restore_task: { entity: "task", op: "update" },
+  permanently_delete_task: { entity: "task", op: "delete" },
+  duplicate_task: { entity: "task", op: "create" },
+  generate_next_recurrence: { entity: "task", op: "create" },
+  // attachments
+  list_space_attachments: { entity: "generic", op: "list" },
+  delete_space_attachment: { entity: "generic", op: "delete" },
+  get_attachment_url: { entity: "generic", op: "get" },
+  // tag management
+  list_all_tags: { entity: "tag", op: "list" },
+  rename_tag: { entity: "tag", op: "update" },
+  delete_tag: { entity: "tag", op: "delete" },
 };
 
 const INDEXABLE: Set<EntityType> = new Set([
