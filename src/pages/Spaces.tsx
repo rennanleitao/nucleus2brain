@@ -148,20 +148,73 @@ export default function Spaces() {
             const isCollapsed = collapsedCategories.has(group.key);
             return (
               <section key={group.key} className={`rounded-xl border border-border/60 bg-card overflow-hidden ${groupIdx > 0 ? "mt-4" : ""}`}>
-                <button
-                  type="button"
-                  onClick={() => toggleCategoryCollapsed(group.key)}
-                  className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60 group/hdr transition-colors"
-                >
-                  <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate">
-                    {group.label}
-                  </h3>
-                  <span className="text-[10.5px] tabular-nums text-muted-foreground/60 font-medium">
-                    {group.spaces.length}
-                  </span>
-                  <span className="flex-1" />
-                  <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
-                </button>
+                {renaming?.id === group.key ? (
+                  <div className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60">
+                    <input
+                      autoFocus
+                      value={renaming.name}
+                      onChange={e => setRenaming({ ...renaming, name: e.target.value })}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") { e.preventDefault(); confirmRename(); }
+                        if (e.key === "Escape") cancelRename();
+                      }}
+                      className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-[12px] outline-none focus:border-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={confirmRename}
+                      className="p-1 rounded hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
+                      title="Salvar"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelRename}
+                      className="p-1 rounded hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
+                      title="Cancelar"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60 group/hdr transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => toggleCategoryCollapsed(group.key)}
+                      className="flex-1 flex items-center gap-2 min-w-0 text-left"
+                    >
+                      <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate">
+                        {group.label}
+                      </h3>
+                      <span className="text-[10.5px] tabular-nums text-muted-foreground/60 font-medium">
+                        {group.spaces.length}
+                      </span>
+                      <span className="flex-1" />
+                      <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
+                    </button>
+                    {group.key !== NO_CATEGORY_KEY && (
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => startRename(group.key, group.label)}
+                          className="p-1 rounded opacity-0 group-hover/hdr:opacity-100 hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground transition-opacity"
+                          title="Editar categoria"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingId(group.key)}
+                          className="p-1 rounded opacity-0 group-hover/hdr:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-opacity"
+                          title="Excluir categoria"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {!isCollapsed && (
                   <div className="divide-y divide-border/60">
