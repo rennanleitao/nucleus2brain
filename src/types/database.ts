@@ -16,17 +16,18 @@ export interface Database {
           id: string; user_id: string; space_id: string | null; title: string; description: string | null;
           status: "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
           priority: "low" | "medium" | "high";
+          execution_complexity: "easy" | "medium" | "hard";
           due_date: string | null; created_at: string; completed_at: string | null;
         };
         Insert: {
           id?: string; user_id?: string; space_id?: string | null; title: string; description?: string | null;
           status?: "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
-          priority?: "low" | "medium" | "high"; due_date?: string | null;
+          priority?: "low" | "medium" | "high"; execution_complexity?: "easy" | "medium" | "hard"; due_date?: string | null;
         };
         Update: {
           title?: string; description?: string | null; space_id?: string | null;
           status?: "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
-          priority?: "low" | "medium" | "high"; due_date?: string | null; completed_at?: string | null;
+          priority?: "low" | "medium" | "high"; execution_complexity?: "easy" | "medium" | "hard"; due_date?: string | null; completed_at?: string | null;
         };
       };
       notes: {

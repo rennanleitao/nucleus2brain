@@ -15,6 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { KanbanView } from "@/components/KanbanView";
 import { DayPlanner } from "@/components/DayPlanner";
+import {
+  TASK_EXECUTION_COMPLEXITIES,
+  getTaskExecutionComplexityOrder,
+  taskExecutionComplexityDurationReference,
+  taskExecutionComplexityLabels,
+} from "@/lib/taskComplexity";
 
 const dateGroupFilters = [
   { value: "all", label: "All" },
@@ -35,6 +41,8 @@ export default function Tasks() {
   const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [filter, setFilter] = useState("planner");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [complexityFilter, setComplexityFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("date");
   
   const [groupBy, setGroupBy] = useState("space");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
@@ -156,13 +164,33 @@ export default function Tasks() {
     if (priorityFilter !== "all") {
       result = result.filter(t => t.priority === priorityFilter);
     }
+    if (complexityFilter !== "all") {
+      result = result.filter(t => (t.execution_complexity || "medium") === complexityFilter);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(t => t.title.toLowerCase().includes(q));
     }
 
-    return result;
-  }, [tasks, filter, priorityFilter, search]);
+    const sorted = [...result];
+    sorted.sort((a: any, b: any) => {
+      if (sortBy === "complexity") {
+        const byComplexity = getTaskExecutionComplexityOrder(a.execution_complexity) - getTaskExecutionComplexityOrder(b.execution_complexity);
+        if (byComplexity !== 0) return byComplexity;
+      } else if (sortBy === "priority") {
+        const priorityOrder: Record<string, number> = { high: 1, medium: 2, low: 3 };
+        const byPriority = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
+        if (byPriority !== 0) return byPriority;
+      }
+
+      if (!a.due_date && !b.due_date) return a.created_at.localeCompare(b.created_at) * -1;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return a.due_date.localeCompare(b.due_date);
+    });
+
+    return sorted;
+  }, [tasks, filter, priorityFilter, complexityFilter, search, sortBy]);
 
   const grouped = useMemo(() => {
     const sortByDate = (tasks: any[]) => tasks.sort((a: any, b: any) => {
@@ -208,6 +236,18 @@ export default function Tasks() {
       if (noDate.length) dateGroups.push({ key: "nodate", label: "Sem data", tasks: noDate });
 
       return { type: "date" as const, dateGroups };
+    }
+
+    if (groupBy === "complexity") {
+      return {
+        type: "complexity" as const,
+        complexityGroups: TASK_EXECUTION_COMPLEXITIES.map(level => ({
+          key: level,
+          label: taskExecutionComplexityLabels[level],
+          description: taskExecutionComplexityDurationReference[level],
+          tasks: sortByDate(filtered.filter(t => (t.execution_complexity || "medium") === level)),
+        })),
+      };
     }
 
     if (groupBy !== "space") return null;
@@ -468,12 +508,30 @@ export default function Tasks() {
                   <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={complexityFilter} onValueChange={setComplexityFilter}>
+                <SelectTrigger className="w-[136px] sm:w-[170px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Complexidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas complexidades</SelectItem>
+                  {TASK_EXECUTION_COMPLEXITIES.map(level => (
+                    <SelectItem key={level} value={level}>{taskExecutionComplexityLabels[level]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[120px] sm:w-[150px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Ordenar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date">Ordenar: data</SelectItem>
+                  <SelectItem value="priority">Ordenar: prioridade</SelectItem>
+                  <SelectItem value="complexity">Ordenar: complexidade</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={groupBy} onValueChange={setGroupBy}>
                 <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No grouping</SelectItem>
                   <SelectItem value="space">By Space</SelectItem>
                   <SelectItem value="date">By Date</SelectItem>
+                  <SelectItem value="complexity">Por Complexidade</SelectItem>
                 </SelectContent>
               </Select>
             </>
@@ -554,7 +612,7 @@ export default function Tasks() {
         />
       ) : viewMode === "kanban" ? (
         <KanbanView
-          tasks={tasks}
+          tasks={filtered}
           subtasksMap={subtasksMap}
           remindersMap={remindersMap}
           onToggle={toggleTask}
@@ -603,6 +661,35 @@ export default function Tasks() {
               <p className="text-small text-muted-foreground">No tasks match filters</p>
             </div>
           )}
+        </div>
+      ) : grouped && grouped.type === "complexity" ? (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-h2">Por Complexidade</h2>
+            <p className="text-micro text-muted-foreground">Agrupado pela dificuldade de iniciar a tarefa.</p>
+          </div>
+          {grouped.complexityGroups.map(g => {
+            const isOpen = collapsedGroups[g.key] !== true;
+            return (
+              <section key={g.key}>
+                <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-2 mb-2 text-left">
+                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                  <h2 className="text-h2">{g.label}</h2>
+                  <span className="text-micro text-muted-foreground">{g.description}</span>
+                  <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
+                </button>
+                {isOpen && (
+                  g.tasks.length > 0 ? (
+                    <div className="rounded-xl border border-border bg-card p-3">
+                      {renderTaskList(g.tasks)}
+                    </div>
+                  ) : (
+                    <p className="text-small text-muted-foreground border border-dashed border-border rounded-lg p-4">Nenhuma tarefa neste nível.</p>
+                  )
+                )}
+              </section>
+            );
+          })}
         </div>
       ) : grouped && grouped.type === "space" ? (
         <div className="space-y-6">

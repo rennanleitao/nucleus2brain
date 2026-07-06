@@ -1,5 +1,5 @@
 import { forwardRef, useState, useEffect } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy, Repeat } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy, Repeat, Gauge } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { fetchTaskMaterials } from "@/lib/api";
 import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
+import {
+  getTaskExecutionComplexityDurationReference,
+  getTaskExecutionComplexityLabel,
+  TaskExecutionComplexity,
+} from "@/lib/taskComplexity";
 
 type TaskStatus = "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
 type TaskPriority = "low" | "medium" | "high";
@@ -32,6 +37,7 @@ interface TaskCardProps {
     notes?: { title: string } | null;
     note_id?: string | null;
     tag?: string | null;
+    execution_complexity?: TaskExecutionComplexity | null;
     estimated_minutes?: number | null;
     recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
   };
@@ -360,6 +366,15 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
               <span className="text-micro text-muted-foreground flex items-center gap-0.5">
                 <Timer className="h-2.5 w-2.5" />
                 {task.estimated_minutes}m est.
+              </span>
+            )}
+            {!compact && (
+              <span
+                className="text-micro text-muted-foreground flex items-center gap-0.5"
+                title={`Complexidade de Execução: ${getTaskExecutionComplexityLabel(task.execution_complexity)} (${getTaskExecutionComplexityDurationReference(task.execution_complexity)})`}
+              >
+                <Gauge className="h-2.5 w-2.5" />
+                {getTaskExecutionComplexityLabel(task.execution_complexity)}
               </span>
             )}
           </div>

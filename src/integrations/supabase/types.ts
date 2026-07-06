@@ -1159,6 +1159,7 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           due_date: string | null
+          execution_complexity: Database["public"]["Enums"]["task_execution_complexity"]
           estimated_minutes: number | null
           id: string
           note_id: string | null
@@ -1180,6 +1181,7 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
+          execution_complexity?: Database["public"]["Enums"]["task_execution_complexity"]
           estimated_minutes?: number | null
           id?: string
           note_id?: string | null
@@ -1201,6 +1203,7 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
+          execution_complexity?: Database["public"]["Enums"]["task_execution_complexity"]
           estimated_minutes?: number | null
           id?: string
           note_id?: string | null
@@ -1390,6 +1393,7 @@ export type Database = {
     }
     Enums: {
       space_role: "owner" | "editor" | "viewer"
+      task_execution_complexity: "easy" | "medium" | "hard"
       task_priority: "low" | "medium" | "high"
       task_status:
         | "todo"
@@ -1525,6 +1529,7 @@ export const Constants = {
   public: {
     Enums: {
       space_role: ["owner", "editor", "viewer"],
+      task_execution_complexity: ["easy", "medium", "hard"],
       task_priority: ["low", "medium", "high"],
       task_status: ["todo", "in_progress", "waiting", "completed", "cancelled"],
     },

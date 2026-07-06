@@ -1,5 +1,6 @@
 export type TaskStatus = "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
 export type TaskPriority = "low" | "medium" | "high";
+export type TaskExecutionComplexity = "easy" | "medium" | "hard";
 export type AIProvider = "openai" | "claude" | "lovable" | "mistral";
 
 export interface Space {
@@ -19,6 +20,7 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
+  executionComplexity: TaskExecutionComplexity;
   dueDate?: string;
   createdAt: string;
   completedAt?: string;
