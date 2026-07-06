@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, Pause, Play, Send, Square, User, Volume2, VolumeX } from "lucide-react";
+import { Bot, Mic, MicOff, Pause, Play, Send, Square, User, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchTasks, fetchSpaces, createTask } from "@/lib/api";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrtToday } from "@/lib/timezone";
 import { getFunctionAuthHeaders } from "@/lib/functionAuth";
+import { useHelenaSpeechInput } from "@/hooks/useHelenaSpeechInput";
 import { useHelenaSpeech } from "@/hooks/useHelenaSpeech";
 
 interface Message {
@@ -26,6 +27,7 @@ export default function Assistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const speechInput = useHelenaSpeechInput();
   const speech = useHelenaSpeech();
 
   useEffect(() => {
@@ -36,11 +38,15 @@ export default function Assistant() {
     if (speech.error) toast.error(speech.error);
   }, [speech.error]);
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  useEffect(() => {
+    if (speechInput.error) toast.error(speechInput.error);
+  }, [speechInput.error]);
 
-    const userMsg: Message = { id: Date.now().toString(), role: "user", content: input };
+  const sendMessageText = async (text: string, options: { voiceTurn?: boolean } = {}) => {
+    const trimmed = text.trim();
+    if (!trimmed || isLoading) return;
+
+    const userMsg: Message = { id: Date.now().toString(), role: "user", content: trimmed };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
@@ -174,7 +180,7 @@ export default function Assistant() {
         } catch {}
       }
 
-      if (speech.autoSpeak && assistantContent.trim()) {
+      if ((speech.autoSpeak || options.voiceTurn) && assistantContent.trim()) {
         setSpeakingMessageId(assistantMessageId);
         speech.speak(assistantContent, () => setSpeakingMessageId(null));
       }
@@ -190,6 +196,29 @@ export default function Assistant() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendMessageText(input);
+  };
+
+  const handleVoiceInput = async () => {
+    if (isLoading) return;
+    if (speechInput.isListening) {
+      const spokenText = speechInput.stop();
+      if (!spokenText.trim()) {
+        toast.error("Não ouvi nada claro. Tente falar novamente.");
+        return;
+      }
+      await sendMessageText(spokenText, { voiceTurn: true });
+      speechInput.resetTranscript();
+      return;
+    }
+
+    if (speech.isSpeaking) handleStopSpeech();
+    const started = speechInput.start();
+    if (started) toast.info("Helena está ouvindo.");
   };
 
   const handleSpeakMessage = (msg: Message) => {
@@ -225,6 +254,9 @@ export default function Assistant() {
         </div>
         {!speech.isSupported && (
           <p className="text-micro text-muted-foreground mt-2">Este navegador não suporta reprodução de voz por Web Speech API.</p>
+        )}
+        {!speechInput.isSupported && (
+          <p className="text-micro text-muted-foreground mt-1">Este navegador não suporta entrada de voz por Web Speech API.</p>
         )}
       </div>
 
@@ -312,19 +344,40 @@ export default function Assistant() {
       </div>
 
       <form onSubmit={sendMessage} className="p-4 border-t border-border">
-        <div className="flex gap-2 max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-2">
+          {speechInput.isListening && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-small text-foreground">
+              <span className="font-medium text-primary">Ouvindo:</span>{" "}
+              {speechInput.transcript || <span className="text-muted-foreground">fale agora...</span>}
+            </div>
+          )}
+          <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Create a task, ask for priorities, plan your day..."
             className="flex-1 bg-card border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/60"
-            disabled={isLoading}
+            disabled={isLoading || speechInput.isListening}
           />
+          <button
+            type="button"
+            onClick={handleVoiceInput}
+            disabled={isLoading || !speechInput.isSupported}
+            className={`rounded-lg px-4 py-2.5 transition-colors disabled:opacity-40 ${
+              speechInput.isListening
+                ? "bg-destructive text-destructive-foreground"
+                : "bg-card border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+            title={speechInput.isListening ? "Parar e enviar" : "Falar com Helena"}
+          >
+            {speechInput.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </button>
           <button type="submit" disabled={!input.trim() || isLoading}
             className="gradient-primary text-primary-foreground rounded-lg px-4 py-2.5 disabled:opacity-40 transition-opacity">
             <Send className="h-4 w-4" />
           </button>
+          </div>
         </div>
       </form>
     </div>
