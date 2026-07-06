@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
+import { SpaceCategoryQuickEdit } from "@/components/SpaceCategoryQuickEdit";
 import { ChevronRight } from "lucide-react";
 
 interface SpaceCardProps {
@@ -16,9 +17,10 @@ interface SpaceCardProps {
   onClick?: () => void;
   variant?: "card" | "list";
   hideCategory?: boolean;
+  onCategoryChanged?: () => void;
 }
 
-export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card", hideCategory }, ref) => {
+export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card", hideCategory, onCategoryChanged }, ref) => {
   const navigate = useNavigate();
   const taskCount = space.tasks?.[0]?.count ?? 0;
   const noteCount = space.notes?.[0]?.count ?? 0;
@@ -31,18 +33,15 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
 
   if (variant === "list") {
     return (
-      <button
-        ref={ref}
+      <div
+        className="flex items-center gap-3 w-full px-4 py-3.5 bg-transparent border-b border-border/60 hover:bg-muted/40 transition-colors text-left animate-fade-in touch-manipulation group cursor-pointer"
         onClick={handleClick}
-        className="flex items-center gap-3 w-full px-4 py-3.5 bg-transparent border-b border-border/60 hover:bg-muted/40 transition-colors text-left animate-fade-in touch-manipulation group"
       >
         <SpaceIcon iconKey={space.icon} className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <h3 className="text-[14px] font-semibold leading-tight tracking-[-0.005em] truncate text-foreground">{space.name}</h3>
-          {category && !hideCategory && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border/60 flex-shrink-0">
-              {category.name}
-            </span>
+          {!hideCategory && (
+            <SpaceCategoryQuickEdit spaceId={space.id} category={category} onChanged={onCategoryChanged} />
           )}
         </div>
         <div className="flex items-center gap-4 text-[11px] text-muted-foreground tabular-nums flex-shrink-0">
@@ -50,9 +49,10 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
           <span>{noteCount} notes</span>
         </div>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0 group-hover:text-muted-foreground transition-colors" />
-      </button>
+      </div>
     );
   }
+
 
 
   return (
