@@ -47,7 +47,7 @@ export default function Tasks() {
   const [completionTask, setCompletionTask] = useState<any | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (key: string) => setCollapsedGroups(prev => ({ ...prev, [key]: !prev[key] }));
-  const [allCompact, setAllCompact] = useState(false);
+  const [allCompact, setAllCompact] = useState(true);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   // Card is compact when global compact mode is on AND user hasn't individually expanded it
   const cardCompact = (id: string) => allCompact && !expandedCards[id];
