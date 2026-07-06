@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { createSpace } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
+import { SpaceCategoryPicker } from "@/components/SpaceCategoryPicker";
 import { toast } from "sonner";
 
 interface CreateSpaceDialogProps {
@@ -16,15 +17,21 @@ export function CreateSpaceDialog({ onCreated }: CreateSpaceDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [icon, setIcon] = useState("folder");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setLoading(true);
     try {
-      await createSpace({ name: name.trim(), description: description.trim() || null, icon });
+      await createSpace({
+        name: name.trim(),
+        description: description.trim() || null,
+        icon,
+        category_id: categoryId,
+      });
       toast.success("Space created!");
-      setName(""); setDescription(""); setIcon("folder");
+      setName(""); setDescription(""); setIcon("folder"); setCategoryId(null);
       setOpen(false);
       onCreated();
     } catch (err: any) {
@@ -52,6 +59,10 @@ export function CreateSpaceDialog({ onCreated }: CreateSpaceDialogProps) {
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
           <textarea placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
+            <SpaceCategoryPicker value={categoryId} onChange={(id) => setCategoryId(id)} />
+          </div>
           <Button type="submit" disabled={loading} className="w-full gradient-primary text-primary-foreground border-0">
             {loading ? "Creating..." : "Create Space"}
           </Button>
