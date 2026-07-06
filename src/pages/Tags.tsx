@@ -252,15 +252,23 @@ export default function Tags() {
                           <p className="text-xs text-muted-foreground">Nenhum trecho tageado.</p>
                         </div>
                       ) : selectedSnippets.map(s => (
-                        <div key={s.id} className="p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all">
+                        <div key={s.id} className="group/item p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all">
                           <div className="flex items-start justify-between gap-2">
                             <blockquote className="border-l-2 border-foreground/20 pl-3 text-small italic text-foreground flex-1 min-w-0">
                               "{s.snippet_text}"
                             </blockquote>
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
-                              onClick={() => handleDeleteSnippet(s.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <TagItemActions
+                                allTags={allTags}
+                                currentTag={selectedTag!}
+                                onMove={async (t) => { await setSnippetTag(s.id, t); await load(); toast.success(`Movido para #${t}`); }}
+                                onRemove={async () => { await setSnippetTag(s.id, null); await load(); toast.success("Tag removida"); }}
+                              />
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleDeleteSnippet(s.id)} title="Excluir trecho">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                           <div className="flex items-center gap-3 mt-2">
                             {s.notes?.title && (
