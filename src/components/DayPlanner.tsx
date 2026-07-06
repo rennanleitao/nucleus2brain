@@ -49,7 +49,7 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [view, setView] = useState<"list" | "kanban" | "timeline" | "space">("list");
+  const [view, setView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity">("list");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
