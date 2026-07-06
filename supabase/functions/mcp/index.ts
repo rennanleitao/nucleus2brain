@@ -2243,6 +2243,390 @@ const buildServer = (ctx: Ctx) => {
     },
   });
 
+  // ============ TIME TRACKING ============
+  s.tool("list_time_entries", {
+    description: "List time-tracking entries. Optionally filter by task_id.",
+    inputSchema: z.object({ task_id: z.string().uuid().optional(), limit: z.number().int().min(1).max(500).optional() }),
+    handler: async (input) => {
+      let q = db.from("task_time_entries").select("*, tasks(title, space_id)").order("started_at", { ascending: false }).limit(input.limit ?? 100);
+      if (input.task_id) q = q.eq("task_id", input.task_id);
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("list_running_time_entries", {
+    description: "List time entries that are currently running (no ended_at).",
+    inputSchema: z.object({}),
+    handler: async () => {
+      const { data, error } = await db.from("task_time_entries").select("*, tasks(title, space_id)").is("ended_at", null);
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("start_time_entry", {
+    description: "Start a time tracker for a task. If already running, returns the existing entry.",
+    inputSchema: z.object({ task_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data: running } = await db.from("task_time_entries").select("*").eq("task_id", input.task_id).eq("user_id", ctx.userId).is("ended_at", null);
+      if (running && running.length > 0) return ok(running[0]);
+      const { data, error } = await db.from("task_time_entries").insert({ task_id: input.task_id, user_id: ctx.userId, started_at: new Date().toISOString() }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("stop_time_entry", {
+    description: "Stop a running time entry and record its duration.",
+    inputSchema: z.object({ entry_id: z.string().uuid() }),
+    handler: async (input) => {
+      const now = new Date();
+      const { data: entry } = await db.from("task_time_entries").select("started_at").eq("id", input.entry_id).single();
+      const duration = entry ? Math.round((now.getTime() - new Date(entry.started_at as string).getTime()) / 1000) : 0;
+      const { data, error } = await db.from("task_time_entries").update({ ended_at: now.toISOString(), duration_seconds: duration }).eq("id", input.entry_id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  // ============ SPACE CATEGORIES ============
+  s.tool("list_space_categories", {
+    description: "List all space categories owned by the user.",
+    inputSchema: z.object({}),
+    handler: async () => {
+      const { data, error } = await db.from("space_categories").select("*").order("name", { ascending: true });
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("create_space_category", {
+    description: "Create a new space category. Idempotent by name.",
+    inputSchema: z.object({ name: z.string().min(1).max(200) }),
+    handler: async (input) => {
+      const name = input.name.trim();
+      const { data, error } = await db.from("space_categories").insert({ user_id: ctx.userId, name }).select().single();
+      if (error) {
+        if ((error as any).code === "23505") {
+          const { data: existing, error: e2 } = await db.from("space_categories").select("*").eq("user_id", ctx.userId).eq("name", name).single();
+          if (e2) return fail(e2.message);
+          return ok(existing);
+        }
+        return fail(error.message);
+      }
+      return ok(data);
+    },
+  });
+  s.tool("update_space_category", {
+    description: "Rename a space category.",
+    inputSchema: z.object({ id: z.string().uuid(), name: z.string().min(1).max(200) }),
+    handler: async (input) => {
+      const { data, error } = await db.from("space_categories").update({ name: input.name.trim() }).eq("id", input.id).eq("user_id", ctx.userId).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("delete_space_category", {
+    description: "Delete a space category. Spaces referencing it will have category cleared.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("space_categories").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+  s.tool("set_space_category", {
+    description: "Assign (or clear with null) a category on a space.",
+    inputSchema: z.object({ space_id: z.string().uuid(), category_id: z.string().uuid().nullable() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("spaces").update({ category_id: input.category_id }).eq("id", input.space_id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  // ============ SPACE SHARING ============
+  s.tool("list_space_members", {
+    description: "List members of a space (owners, editors, viewers).",
+    inputSchema: z.object({ space_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("space_members").select("*").eq("space_id", input.space_id).order("created_at", { ascending: true });
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("list_space_invites", {
+    description: "List pending (not-accepted) invites for a space.",
+    inputSchema: z.object({ space_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("space_invites").select("*").eq("space_id", input.space_id).eq("accepted", false).order("created_at", { ascending: false });
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("invite_to_space", {
+    description: "Create an invitation to a space. Email is optional (blank invite = shareable token).",
+    inputSchema: z.object({
+      space_id: z.string().uuid(),
+      email: z.string().email().nullable().optional(),
+      role: z.enum(["owner", "editor", "viewer"]),
+    }),
+    handler: async (input) => {
+      const { data, error } = await db.from("space_invites").insert({
+        space_id: input.space_id,
+        invited_by: ctx.userId,
+        invited_email: input.email ?? null,
+        role: input.role,
+      }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("remove_space_member", {
+    description: "Remove a member from a space.",
+    inputSchema: z.object({ member_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("space_members").delete().eq("id", input.member_id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.member_id });
+    },
+  });
+  s.tool("update_member_role", {
+    description: "Change a space member's role.",
+    inputSchema: z.object({ member_id: z.string().uuid(), role: z.enum(["owner", "editor", "viewer"]) }),
+    handler: async (input) => {
+      const { data, error } = await db.from("space_members").update({ role: input.role }).eq("id", input.member_id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("delete_space_invite", {
+    description: "Delete/revoke a pending space invite.",
+    inputSchema: z.object({ invite_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("space_invites").delete().eq("id", input.invite_id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.invite_id });
+    },
+  });
+
+  // ============ REMINDERS ============
+  s.tool("list_reminders", {
+    description: "List pending (not-sent) task reminders ordered by scheduled time.",
+    inputSchema: z.object({ limit: z.number().int().min(1).max(500).optional() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("reminders").select("*").eq("sent", false).order("reminder_time", { ascending: true }).limit(input.limit ?? 100);
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  // ============ TAGGED SNIPPETS ============
+  s.tool("create_tagged_snippet", {
+    description: "Save a tagged snippet extracted from a note.",
+    inputSchema: z.object({ note_id: z.string().uuid(), tag: z.string().min(1), snippet_text: z.string().min(1) }),
+    handler: async (input) => {
+      const { data, error } = await db.from("tagged_snippets").insert({ user_id: ctx.userId, note_id: input.note_id, tag: input.tag, snippet_text: input.snippet_text }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("list_tagged_snippets", {
+    description: "List tagged snippets, optionally filtered by tag or note.",
+    inputSchema: z.object({ tag: z.string().optional(), note_id: z.string().uuid().optional(), limit: z.number().int().min(1).max(500).optional() }),
+    handler: async (input) => {
+      let q = db.from("tagged_snippets").select("*, notes(title)").order("created_at", { ascending: false }).limit(input.limit ?? 100);
+      if (input.tag) q = q.eq("tag", input.tag);
+      if (input.note_id) q = q.eq("note_id", input.note_id);
+      const { data, error } = await q;
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("delete_tagged_snippet", {
+    description: "Delete a tagged snippet.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("tagged_snippets").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
+  // ============ TASK ↔ TASK LINKS ============
+  s.tool("link_tasks", {
+    description: "Create a relationship between two tasks (task_id -> linked_task_id).",
+    inputSchema: z.object({ task_id: z.string().uuid(), linked_task_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("task_links").insert({ task_id: input.task_id, linked_task_id: input.linked_task_id, user_id: ctx.userId }).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("list_task_task_links", {
+    description: "List task-to-task relationships originating from a task.",
+    inputSchema: z.object({ task_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("task_links").select("*, linked_task:linked_task_id(id, title, status, priority, space_id)").eq("task_id", input.task_id);
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("unlink_tasks", {
+    description: "Remove a task-to-task relationship by its id.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("task_links").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+
+  // ============ DELETED / RESTORE / DUPLICATE / RECURRENCE ============
+  s.tool("list_deleted_tasks", {
+    description: "List tasks soft-deleted within the last 24h (restorable window).",
+    inputSchema: z.object({ limit: z.number().int().min(1).max(500).optional() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("tasks").select("*, spaces(name)").not("deleted_at", "is", null).order("deleted_at", { ascending: false }).limit(input.limit ?? 100);
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("restore_task", {
+    description: "Restore a soft-deleted task (clears deleted_at).",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("tasks").update({ deleted_at: null }).eq("id", input.id).select().single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("permanently_delete_task", {
+    description: "Permanently delete a task, bypassing the 24h grace period.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("tasks").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+  s.tool("duplicate_task", {
+    description: "Duplicate a task, preserving fields but resetting status/completion.",
+    inputSchema: z.object({ task_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data: original, error: fe } = await db.from("tasks").select("*").eq("id", input.task_id).single();
+      if (fe || !original) return fail(fe?.message ?? "Task not found", "not_found");
+      const o = original as any;
+      const { id: _id, created_at: _c, completed_at: _ca, completion_note: _cn, day_order: _do, ...fields } = o;
+      const { data, error } = await db.from("tasks").insert({ ...fields, user_id: ctx.userId, status: "todo", completed_at: null, completion_note: null, day_order: null }).select("*, spaces(name)").single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("generate_next_recurrence", {
+    description: "Generate the next occurrence of a recurring task (based on its recurrence rule).",
+    inputSchema: z.object({ task_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data: t, error: fe } = await db.from("tasks").select("*").eq("id", input.task_id).single();
+      if (fe || !t) return fail(fe?.message ?? "Task not found", "not_found");
+      const task = t as any;
+      if (!task.recurrence || task.recurrence === "none" || !task.due_date) {
+        return ok({ generated: false, reason: "not_recurrent_or_no_due_date" });
+      }
+      const base = new Date(`${task.due_date}T12:00:00Z`);
+      const next = new Date(base);
+      switch (task.recurrence) {
+        case "daily": next.setUTCDate(next.getUTCDate() + 1); break;
+        case "weekly": next.setUTCDate(next.getUTCDate() + 7); break;
+        case "biweekly": next.setUTCDate(next.getUTCDate() + 14); break;
+        case "monthly": next.setUTCMonth(next.getUTCMonth() + 1); break;
+        case "yearly": next.setUTCFullYear(next.getUTCFullYear() + 1); break;
+        default: return ok({ generated: false, reason: "unknown_recurrence" });
+      }
+      const nextDate = next.toISOString().slice(0, 10);
+      const { id: _id, created_at: _c, completed_at: _ca, completion_note: _cn, day_order: _do, ...fields } = task;
+      const { data, error } = await db.from("tasks").insert({ ...fields, user_id: ctx.userId, status: "todo", completed_at: null, completion_note: null, day_order: null, due_date: nextDate }).select("*, spaces(name)").single();
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+
+  // ============ ATTACHMENTS ============
+  s.tool("list_space_attachments", {
+    description: "List file attachments uploaded to a space.",
+    inputSchema: z.object({ space_id: z.string().uuid() }),
+    handler: async (input) => {
+      const { data, error } = await db.from("attachments").select("*").eq("space_id", input.space_id).order("created_at", { ascending: false });
+      if (error) return fail(error.message);
+      return ok(data);
+    },
+  });
+  s.tool("delete_space_attachment", {
+    description: "Delete an attachment record (does not remove the underlying storage object).",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    handler: async (input) => {
+      const { error } = await db.from("attachments").delete().eq("id", input.id);
+      if (error) return fail(error.message);
+      return ok({ deleted: true, id: input.id });
+    },
+  });
+  s.tool("get_attachment_url", {
+    description: "Get the public URL for an attachment given its storage file_path.",
+    inputSchema: z.object({ file_path: z.string().min(1) }),
+    handler: async (input) => {
+      const { data } = db.storage.from("attachments").getPublicUrl(input.file_path);
+      return ok({ url: data.publicUrl, file_path: input.file_path });
+    },
+  });
+
+  // ============ TAG MANAGEMENT ============
+  s.tool("list_all_tags", {
+    description: "List all distinct tags aggregated from notes, snippets and tasks.",
+    inputSchema: z.object({}),
+    handler: async () => {
+      const [notes, snippets, tasks] = await Promise.all([
+        db.from("notes").select("tags"),
+        db.from("tagged_snippets").select("tag"),
+        db.from("tasks").select("tag").is("deleted_at", null),
+      ]);
+      const set = new Set<string>();
+      (notes.data ?? []).forEach((n: any) => (n.tags || []).forEach((t: string) => t && set.add(t)));
+      (snippets.data ?? []).forEach((s: any) => s.tag && set.add(s.tag));
+      (tasks.data ?? []).forEach((t: any) => t.tag && set.add(t.tag));
+      return ok([...set].sort());
+    },
+  });
+  s.tool("rename_tag", {
+    description: "Rename a tag across notes, tagged snippets and tasks.",
+    inputSchema: z.object({ old_tag: z.string().min(1), new_tag: z.string().min(1) }),
+    handler: async (input) => {
+      const { data: notesWithTag } = await db.from("notes").select("id, tags").contains("tags", [input.old_tag]);
+      if (notesWithTag?.length) {
+        for (const n of notesWithTag as any[]) {
+          const updated = Array.from(new Set((n.tags || []).map((t: string) => t === input.old_tag ? input.new_tag : t)));
+          await db.from("notes").update({ tags: updated }).eq("id", n.id);
+        }
+      }
+      await db.from("tagged_snippets").update({ tag: input.new_tag }).eq("tag", input.old_tag).eq("user_id", ctx.userId);
+      await db.from("tasks").update({ tag: input.new_tag }).eq("tag", input.old_tag).eq("user_id", ctx.userId);
+      return ok({ renamed: true, old_tag: input.old_tag, new_tag: input.new_tag });
+    },
+  });
+  s.tool("delete_tag", {
+    description: "Remove a tag from all notes, snippets and tasks (content preserved).",
+    inputSchema: z.object({ tag: z.string().min(1) }),
+    handler: async (input) => {
+      const { data: notesWithTag } = await db.from("notes").select("id, tags").contains("tags", [input.tag]);
+      if (notesWithTag?.length) {
+        for (const n of notesWithTag as any[]) {
+          const updated = (n.tags || []).filter((t: string) => t !== input.tag);
+          await db.from("notes").update({ tags: updated }).eq("id", n.id);
+        }
+      }
+      await db.from("tagged_snippets").update({ tag: null }).eq("tag", input.tag).eq("user_id", ctx.userId);
+      await db.from("tasks").update({ tag: null }).eq("tag", input.tag).eq("user_id", ctx.userId);
+      return ok({ deleted: true, tag: input.tag });
+    },
+  });
+
   return s;
 };
 
