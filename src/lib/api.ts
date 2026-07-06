@@ -289,7 +289,7 @@ export async function deleteSubtask(id: string) {
 export async function fetchSpaces() {
   const { data, error } = await supabase
     .from("spaces")
-    .select("*, tasks(count), notes(count)")
+    .select("*, tasks(count), notes(count), space_categories(id,name)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
@@ -315,6 +315,47 @@ export async function updateSpace(id: string, updates: Partial<Omit<SpaceInsert,
 
 export async function deleteSpace(id: string) {
   const { error } = await supabase.from("spaces").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---- SPACE CATEGORIES ----
+export async function fetchSpaceCategories() {
+  const { data, error } = await supabase
+    .from("space_categories")
+    .select("*")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function createSpaceCategory(name: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Nome vazio");
+  const { data, error } = await supabase
+    .from("space_categories")
+    .insert({ user_id: user.id, name: trimmed })
+    .select()
+    .single();
+  if (error) {
+    if ((error as any).code === "23505") {
+      const { data: existing, error: e2 } = await supabase
+        .from("space_categories")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("name", trimmed)
+        .single();
+      if (e2) throw e2;
+      return existing;
+    }
+    throw error;
+  }
+  return data;
+}
+
+export async function deleteSpaceCategory(id: string) {
+  const { error } = await supabase.from("space_categories").delete().eq("id", id);
   if (error) throw error;
 }
 
