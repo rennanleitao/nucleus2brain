@@ -927,77 +927,53 @@ export default function Notes() {
                 </div>
               </div>
 
-              <div className="border-b border-border bg-muted/20 px-3 py-2 sm:px-4">
-                <div className="flex flex-col gap-2 rounded-lg border bg-background p-3">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-2">
-                      <Mic className={`mt-0.5 h-4 w-4 ${recordingAudio ? "text-primary" : "text-muted-foreground"}`} />
-                      <div>
-                        <p className="text-sm font-medium">
-                          {recordingAudio ? `Capturando áudio ${formatDuration(recordingSeconds)}` : "Captura de áudio"}
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Grave a conversa e continue escrevendo na nota ao mesmo tempo.
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={recordingAudio ? "destructive" : "outline"}
-                      onClick={recordingAudio ? stopAudioCapture : startAudioCapture}
-                    >
-                      {recordingAudio ? <Square className="mr-1.5 h-4 w-4" /> : <Play className="mr-1.5 h-4 w-4" />}
-                      {recordingAudio ? "Parar" : "Gravar áudio"}
-                    </Button>
-                  </div>
-
-                  {audioClips.length > 0 && (
-                    <div className="space-y-2">
-                      {audioClips.map((clip, index) => (
-                        <div key={clip.id} className="flex flex-col gap-2 rounded-md border bg-muted/20 p-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-xs font-medium">{clip.name}</p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {formatDuration(clip.durationSeconds)} · {new Date(clip.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Button variant="ghost" size="sm" className="h-8 px-2" asChild title={`Baixar ${clip.name}`}>
-                                <a href={clip.url} download={`${editTitle || "nota"}-audio-${index + 1}.${getAudioExtension(clip.mimeType)}`}>
-                                  <Download className="h-4 w-4" />
-                                </a>
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8"
-                                onClick={() => transcribeAudioClip(clip)}
-                                disabled={transcribingClipId === clip.id}
-                              >
-                                <Brain className="mr-1.5 h-4 w-4" />
-                                {transcribingClipId === clip.id ? "Inserindo..." : "Transcrever e inserir"}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 px-2 text-muted-foreground hover:text-destructive"
-                                onClick={() => deleteAudioClip(clip.id)}
-                                title={`Excluir ${clip.name}`}
-                                aria-label={`Excluir ${clip.name}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+              {audioClips.length > 0 && (
+                <div className="border-b border-border bg-muted/20 px-3 py-2 sm:px-4">
+                  <div className="flex flex-col gap-2">
+                    {audioClips.map((clip, index) => (
+                      <div key={clip.id} className="flex flex-col gap-2 rounded-md border bg-background p-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium">{clip.name}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {formatDuration(clip.durationSeconds)} · {new Date(clip.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </p>
                           </div>
-                          <audio src={clip.url} controls className="h-8 w-full max-w-full" />
-                          {clip.transcript && <AudioTranscriptPreview text={clip.transcript} compact />}
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" asChild title={`Baixar ${clip.name}`}>
+                              <a href={clip.url} download={`${editTitle || "nota"}-audio-${index + 1}.${getAudioExtension(clip.mimeType)}`}>
+                                <Download className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[11px] px-2"
+                              onClick={() => transcribeAudioClip(clip)}
+                              disabled={transcribingClipId === clip.id}
+                            >
+                              <Brain className="mr-1 h-3.5 w-3.5" />
+                              {transcribingClipId === clip.id ? "Inserindo..." : "Transcrever"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => deleteAudioClip(clip.id)}
+                              title={`Excluir ${clip.name}`}
+                              aria-label={`Excluir ${clip.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <audio src={clip.url} controls className="h-7 w-full max-w-full" />
+                        {clip.transcript && <AudioTranscriptPreview text={clip.transcript} compact />}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex-1 overflow-hidden flex">
                 <div ref={editorScrollRef} className="flex-1 overflow-auto flex flex-col">
