@@ -690,6 +690,59 @@ export function DayPlanner({
         )
       )}
 
+      {/* DATE + COMPLEXITY VIEW */}
+      {view === "date-complexity" && (
+        dateComplexityGroups.length > 0 ? (
+          <div className="space-y-4">
+            {dateComplexityGroups.map((dg) => {
+              const isToday = dg.date === today;
+              const isOverdue = dg.date < today;
+              return (
+                <div
+                  key={dg.date}
+                  className={cn(
+                    "rounded-xl border overflow-hidden",
+                    isToday ? "border-primary/30 bg-primary/5" : isOverdue ? "border-destructive/30 bg-destructive/5" : "border-border bg-card",
+                  )}
+                >
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border">
+                    <CalendarDays className={cn("h-3.5 w-3.5", isToday ? "text-primary" : isOverdue ? "text-destructive" : "text-muted-foreground")} />
+                    <h3 className="text-sm font-semibold text-foreground truncate capitalize">{formatDateLabel(dg.date)}</h3>
+                    <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                      {dg.tasks.length}
+                    </span>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {dg.complexityGroups.map((cg) => (
+                      <div key={cg.level} className="rounded-lg border border-border/60 bg-background/60 overflow-hidden">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/60">
+                          <Gauge className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs font-semibold text-foreground">{cg.label}</span>
+                          <span className="text-micro text-muted-foreground">· {cg.reference}</span>
+                          <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                            {cg.tasks.length}
+                          </span>
+                        </div>
+                        <div className="p-2 space-y-2">
+                          {cg.tasks.map(t => renderTaskCardInSection(t))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-10 rounded-xl border border-dashed border-border">
+            <Gauge className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-small text-muted-foreground">Nenhuma task agendada</p>
+          </div>
+        )
+      )}
+
+
+
       <AISchedulePreviewDialog
         open={showAISchedule}
         onOpenChange={setShowAISchedule}
