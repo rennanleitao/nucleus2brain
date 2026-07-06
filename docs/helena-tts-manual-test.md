@@ -6,7 +6,9 @@ Validar entrada e saída de voz no chat principal da Helena sem alterar o fluxo 
 
 ## Configuração ElevenLabs
 
-Para usar a voz natural da Helena, configure os secrets da Edge Function:
+Para usar a voz natural da Helena sem acesso ao painel Supabase, abra Settings -> Voz e salve uma chave ElevenLabs. A chave fica em `user_api_keys` associada ao usuário autenticado.
+
+Como alternativa de infraestrutura, também é possível configurar secrets globais da Edge Function:
 
 ```bash
 supabase secrets set ELEVENLABS_API_KEY="..."

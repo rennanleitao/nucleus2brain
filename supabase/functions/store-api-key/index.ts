@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isConfigurableAIProvider, testAIProviderConnection } from "../_shared/ai-router.ts";
 
+type ConfigurableProvider = "openai" | "openrouter" | "google" | "anthropic" | "elevenlabs";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -26,7 +28,7 @@ serve(async (req) => {
     if (!user) throw new Error("Not authenticated");
 
     const { action = "store", provider, model, apiKey } = await req.json();
-    if (!provider || !isConfigurableAIProvider(provider)) throw new Error("Invalid provider");
+    if (!provider || !isConfigurableProvider(provider)) throw new Error("Invalid provider");
 
     // Store with service role (bypasses RLS)
     const supabase = createClient(supabaseUrl, serviceKey);
@@ -46,7 +48,6 @@ serve(async (req) => {
     }
 
     if (action === "test") {
-      if (!model || typeof model !== "string") throw new Error("Missing model");
       const keyToTest = typeof apiKey === "string" && apiKey.trim() ? apiKey.trim() : existing?.api_key;
       if (!keyToTest) {
         return new Response(JSON.stringify({ success: false, error: "API key não configurada." }), {
@@ -54,7 +55,9 @@ serve(async (req) => {
         });
       }
 
-      const response = await testAIProviderConnection(provider, model, keyToTest);
+      const response = provider === "elevenlabs"
+        ? await testElevenLabsConnection(keyToTest)
+        : await testAIConnection(provider, model, keyToTest);
       if (!response.ok) {
         await response.text();
         const error = response.status === 401 || response.status === 403
@@ -94,3 +97,21 @@ serve(async (req) => {
     });
   }
 });
+
+function isConfigurableProvider(value: string): value is ConfigurableProvider {
+  return value === "elevenlabs" || isConfigurableAIProvider(value);
+}
+
+function testAIConnection(provider: Exclude<ConfigurableProvider, "elevenlabs">, model: unknown, apiKey: string) {
+  if (!model || typeof model !== "string") throw new Error("Missing model");
+  return testAIProviderConnection(provider, model, apiKey);
+}
+
+function testElevenLabsConnection(apiKey: string) {
+  return fetch("https://api.elevenlabs.io/v1/user/subscription", {
+    method: "GET",
+    headers: {
+      "xi-api-key": apiKey,
+    },
+  });
+}

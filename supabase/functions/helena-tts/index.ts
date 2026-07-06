@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const MAX_TEXT_LENGTH = 4000;
+const DEFAULT_HELENA_VOICE_ID = "KHmfNHtEjHhLK9eER20w";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -17,7 +18,7 @@ serve(async (req) => {
       return json({ error: "Method not allowed" }, 405);
     }
 
-    await authenticate(req);
+    const { userId, serviceClient } = await authenticate(req);
 
     const { text } = await req.json();
     if (typeof text !== "string" || !text.trim()) {
@@ -25,8 +26,8 @@ serve(async (req) => {
     }
 
     const preparedText = text.trim().slice(0, MAX_TEXT_LENGTH);
-    const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
-    const voiceId = Deno.env.get("HELENA_ELEVENLABS_VOICE_ID");
+    const apiKey = await resolveElevenLabsApiKey(userId, serviceClient);
+    const voiceId = Deno.env.get("HELENA_ELEVENLABS_VOICE_ID") || DEFAULT_HELENA_VOICE_ID;
 
     if (!apiKey || !voiceId) {
       return json({ error: "ElevenLabs não está configurado para a Helena." }, 500);
@@ -78,6 +79,7 @@ async function authenticate(req: Request) {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const supabase = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -87,6 +89,29 @@ async function authenticate(req: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  return {
+    userId: user.id,
+    serviceClient: serviceRoleKey ? createClient(supabaseUrl, serviceRoleKey) : null,
+  };
+}
+
+async function resolveElevenLabsApiKey(
+  userId: string,
+  serviceClient: ReturnType<typeof createClient> | null,
+) {
+  if (serviceClient) {
+    const { data, error } = await serviceClient
+      .from("user_api_keys")
+      .select("api_key")
+      .eq("user_id", userId)
+      .eq("provider", "elevenlabs")
+      .maybeSingle();
+    if (error) throw new Error(`Unable to load ElevenLabs API key: ${error.message}`);
+    if (data?.api_key) return data.api_key;
+  }
+
+  return Deno.env.get("ELEVENLABS_API_KEY") || "";
 }
 
 function json(body: Record<string, unknown>, status: number) {
