@@ -515,7 +515,42 @@ export async function deleteTag(tag: string) {
     .eq("user_id", user.id);
 }
 
-// ---- TIME TRACKING ----
+// ---- ITEM ↔ TAG ASSOCIATIONS ----
+export async function addTagToNote(noteId: string, tag: string) {
+  const { data: note } = await supabase.from("notes").select("tags").eq("id", noteId).maybeSingle();
+  const current: string[] = (note?.tags as string[]) || [];
+  if (current.includes(tag)) return;
+  const next = [...current, tag];
+  const { error } = await supabase.from("notes").update({ tags: next }).eq("id", noteId);
+  if (error) throw error;
+}
+
+export async function removeTagFromNote(noteId: string, tag: string) {
+  const { data: note } = await supabase.from("notes").select("tags").eq("id", noteId).maybeSingle();
+  const current: string[] = (note?.tags as string[]) || [];
+  const next = current.filter(t => t !== tag);
+  const { error } = await supabase.from("notes").update({ tags: next }).eq("id", noteId);
+  if (error) throw error;
+}
+
+export async function replaceTagOnNote(noteId: string, oldTag: string, newTag: string) {
+  const { data: note } = await supabase.from("notes").select("tags").eq("id", noteId).maybeSingle();
+  const current: string[] = (note?.tags as string[]) || [];
+  const next = Array.from(new Set(current.map(t => t === oldTag ? newTag : t)));
+  const { error } = await supabase.from("notes").update({ tags: next }).eq("id", noteId);
+  if (error) throw error;
+}
+
+export async function setSnippetTag(snippetId: string, tag: string | null) {
+  const { error } = await supabase.from("tagged_snippets").update({ tag }).eq("id", snippetId);
+  if (error) throw error;
+}
+
+export async function setTaskTag(taskId: string, tag: string | null) {
+  const { error } = await supabase.from("tasks").update({ tag }).eq("id", taskId);
+  if (error) throw error;
+}
+
 export async function fetchTimeEntries(taskId?: string) {
   let query = supabase.from("task_time_entries").select("*").order("started_at", { ascending: false });
   if (taskId) query = query.eq("task_id", taskId);
