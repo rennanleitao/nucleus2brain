@@ -565,9 +565,17 @@ export default function Notes() {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] w-full max-w-full min-w-0 overflow-hidden animate-fade-in">
+      {/* Timeline: dates across all notes */}
+      {showList && !isMobile && (
+        <NotesTimelineSidebar
+          notes={notes}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
+      )}
       {/* Sidebar - Note list */}
       {showList && (
-        <div className={`${isMobile ? "w-full" : "w-[340px]"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
+        <div className={`${isMobile ? "w-full" : "w-[300px]"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
           <div className="px-5 pt-5 pb-4 border-b border-border/60 space-y-4 min-w-0">
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0">
