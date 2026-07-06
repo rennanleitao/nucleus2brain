@@ -15,9 +15,10 @@ interface SpaceCardProps {
   };
   onClick?: () => void;
   variant?: "card" | "list";
+  hideCategory?: boolean;
 }
 
-export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card" }, ref) => {
+export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card", hideCategory }, ref) => {
   const navigate = useNavigate();
   const taskCount = space.tasks?.[0]?.count ?? 0;
   const noteCount = space.notes?.[0]?.count ?? 0;
@@ -38,7 +39,7 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
         <SpaceIcon iconKey={space.icon} className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <h3 className="text-[14px] font-semibold leading-tight tracking-[-0.005em] truncate text-foreground">{space.name}</h3>
-          {category && (
+          {category && !hideCategory && (
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border/60 flex-shrink-0">
               {category.name}
             </span>
