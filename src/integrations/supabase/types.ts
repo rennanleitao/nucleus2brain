@@ -695,6 +695,27 @@ export type Database = {
           },
         ]
       }
+      space_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       space_invites: {
         Row: {
           accepted: boolean
@@ -773,6 +794,7 @@ export type Database = {
       }
       spaces: {
         Row: {
+          category_id: string | null
           created_at: string
           description: string | null
           icon: string | null
@@ -781,6 +803,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
           description?: string | null
           icon?: string | null
@@ -789,6 +812,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category_id?: string | null
           created_at?: string
           description?: string | null
           icon?: string | null
@@ -796,7 +820,15 @@ export type Database = {
           name?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "spaces_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "space_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       study_areas: {
         Row: {

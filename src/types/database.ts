@@ -7,9 +7,14 @@ export interface Database {
         Update: { name?: string | null; avatar_url?: string | null };
       };
       spaces: {
-        Row: { id: string; user_id: string; name: string; description: string | null; icon: string; created_at: string };
-        Insert: { id?: string; user_id?: string; name: string; description?: string | null; icon?: string };
-        Update: { name?: string; description?: string | null; icon?: string };
+        Row: { id: string; user_id: string; name: string; description: string | null; icon: string; category_id: string | null; created_at: string };
+        Insert: { id?: string; user_id?: string; name: string; description?: string | null; icon?: string; category_id?: string | null };
+        Update: { name?: string; description?: string | null; icon?: string; category_id?: string | null };
+      };
+      space_categories: {
+        Row: { id: string; user_id: string; name: string; created_at: string };
+        Insert: { id?: string; user_id?: string; name: string };
+        Update: { name?: string };
       };
       tasks: {
         Row: {
