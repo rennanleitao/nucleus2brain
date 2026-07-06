@@ -9,6 +9,12 @@ import { generateNextRecurrence } from "@/lib/api";
 import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
+import {
+  TASK_EXECUTION_COMPLEXITIES,
+  TaskExecutionComplexity,
+  taskExecutionComplexityDurationReference,
+  taskExecutionComplexityLabels,
+} from "@/lib/taskComplexity";
 
 function SpaceLetterAvatar({ name }: { name: string }) {
   return (
@@ -71,6 +77,7 @@ interface EditTaskDialogProps {
     due_date?: string | null;
     space_id?: string | null;
     tag?: string | null;
+    execution_complexity?: TaskExecutionComplexity | null;
     estimated_minutes?: number | null;
     recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
   };
@@ -85,6 +92,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
   const [priority, setPriority] = useState(task.priority);
+  const [executionComplexity, setExecutionComplexity] = useState<TaskExecutionComplexity>(task.execution_complexity || "medium");
   const [status, setStatus] = useState(task.status);
   const [dueDate, setDueDate] = useState(task.due_date || "");
   const [spaceId, setSpaceId] = useState(task.space_id || "");
@@ -283,6 +291,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         title: title.trim(),
         description: description.trim() || null,
         priority,
+        execution_complexity: executionComplexity,
         status,
         due_date: dueDate || null,
         space_id: spaceId || null,
@@ -450,6 +459,20 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
               </select>
             </div>
             <div>
+              <label className="field-label">Complexidade de Execução</label>
+              <select value={executionComplexity} onChange={e => setExecutionComplexity(e.target.value as TaskExecutionComplexity)}
+                className="field-input">
+                {TASK_EXECUTION_COMPLEXITIES.map(level => (
+                  <option key={level} value={level}>
+                    {taskExecutionComplexityLabels[level]} - {taskExecutionComplexityDurationReference[level]}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">Dificuldade para iniciar.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className="field-label">Status</label>
               <select value={status} onChange={e => setStatus(e.target.value as any)}
                 className="field-input">
@@ -458,12 +481,12 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
                 <option value="cancelled">Cancelada</option>
               </select>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="field-label">Space</label>
               <SpaceComboboxEdit spaces={spaces} spaceId={spaceId} onSelect={setSpaceId} />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="field-label">Data limite</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
