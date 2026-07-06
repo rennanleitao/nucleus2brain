@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, User } from "lucide-react";
+import { Bot, Pause, Play, Send, Square, User, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchTasks, fetchSpaces, createTask } from "@/lib/api";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrtToday } from "@/lib/timezone";
 import { getFunctionAuthHeaders } from "@/lib/functionAuth";
+import { useHelenaSpeech } from "@/hooks/useHelenaSpeech";
 
 interface Message {
   id: string;
@@ -23,11 +24,17 @@ export default function Assistant() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const speech = useHelenaSpeech();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (speech.error) toast.error(speech.error);
+  }, [speech.error]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +80,7 @@ export default function Assistant() {
     } catch {}
 
     let assistantContent = "";
+    const assistantMessageId = "ai-" + Date.now();
 
     try {
       const authHeaders = await getFunctionAuthHeaders();
@@ -118,11 +126,10 @@ export default function Assistant() {
             if (content) {
               assistantContent += content;
               setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant" && last.id.startsWith("ai-")) {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+                if (prev.some(m => m.id === assistantMessageId)) {
+                  return prev.map(m => m.id === assistantMessageId ? { ...m, content: assistantContent } : m);
                 }
-                return [...prev, { id: "ai-" + Date.now(), role: "assistant", content: assistantContent }];
+                return [...prev, { id: assistantMessageId, role: "assistant", content: assistantContent }];
               });
             }
           } catch {
@@ -166,6 +173,11 @@ export default function Assistant() {
           }
         } catch {}
       }
+
+      if (speech.autoSpeak && assistantContent.trim()) {
+        setSpeakingMessageId(assistantMessageId);
+        speech.speak(assistantContent, () => setSpeakingMessageId(null));
+      }
     } catch (err: any) {
       toast.error(err.message);
       if (!assistantContent) {
@@ -180,13 +192,40 @@ export default function Assistant() {
     }
   };
 
+  const handleSpeakMessage = (msg: Message) => {
+    setSpeakingMessageId(msg.id);
+    speech.speak(msg.content, () => setSpeakingMessageId(null));
+  };
+
+  const handleStopSpeech = () => {
+    speech.stop();
+    setSpeakingMessageId(null);
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
       <div className="p-4 border-b border-border">
-        <h1 className="text-h1 flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" /> Helena
-        </h1>
-        <p className="text-micro text-muted-foreground">Sua assistente de IA — crie tasks, priorize e planeje</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-h1 flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" /> Helena
+            </h1>
+            <p className="text-micro text-muted-foreground">Sua assistente de IA — crie tasks, priorize e planeje</p>
+          </div>
+          <label className={`flex items-center gap-2 text-micro ${speech.isSupported ? "text-muted-foreground" : "text-muted-foreground/60"}`}>
+            <input
+              type="checkbox"
+              checked={speech.autoSpeak}
+              onChange={e => speech.setAutoSpeak(e.target.checked)}
+              disabled={!speech.isSupported}
+              className="h-3.5 w-3.5 rounded border-border accent-primary"
+            />
+            Responder com voz
+          </label>
+        </div>
+        {!speech.isSupported && (
+          <p className="text-micro text-muted-foreground mt-2">Este navegador não suporta reprodução de voz por Web Speech API.</p>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -204,8 +243,48 @@ export default function Assistant() {
                   : "flex-1 min-w-0 text-[14.5px] leading-[1.65] text-foreground"
               }`}>
                 {msg.role === "assistant" ? (
-                  <div className="ai-prose">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <div>
+                    <div className="ai-prose">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {speech.isSupported ? (
+                        <>
+                          {speech.isSpeaking && speakingMessageId === msg.id ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={speech.isPaused ? speech.resume : speech.pause}
+                                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-micro text-muted-foreground hover:bg-muted hover:text-foreground"
+                              >
+                                {speech.isPaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+                                {speech.isPaused ? "Continuar" : "Pausar"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleStopSpeech}
+                                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-micro text-muted-foreground hover:bg-muted hover:text-foreground"
+                              >
+                                <Square className="h-3 w-3" /> Parar
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSpeakMessage(msg)}
+                              disabled={isLoading && msg.id.startsWith("ai-")}
+                              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-micro text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                            >
+                              <Volume2 className="h-3 w-3" /> Ouvir
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-micro text-muted-foreground/70">
+                          <VolumeX className="h-3 w-3" /> Voz indisponível
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ) : msg.content}
               </div>
