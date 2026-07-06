@@ -102,7 +102,16 @@ export default function Notes() {
   const audioClipsRef = useRef<NoteAudioClip[]>([]);
   const discardStoppedAudioRef = useRef(false);
   const canRecordAudio = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [dateSidebarOpen, setDateSidebarOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("notes.dateSidebarOpen") !== "false"; } catch { return true; }
+  });
+  const toggleDateSidebar = () => {
+    setDateSidebarOpen(prev => {
+      const next = !prev;
+      try { localStorage.setItem("notes.dateSidebarOpen", String(next)); } catch {}
+      return next;
+    });
+  };
   const editorScrollRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
@@ -206,8 +215,7 @@ export default function Notes() {
     const matchSearch = !search || n.title.toLowerCase().includes(search.toLowerCase()) ||
       (n.content || "").toLowerCase().includes(search.toLowerCase());
     const matchTag = !filterTag || (n.tags || []).includes(filterTag);
-    const matchDate = !selectedDate || parseNoteEntries(n.content || "").some(e => e.date === selectedDate);
-    return matchSearch && matchTag && matchDate;
+    return matchSearch && matchTag;
   });
 
   // Group filtered notes by space, preserving `spaces` display order and
