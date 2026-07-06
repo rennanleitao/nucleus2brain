@@ -1019,7 +1019,7 @@ export type Database = {
           id: string
           note_id: string
           snippet_text: string
-          tag: string
+          tag: string | null
           user_id: string
         }
         Insert: {
@@ -1027,7 +1027,7 @@ export type Database = {
           id?: string
           note_id: string
           snippet_text: string
-          tag: string
+          tag?: string | null
           user_id: string
         }
         Update: {
@@ -1035,7 +1035,7 @@ export type Database = {
           id?: string
           note_id?: string
           snippet_text?: string
-          tag?: string
+          tag?: string | null
           user_id?: string
         }
         Relationships: [

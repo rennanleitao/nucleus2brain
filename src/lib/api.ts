@@ -500,10 +500,10 @@ export async function deleteTag(tag: string) {
     }
   }
 
-  // 2. Delete tagged_snippets with this tag
+  // 2. Clear tag from tagged_snippets (preserve the snippet content)
   await supabase
     .from("tagged_snippets")
-    .delete()
+    .update({ tag: null })
     .eq("tag", tag)
     .eq("user_id", user.id);
 

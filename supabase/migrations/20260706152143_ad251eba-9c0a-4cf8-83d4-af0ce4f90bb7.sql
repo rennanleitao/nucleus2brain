@@ -1,0 +1,1 @@
+ALTER TABLE public.tagged_snippets ALTER COLUMN tag DROP NOT NULL;
