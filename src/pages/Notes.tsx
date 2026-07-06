@@ -1062,11 +1062,6 @@ export default function Notes() {
                 )}
               </div>
 
-                {/* AI Chat */}
-                <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
-
-                {/* Linked Tasks Panel moved to a side sheet (icon in header) */}
-              </div>
 
               {editingTask && (
                 <EditTaskDialog
