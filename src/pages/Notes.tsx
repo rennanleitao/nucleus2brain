@@ -1052,13 +1052,33 @@ export default function Notes() {
                   <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
                 </div>
                 {!isMobile && (
-                  <aside className="w-[180px] flex-shrink-0 border-l border-border/60 bg-background/50 overflow-y-auto">
-                    <NoteDateSidebar
-                      html={editContent}
-                      scrollContainer={editorScrollRef.current}
-                      onJump={handleJumpToDate}
-                    />
-                  </aside>
+                  dateSidebarOpen ? (
+                    <aside className="w-[180px] flex-shrink-0 border-l border-border/60 bg-background/50 overflow-y-auto relative">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground z-10"
+                        onClick={toggleDateSidebar}
+                        title="Ocultar coluna de datas"
+                      >
+                        <PanelLeftOpen className="h-3.5 w-3.5" />
+                      </Button>
+                      <NoteDateSidebar
+                        html={editContent}
+                        scrollContainer={editorScrollRef.current}
+                        onJump={handleJumpToDate}
+                      />
+                    </aside>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={toggleDateSidebar}
+                      title="Mostrar coluna de datas"
+                      className="w-7 flex-shrink-0 border-l border-border/60 bg-background/50 hover:bg-muted/40 flex items-start justify-center pt-3 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                    </button>
+                  )
                 )}
               </div>
 
