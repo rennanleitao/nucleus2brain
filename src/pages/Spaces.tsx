@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
-import { fetchSpaces } from "@/lib/api";
+import { fetchSpaces, updateSpaceCategory, deleteSpaceCategory } from "@/lib/api";
 import { SpaceCard } from "@/components/SpaceCard";
 import { CreateSpaceDialog } from "@/components/CreateSpaceDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
-import { FolderOpen, Search, ChevronDown } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { FolderOpen, Search, ChevronDown, MoreVertical, Pencil, Trash2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 const NO_CATEGORY_KEY = "__none__";
