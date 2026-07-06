@@ -362,6 +362,45 @@ export function DayPlanner({
     });
   }, [dayTasks]);
 
+  // Group all planning tasks (overdue → future) by date, then by complexity
+  const dateComplexityGroups = useMemo(() => {
+    const all = [...overdueTasks, ...todayTasks, ...tomorrowTasks, ...next7Tasks, ...futureTasks];
+    const byDate = new Map<string, any[]>();
+    for (const t of all) {
+      const d = t.due_date as string;
+      if (!byDate.has(d)) byDate.set(d, []);
+      byDate.get(d)!.push(t);
+    }
+    const sortedDates = [...byDate.keys()].sort();
+    return sortedDates.map(date => {
+      const tasksForDate = byDate.get(date)!;
+      const complexityGroups = TASK_EXECUTION_COMPLEXITIES.map(level => ({
+        level,
+        label: taskExecutionComplexityLabels[level],
+        reference: taskExecutionComplexityDurationReference[level],
+        tasks: tasksForDate
+          .filter(t => (t.execution_complexity || "medium") === level)
+          .sort((a, b) => {
+            const at = a.scheduled_time || "99:99";
+            const bt = b.scheduled_time || "99:99";
+            if (at !== bt) return at.localeCompare(bt);
+            return a.created_at.localeCompare(b.created_at);
+          }),
+      })).filter(g => g.tasks.length > 0);
+      return { date, tasks: tasksForDate, complexityGroups };
+    });
+  }, [overdueTasks, todayTasks, tomorrowTasks, next7Tasks, futureTasks]);
+
+  const formatDateLabel = (dateStr: string) => {
+    if (dateStr === today) return "Hoje";
+    if (dateStr === tomorrow) return "Amanhã";
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    const label = dt.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
+    if (dateStr < today) return `${label} (atrasada)`;
+    return label;
+  };
+
   return (
     <div className="space-y-5">
       {/* Header */}
