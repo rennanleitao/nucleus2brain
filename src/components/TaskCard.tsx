@@ -391,7 +391,8 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
                 {task.estimated_minutes}m est.
               </span>
             )}
-            {!compact && (
+            {(
+
               <span onClick={(e) => e.stopPropagation()}>
                 <Popover open={complexityOpen} onOpenChange={setComplexityOpen}>
                   <PopoverTrigger asChild>

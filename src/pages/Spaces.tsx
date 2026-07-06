@@ -198,7 +198,7 @@ export default function Spaces() {
                         <button
                           type="button"
                           onClick={() => startRename(group.key, group.label)}
-                          className="p-1 rounded opacity-0 group-hover/hdr:opacity-100 hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground transition-opacity"
+                          className="p-1 rounded hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground transition-colors"
                           title="Editar categoria"
                         >
                           <Pencil className="h-3 w-3" />
@@ -206,7 +206,7 @@ export default function Spaces() {
                         <button
                           type="button"
                           onClick={() => setDeletingId(group.key)}
-                          className="p-1 rounded opacity-0 group-hover/hdr:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-opacity"
+                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                           title="Excluir categoria"
                         >
                           <Trash2 className="h-3 w-3" />
