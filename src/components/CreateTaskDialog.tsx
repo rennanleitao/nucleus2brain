@@ -7,6 +7,12 @@ import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  TASK_EXECUTION_COMPLEXITIES,
+  TaskExecutionComplexity,
+  taskExecutionComplexityDurationReference,
+  taskExecutionComplexityLabels,
+} from "@/lib/taskComplexity";
 
 function getBrtToday() {
   const now = new Date();
@@ -123,6 +129,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState(defaultDescription);
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [executionComplexity, setExecutionComplexity] = useState<TaskExecutionComplexity>("medium");
   const [spaceId, setSpaceId] = useState<string>(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : ""));
   const [dueDate, setDueDate] = useState("");
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
@@ -287,6 +294,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         title: title.trim(),
         description: description.trim() || null,
         priority,
+        execution_complexity: executionComplexity,
         status: autoStatus,
         space_id: spaceId || null,
         due_date: dueDate || null,
@@ -331,7 +339,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   };
 
   const resetForm = () => {
-    setTitle(""); setDescription(""); setPriority("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
+    setTitle(""); setDescription(""); setPriority("medium"); setExecutionComplexity("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
     setRecurrenceEnabled(false); setRecurrence("weekly");
     setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
     setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
@@ -413,6 +421,20 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                   {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
                 </p>
               </div>
+            </div>
+            <div>
+              <label className="field-label">Complexidade de Execução</label>
+              <select value={executionComplexity} onChange={e => setExecutionComplexity(e.target.value as TaskExecutionComplexity)}
+                className="field-input">
+                {TASK_EXECUTION_COMPLEXITIES.map(level => (
+                  <option key={level} value={level}>
+                    {taskExecutionComplexityLabels[level]} - {taskExecutionComplexityDurationReference[level]}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Quão difícil é iniciar esta tarefa.
+              </p>
             </div>
             <div>
               <label className="field-label">Tempo estimado (minutos)</label>
