@@ -999,54 +999,68 @@ export default function Notes() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-auto flex flex-col">
-                <div className="flex-1">
-                  <RichTextEditor
-                    ref={editorRef}
-                    content={editContent}
-                    onChange={(html) => { setEditContent(html); setDirty(true); }}
-                    onTagsDetected={handleTagsDetected}
-                    onTaskItemClick={(taskTitle) => {
-                      const task = linkedTasks.find(t => t.title === taskTitle);
-                      if (task) setEditingTask(task);
-                    }}
-                    noteId={selectedNote?.id}
-                    existingTags={allTags}
-                    spaceId={editSpaceId || null}
-                    onTaskCreated={() => { if (selectedNote?.id) loadLinkedTasks(selectedNote.id); }}
-                    toolbarExtra={
-                      <NoteTemplatesMenu
-                        compact
-                        hasSelection={hasSelection}
-                        isEmpty={!editContent || !editContent.replace(/<[^>]+>/g, "").trim()}
-                        onApply={handleApplyTemplate}
-                      />
-                    }
-                    placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
-                    className="border-0 rounded-none min-h-full"
-                    allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
-                    onLinkNote={() => setLinkNoteOpen(true)}
-                    onSelectionChange={setHasSelection}
-                    onNoteLinkClick={(noteId) => {
-                      setPreviewNoteId(noteId);
-                    }}
-                    onCreateSubNote={async (title) => {
-                      try {
-                        const newNote = await createNote({
-                          title,
-                          content: "",
-                          tags: [],
-                          space_id: editSpaceId || null,
-                        });
-                        await load();
-                        selectNote(newNote);
-                        toast.success(`Nota "${title}" criada`);
-                      } catch (err: any) {
-                        toast.error(err.message);
+              <div className="flex-1 overflow-hidden flex">
+                <div ref={editorScrollRef} className="flex-1 overflow-auto flex flex-col">
+                  <div className="flex-1">
+                    <RichTextEditor
+                      ref={editorRef}
+                      content={editContent}
+                      onChange={(html) => { setEditContent(html); setDirty(true); }}
+                      onTagsDetected={handleTagsDetected}
+                      onTaskItemClick={(taskTitle) => {
+                        const task = linkedTasks.find(t => t.title === taskTitle);
+                        if (task) setEditingTask(task);
+                      }}
+                      noteId={selectedNote?.id}
+                      existingTags={allTags}
+                      spaceId={editSpaceId || null}
+                      onTaskCreated={() => { if (selectedNote?.id) loadLinkedTasks(selectedNote.id); }}
+                      toolbarExtra={
+                        <NoteTemplatesMenu
+                          compact
+                          hasSelection={hasSelection}
+                          isEmpty={!editContent || !editContent.replace(/<[^>]+>/g, "").trim()}
+                          onApply={handleApplyTemplate}
+                        />
                       }
-                    }}
-                  />
+                      placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
+                      className="border-0 rounded-none min-h-full"
+                      allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
+                      onLinkNote={() => setLinkNoteOpen(true)}
+                      onSelectionChange={setHasSelection}
+                      onNoteLinkClick={(noteId) => {
+                        setPreviewNoteId(noteId);
+                      }}
+                      onCreateSubNote={async (title) => {
+                        try {
+                          const newNote = await createNote({
+                            title,
+                            content: "",
+                            tags: [],
+                            space_id: editSpaceId || null,
+                          });
+                          await load();
+                          selectNote(newNote);
+                          toast.success(`Nota "${title}" criada`);
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        }
+                      }}
+                    />
+                  </div>
+                  {/* AI Chat */}
+                  <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
                 </div>
+                {!isMobile && (
+                  <aside className="w-[180px] flex-shrink-0 border-l border-border/60 bg-background/50 overflow-y-auto">
+                    <NoteDateSidebar
+                      html={editContent}
+                      scrollContainer={editorScrollRef.current}
+                      onJump={handleJumpToDate}
+                    />
+                  </aside>
+                )}
+              </div>
 
                 {/* AI Chat */}
                 <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
