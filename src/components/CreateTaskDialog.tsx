@@ -304,6 +304,10 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         recurrence: recurrenceEnabled ? recurrence : null,
       } as any);
 
+      if (executionComplexity !== "medium" && task && !("execution_complexity" in task)) {
+        toast.warning("Task criada, mas a complexidade ainda não foi salva porque a migration do banco não foi aplicada.");
+      }
+
       const materialsToCreate = [
         ...pendingMaterials,
         ...(materialTitle.trim() && materialUrl.trim()
