@@ -24,6 +24,10 @@ import { LinkNoteDialog } from "@/components/LinkNoteDialog";
 import { NotePreviewDialog } from "@/components/NotePreviewDialog";
 import { NoteTemplatesMenu } from "@/components/NoteTemplatesMenu";
 import type { NoteTemplate } from "@/lib/noteTemplates";
+import { NotesTimelineSidebar } from "@/components/NotesTimelineSidebar";
+import { NoteDateSidebar } from "@/components/NoteDateSidebar";
+import { NoteDatePicker } from "@/components/NoteDatePicker";
+import { parseNoteEntries, getLastEntryDate, buildDateEntryHtml } from "@/lib/noteEntries";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
