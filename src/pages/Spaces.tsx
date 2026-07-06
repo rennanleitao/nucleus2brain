@@ -68,7 +68,7 @@ export default function Spaces() {
       ) : (
         <div className="text-center py-16">
           <FolderOpen className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
-          <p className="text-small text-muted-foreground italic font-serif">
+          <p className="text-small text-muted-foreground">
             {search ? "Nenhum space encontrado" : "No spaces yet. Create your first one."}
           </p>
         </div>
