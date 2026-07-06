@@ -102,6 +102,8 @@ export default function Notes() {
   const audioClipsRef = useRef<NoteAudioClip[]>([]);
   const discardStoppedAudioRef = useRef(false);
   const canRecordAudio = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
     try {
