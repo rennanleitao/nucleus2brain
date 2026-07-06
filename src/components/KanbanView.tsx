@@ -118,7 +118,7 @@ export function KanbanView({
         >
           <div className="flex items-center gap-2 px-3 py-3 border-b border-border/60">
             <col.icon className={`h-3.5 w-3.5 ${col.color}`} />
-            <h3 className={`font-serif italic text-[15px] font-normal leading-none ${col.color}`}>{col.label}</h3>
+            <h3 className={`text-[11px] font-semibold uppercase tracking-[0.12em] leading-none ${col.color}`}>{col.label}</h3>
             <span className="text-[10px] font-medium text-muted-foreground tabular-nums ml-auto">
               {col.tasks.length}
             </span>

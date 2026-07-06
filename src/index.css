@@ -146,29 +146,31 @@
     touch-action: manipulation;
   }
 
-  h1, h2, h3, h4, h5, h6,
-  .text-title, .text-h1, .text-h2, .text-h3 {
+  h1, .text-title, .text-h1 {
     font-family: var(--font-serif);
     letter-spacing: -0.012em;
     font-weight: 400;
   }
 
+  h2, h3, h4, h5, h6, .text-h2, .text-h3 {
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+
   h1 {
     font-size: 1.75rem; /* 28px */
     line-height: 1.15;
-    font-weight: 400;
   }
 
   h2 {
-    font-size: 1.375rem; /* 22px */
-    line-height: 1.2;
-    font-weight: 400;
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.3;
   }
 
   h3 {
-    font-size: 1.125rem; /* 18px */
-    line-height: 1.25;
-    font-weight: 400;
+    font-size: 0.9375rem; /* 15px */
+    line-height: 1.35;
   }
 
   code, pre {
@@ -231,18 +233,19 @@
   }
 
   .text-h2 {
-    font-family: var(--font-serif);
-    font-size: 1.375rem; /* 22px */
-    line-height: 1.2;
-    font-weight: 400;
+    font-family: var(--font-sans);
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.3;
+    font-weight: 600;
     letter-spacing: -0.01em;
   }
 
   .text-h3 {
-    font-family: var(--font-serif);
-    font-size: 1.125rem; /* 18px */
-    line-height: 1.25;
-    font-weight: 400;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem; /* 15px */
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.005em;
   }
 
   /* Editorial primitives */

@@ -35,7 +35,7 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
       >
         <SpaceIcon iconKey={space.icon} className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <h3 className="font-serif text-[16px] font-normal leading-tight tracking-[-0.01em] truncate">{space.name}</h3>
+          <h3 className="text-[14px] font-semibold leading-tight tracking-[-0.005em] truncate text-foreground">{space.name}</h3>
         </div>
         <div className="flex items-center gap-4 text-[11px] text-muted-foreground tabular-nums flex-shrink-0">
           <span>{taskCount} tasks</span>
@@ -54,7 +54,7 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
     >
       <SpaceIcon iconKey={space.icon} className="h-5 w-5 text-muted-foreground" />
       <div>
-        <h3 className="font-serif text-[20px] font-normal leading-tight tracking-[-0.012em]">{space.name}</h3>
+        <h3 className="text-[16px] font-semibold leading-tight tracking-[-0.01em] text-foreground">{space.name}</h3>
         {space.description && (
           <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{space.description}</p>
         )}

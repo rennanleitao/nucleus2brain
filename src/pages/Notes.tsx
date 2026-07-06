@@ -549,7 +549,7 @@ export default function Notes() {
           <div className="px-5 pt-5 pb-4 border-b border-border/60 space-y-4 min-w-0">
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="font-serif text-[32px] leading-none tracking-tight text-foreground">
+                <h2 className="text-[22px] font-semibold leading-none tracking-tight text-foreground">
                   Notas
                 </h2>
                 <p className="mt-1.5 text-[11px] tracking-wide uppercase text-muted-foreground/70">
@@ -633,19 +633,19 @@ export default function Notes() {
                 const isCollapsed = collapsedSpaces.has(group.key);
                 return (
                   <section key={group.key} className={`${groupIdx > 0 ? "mt-7" : ""}`}>
-                    {/* Editorial group header: serif italic label + hairline rule */}
+                    {/* Group header: sans uppercase micro + hairline rule */}
                     <button
                       type="button"
                       onClick={() => toggleSpaceCollapsed(group.key)}
-                      className="w-full flex items-baseline gap-2 mb-3 group/hdr"
+                      className="w-full flex items-center gap-2 mb-2.5 group/hdr"
                     >
                       {group.icon && group.key !== NO_SPACE_KEY && (
-                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/60 self-center" />
+                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/70" />
                       )}
-                      <h3 className="font-serif italic text-[15px] leading-none text-foreground/85 group-hover/hdr:text-foreground transition-colors truncate">
+                      <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate">
                         {group.label}
                       </h3>
-                      <span className="text-[11px] tabular-nums text-muted-foreground/60 font-sans">
+                      <span className="text-[10.5px] tabular-nums text-muted-foreground/60 font-medium">
                         {group.notes.length}
                       </span>
                       <span className="flex-1 h-px bg-border/60 ml-1" />
@@ -718,7 +718,7 @@ export default function Notes() {
               })}
               {filteredNotes.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="font-serif italic text-[15px] text-muted-foreground/70">Nenhuma nota encontrada</p>
+                  <p className="text-[13px] text-muted-foreground">Nenhuma nota encontrada</p>
                 </div>
               )}
             </div>
@@ -753,7 +753,7 @@ export default function Notes() {
                   <input
                     type="text" value={editTitle}
                     onChange={e => { setEditTitle(e.target.value); setDirty(true); }}
-                    className="flex-1 font-serif text-[28px] leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground/60 min-w-0"
+                    className="flex-1 text-[22px] font-semibold leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground/60 min-w-0"
                     placeholder="Título da nota"
                   />
                   <div className="flex items-center gap-1.5 flex-shrink-0">
