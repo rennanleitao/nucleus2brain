@@ -41,7 +41,7 @@ export default function Spaces() {
         <div className="min-w-0">
           <p className="eyebrow mb-2">Workspace</p>
           <h1 className="text-title">Spaces</h1>
-          <p className="text-small text-muted-foreground mt-1 italic font-serif">Organize your work into knowledge hubs.</p>
+          <p className="text-small text-muted-foreground mt-1">Organize your work into knowledge hubs.</p>
         </div>
         <CreateSpaceDialog onCreated={load} />
       </div>
