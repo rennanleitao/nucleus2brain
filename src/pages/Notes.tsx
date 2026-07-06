@@ -787,6 +787,7 @@ export default function Notes() {
                     placeholder="Título da nota"
                   />
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <NoteDatePicker onPick={handleInsertDate} compact />
                     <div className="flex items-center gap-1.5 mr-1">
                       <Save className="h-3 w-3 text-muted-foreground" />
                       <span className="text-[10px] text-muted-foreground">Autosave ✓</span>
