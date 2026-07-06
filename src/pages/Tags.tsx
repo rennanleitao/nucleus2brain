@@ -297,19 +297,36 @@ export default function Tags() {
                           <p className="text-xs text-muted-foreground">Nenhuma nota com esta tag</p>
                         </div>
                       ) : selectedNotes.map((note: any) => (
-                        <button
+                        <div
                           key={note.id}
+                          className="group/item w-full text-left p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all cursor-pointer"
                           onClick={() => navigate("/notes", { state: { noteId: note.id } })}
-                          className="w-full text-left p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all"
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <h3 className="text-small font-semibold">{note.title}</h3>
+                          <div className="flex items-start gap-2 mb-1">
+                            <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <h3 className="text-small font-semibold flex-1">{note.title}</h3>
+                            <TagItemActions
+                              allTags={allTags}
+                              currentTag={selectedTag!}
+                              itemTags={note.tags || []}
+                              onAdd={async (t) => { await addTagToNote(note.id, t); await load(); toast.success(`Tag #${t} adicionada`); }}
+                              onMove={async (t) => { await replaceTagOnNote(note.id, selectedTag!, t); await load(); toast.success(`Movido para #${t}`); }}
+                              onRemove={async () => { await removeTagFromNote(note.id, selectedTag!); await load(); toast.success("Tag removida"); }}
+                            />
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-2 ml-6">
                             {stripHtml(note.content || "Sem conteúdo")}
                           </p>
-                        </button>
+                          {(note.tags?.length ?? 0) > 1 && (
+                            <div className="flex flex-wrap gap-1 mt-2 ml-6">
+                              {(note.tags as string[]).filter((t: string) => t !== selectedTag).map((t: string) => (
+                                <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/60">
+                                  #{t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </ScrollArea>
