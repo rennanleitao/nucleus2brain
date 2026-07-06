@@ -741,3 +741,21 @@ html, body {
 .ProseMirror .note-toggle > div > div > * {
   margin: 0.25rem 0;
 }
+
+/* Date-entry headings inside notes */
+.ProseMirror h2.note-date-entry {
+  margin-top: 2rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid oklch(var(--border));
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: oklch(var(--muted-foreground));
+  scroll-margin-top: 3rem;
+}
+.ProseMirror h2.note-date-entry:first-child {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: 0;
+}
