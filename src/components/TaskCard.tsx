@@ -203,6 +203,26 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   const [newSubtaskDate, setNewSubtaskDate] = useState("");
   const [materials, setMaterials] = useState<any[]>([]);
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [complexityOpen, setComplexityOpen] = useState(false);
+  const [savingComplexity, setSavingComplexity] = useState(false);
+  const [localComplexity, setLocalComplexity] = useState<TaskExecutionComplexity | null | undefined>(task.execution_complexity);
+  useEffect(() => { setLocalComplexity(task.execution_complexity); }, [task.execution_complexity]);
+  const applyComplexity = async (level: TaskExecutionComplexity) => {
+    if (savingComplexity) return;
+    const prev = localComplexity;
+    setLocalComplexity(level);
+    setSavingComplexity(true);
+    try {
+      await updateTask(task.id, { execution_complexity: level } as any);
+      toast.success(`Complexidade: ${taskExecutionComplexityLabels[level]}`);
+      setComplexityOpen(false);
+    } catch (err: any) {
+      setLocalComplexity(prev);
+      toast.error(err.message);
+    } finally {
+      setSavingComplexity(false);
+    }
+  };
   const [addingMaterial, setAddingMaterial] = useState(false);
   const [newMatTitle, setNewMatTitle] = useState("");
   const [newMatUrl, setNewMatUrl] = useState("");
