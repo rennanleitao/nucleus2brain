@@ -57,6 +57,7 @@ export default function Tags() {
 
   const snippetTagMap = new Map<string, any[]>();
   snippets.forEach(s => {
+    if (!s.tag) return;
     if (!snippetTagMap.has(s.tag)) snippetTagMap.set(s.tag, []);
     snippetTagMap.get(s.tag)!.push(s);
   });
