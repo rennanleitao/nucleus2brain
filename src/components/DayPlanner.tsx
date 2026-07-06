@@ -15,6 +15,12 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CalendarItem, GoogleEvent } from "@/components/calendar/types";
 import { format, isSameDay } from "date-fns";
 import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
+import {
+  TASK_EXECUTION_COMPLEXITIES,
+  taskExecutionComplexityLabels,
+  taskExecutionComplexityDurationReference,
+  type TaskExecutionComplexity,
+} from "@/lib/taskComplexity";
 
 interface DayPlannerProps {
   tasks: any[];
