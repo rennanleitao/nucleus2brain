@@ -18,7 +18,7 @@ interface SpaceCardProps {
   hideCategory?: boolean;
 }
 
-export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card" }, ref) => {
+export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card", hideCategory }, ref) => {
   const navigate = useNavigate();
   const taskCount = space.tasks?.[0]?.count ?? 0;
   const noteCount = space.notes?.[0]?.count ?? 0;
