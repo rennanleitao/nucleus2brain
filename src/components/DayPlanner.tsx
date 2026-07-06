@@ -49,7 +49,7 @@ export function DayPlanner({
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
   const [showAISchedule, setShowAISchedule] = useState(false);
   const [todayEvents, setTodayEvents] = useState<GoogleEvent[]>([]);
-  const [allCompact, setAllCompact] = useState(false);
+  const [allCompact, setAllCompact] = useState(true);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const cardCompact = (id: string) => allCompact && !expandedCards[id];
   const toggleCardCompact = (id: string) => setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
