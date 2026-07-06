@@ -662,15 +662,14 @@ export default function Notes() {
               {groupedNotes.map((group, groupIdx) => {
                 const isCollapsed = collapsedSpaces.has(group.key);
                 return (
-                  <section key={group.key} className={`${groupIdx > 0 ? "mt-7" : ""}`}>
-                    {/* Group header: sans uppercase micro + hairline rule */}
+                  <section key={group.key} className={`${groupIdx > 0 ? "mt-4" : ""} rounded-xl border border-border/60 bg-card overflow-hidden`}>
                     <button
                       type="button"
                       onClick={() => toggleSpaceCollapsed(group.key)}
-                      className="w-full flex items-center gap-2 mb-2.5 group/hdr"
+                      className="w-full flex items-center gap-2 px-3 py-2 bg-muted/60 border-b border-border/60 group/hdr transition-colors"
                     >
                       {group.icon && group.key !== NO_SPACE_KEY && (
-                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/70" />
+                        <SpaceIcon iconKey={group.icon} className="h-3.5 w-3.5 text-muted-foreground/70" />
                       )}
                       <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate">
                         {group.label}
@@ -678,12 +677,12 @@ export default function Notes() {
                       <span className="text-[10.5px] tabular-nums text-muted-foreground/60 font-medium">
                         {group.notes.length}
                       </span>
-                      <span className="flex-1 h-px bg-border/60 ml-1" />
+                      <span className="flex-1" />
                       <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
                     </button>
 
                     {!isCollapsed && (
-                      <ul className="space-y-0.5">
+                      <ul className="p-1.5 space-y-0.5">
                         {group.notes.map(note => {
                           const isSelected = selectedNote?.id === note.id;
                           const preview = stripHtml(note.content || "").replace(/\n+/g, " ");
@@ -694,7 +693,7 @@ export default function Notes() {
                                 role="button"
                                 tabIndex={0}
                                 onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
-                                className={`relative flex flex-col justify-center min-h-[46px] px-3 py-2 rounded-md group cursor-pointer touch-manipulation transition-colors overflow-hidden ${
+                                className={`relative flex flex-col justify-center min-h-[44px] px-2.5 py-1.5 rounded-md group cursor-pointer touch-manipulation transition-colors overflow-hidden ${
                                   isSelected
                                     ? "bg-muted/70"
                                     : "hover:bg-muted/40"
