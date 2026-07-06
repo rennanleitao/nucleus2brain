@@ -57,6 +57,7 @@ export default function Tags() {
 
   const snippetTagMap = new Map<string, any[]>();
   snippets.forEach(s => {
+    if (!s.tag) return;
     if (!snippetTagMap.has(s.tag)) snippetTagMap.set(s.tag, []);
     snippetTagMap.get(s.tag)!.push(s);
   });
@@ -379,7 +380,7 @@ export default function Tags() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir tag #{deleteConfirmTag}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso removerá a tag de todas as notas e tasks, e excluirá todos os trechos associados. Esta ação não pode ser desfeita.
+              A tag será removida das notas, tasks e trechos vinculados, mas nenhum desses itens será excluído.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
