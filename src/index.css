@@ -4,41 +4,41 @@
 
 @layer base {
   :root {
-    /* Cloud White palette — locked tokens (#fafbfc / #e8ecf1 / #94a3b8 / #3b82f6) */
-    --background: 0.985 0.002 247;        /* #fafbfc */
-    --foreground: 0.208 0.042 265;        /* #0f172a slate-900 */
-    --card: 1 0 0;                         /* white */
-    --card-foreground: 0.208 0.042 265;
+    /* Consulting shell — slate + blue-600 accent, Inter body + Instrument Serif headings */
+    --background: 0.984 0.003 247.86;      /* slate-50 #f8fafc */
+    --foreground: 0.208 0.042 265.75;      /* slate-900 #0f172a */
+    --card: 1 0 0;                          /* white */
+    --card-foreground: 0.208 0.042 265.75;
     --popover: 1 0 0;
-    --popover-foreground: 0.208 0.042 265;
-    --primary: 0.623 0.214 259;           /* #3b82f6 blue-500 */
+    --popover-foreground: 0.208 0.042 265.75;
+    --primary: 0.546 0.245 262.88;         /* blue-600 #2563eb */
     --primary-foreground: 1 0 0;
-    --secondary: 0.968 0.007 247;         /* slate-100 */
-    --secondary-foreground: 0.208 0.042 265;
-    --muted: 0.968 0.007 247;
-    --muted-foreground: 0.553 0.04 257;   /* #64748b slate-500 */
-    --accent: 0.951 0.025 246;            /* blue-50 */
-    --accent-foreground: 0.623 0.214 259;
+    --secondary: 0.968 0.007 247.9;        /* slate-100 #f1f5f9 */
+    --secondary-foreground: 0.208 0.042 265.75;
+    --muted: 0.968 0.007 247.9;            /* slate-100 */
+    --muted-foreground: 0.446 0.043 257.28;/* slate-600 #475569 */
+    --accent: 0.968 0.007 247.9;           /* slate-100 hover surface */
+    --accent-foreground: 0.208 0.042 265.75;
     --destructive: 0.6257 0.2058 29.0773;
     --destructive-foreground: 1 0 0;
-    --border: 0.937 0.008 247;            /* #e8ecf1 */
-    --input: 0.937 0.008 247;
-    --ring: 0.623 0.214 259;
-    --chart-1: 0.623 0.214 259;
-    --chart-2: 0.704 0.024 257;           /* #94a3b8 */
+    --border: 0.929 0.013 255.5;           /* slate-200 #e2e8f0 */
+    --input: 0.929 0.013 255.5;
+    --ring: 0.546 0.245 262.88;            /* blue-600 */
+    --chart-1: 0.546 0.245 262.88;
+    --chart-2: 0.704 0.024 257;
     --chart-3: 0.553 0.04 257;
     --chart-4: 0.7356 0.137 232.8053;
     --chart-5: 0.6509 0.1283 170.4258;
-    --sidebar: 1 0 0;
-    --sidebar-foreground: 0.208 0.042 265;
-    --sidebar-primary: 0.623 0.214 259;
+    --sidebar: 1 0 0;                       /* white sidebar */
+    --sidebar-foreground: 0.446 0.043 257.28; /* slate-600 default nav */
+    --sidebar-primary: 0.546 0.245 262.88;  /* blue-600 active */
     --sidebar-primary-foreground: 1 0 0;
-    --sidebar-accent: 0.951 0.025 246;
-    --sidebar-accent-foreground: 0.623 0.214 259;
-    --sidebar-border: 0.937 0.008 247;
-    --sidebar-ring: 0.623 0.214 259;
-    --font-sans: 'Figtree', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --font-display: 'Outfit', 'Figtree', system-ui, sans-serif;
+    --sidebar-accent: 0.968 0.007 247.9;    /* slate-100 hover */
+    --sidebar-accent-foreground: 0.208 0.042 265.75; /* slate-900 hover text */
+    --sidebar-border: 0.929 0.013 255.5;    /* slate-200 */
+    --sidebar-ring: 0.546 0.245 262.88;
+    --font-sans: 'Inter', 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Inter', 'Figtree', system-ui, sans-serif;
     --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
     --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     --radius: 0.75rem;
