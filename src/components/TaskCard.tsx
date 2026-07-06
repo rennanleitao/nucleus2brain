@@ -7,11 +7,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { fetchTaskMaterials } from "@/lib/api";
+import { fetchTaskMaterials, updateTask } from "@/lib/api";
 import { getBrtToday, getBrtTomorrow } from "@/lib/timezone";
 import {
   getTaskExecutionComplexityDurationReference,
   getTaskExecutionComplexityLabel,
+  TASK_EXECUTION_COMPLEXITIES,
+  taskExecutionComplexityDurationReference,
+  taskExecutionComplexityLabels,
   TaskExecutionComplexity,
 } from "@/lib/taskComplexity";
 
