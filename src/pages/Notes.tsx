@@ -718,7 +718,7 @@ export default function Notes() {
               })}
               {filteredNotes.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="font-serif italic text-[15px] text-muted-foreground/70">Nenhuma nota encontrada</p>
+                  <p className="text-[13px] text-muted-foreground">Nenhuma nota encontrada</p>
                 </div>
               )}
             </div>
