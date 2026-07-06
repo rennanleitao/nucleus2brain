@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchNotes, fetchTaggedSnippets, deleteTaggedSnippet, fetchTasks, renameTag, deleteTag, fetchAllTags } from "@/lib/api";
+import {
+  fetchNotes, fetchTaggedSnippets, deleteTaggedSnippet, fetchTasks,
+  renameTag, deleteTag,
+  addTagToNote, removeTagFromNote, replaceTagOnNote,
+  setSnippetTag, setTaskTag,
+} from "@/lib/api";
 import { getBrtToday } from "@/lib/timezone";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { TagItemActions } from "@/components/TagItemActions";
 
 export default function Tags() {
   const navigate = useNavigate();
@@ -246,15 +252,23 @@ export default function Tags() {
                           <p className="text-xs text-muted-foreground">Nenhum trecho tageado.</p>
                         </div>
                       ) : selectedSnippets.map(s => (
-                        <div key={s.id} className="p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all">
+                        <div key={s.id} className="group/item p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all">
                           <div className="flex items-start justify-between gap-2">
                             <blockquote className="border-l-2 border-foreground/20 pl-3 text-small italic text-foreground flex-1 min-w-0">
                               "{s.snippet_text}"
                             </blockquote>
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
-                              onClick={() => handleDeleteSnippet(s.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <TagItemActions
+                                allTags={allTags}
+                                currentTag={selectedTag!}
+                                onMove={async (t) => { await setSnippetTag(s.id, t); await load(); toast.success(`Movido para #${t}`); }}
+                                onRemove={async () => { await setSnippetTag(s.id, null); await load(); toast.success("Tag removida"); }}
+                              />
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleDeleteSnippet(s.id)} title="Excluir trecho">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                           <div className="flex items-center gap-3 mt-2">
                             {s.notes?.title && (
@@ -283,19 +297,36 @@ export default function Tags() {
                           <p className="text-xs text-muted-foreground">Nenhuma nota com esta tag</p>
                         </div>
                       ) : selectedNotes.map((note: any) => (
-                        <button
+                        <div
                           key={note.id}
+                          className="group/item w-full text-left p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all cursor-pointer"
                           onClick={() => navigate("/notes", { state: { noteId: note.id } })}
-                          className="w-full text-left p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all"
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <h3 className="text-small font-semibold">{note.title}</h3>
+                          <div className="flex items-start gap-2 mb-1">
+                            <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <h3 className="text-small font-semibold flex-1">{note.title}</h3>
+                            <TagItemActions
+                              allTags={allTags}
+                              currentTag={selectedTag!}
+                              itemTags={note.tags || []}
+                              onAdd={async (t) => { await addTagToNote(note.id, t); await load(); toast.success(`Tag #${t} adicionada`); }}
+                              onMove={async (t) => { await replaceTagOnNote(note.id, selectedTag!, t); await load(); toast.success(`Movido para #${t}`); }}
+                              onRemove={async () => { await removeTagFromNote(note.id, selectedTag!); await load(); toast.success("Tag removida"); }}
+                            />
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-2 ml-6">
                             {stripHtml(note.content || "Sem conteúdo")}
                           </p>
-                        </button>
+                          {(note.tags?.length ?? 0) > 1 && (
+                            <div className="flex flex-wrap gap-1 mt-2 ml-6">
+                              {(note.tags as string[]).filter((t: string) => t !== selectedTag).map((t: string) => (
+                                <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/60">
+                                  #{t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </ScrollArea>
@@ -310,10 +341,10 @@ export default function Tags() {
                           <p className="text-xs text-muted-foreground">Nenhuma task com esta tag</p>
                         </div>
                       ) : selectedTasks.map((task: any) => (
-                        <button
+                        <div
                           key={task.id}
                           onClick={() => navigate("/tasks")}
-                          className="w-full text-left p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all"
+                          className="group/item w-full text-left p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all cursor-pointer"
                         >
                           <div className="flex items-center gap-2 mb-1">
                             <div className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
@@ -329,13 +360,19 @@ export default function Tags() {
                               {task.title}
                             </h3>
                             {task.priority === "high" && <Badge variant="destructive" className="text-[10px]">Alta</Badge>}
+                            <TagItemActions
+                              allTags={allTags}
+                              currentTag={selectedTag!}
+                              onMove={async (t) => { await setTaskTag(task.id, t); await load(); toast.success(`Movido para #${t}`); }}
+                              onRemove={async () => { await setTaskTag(task.id, null); await load(); toast.success("Tag removida"); }}
+                            />
                           </div>
                           {task.due_date && (
                             <p className={`text-xs ml-6 ${task.due_date < getBrtToday() ? "text-destructive" : "text-muted-foreground"}`}>
                               {new Date(task.due_date + "T00:00:00").toLocaleDateString("pt-BR")}
                             </p>
                           )}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </ScrollArea>
