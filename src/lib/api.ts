@@ -551,6 +551,8 @@ export async function setTaskTag(taskId: string, tag: string | null) {
   if (error) throw error;
 }
 
+// ---- TIME TRACKING ----
+
 export async function fetchTimeEntries(taskId?: string) {
   let query = supabase.from("task_time_entries").select("*").order("started_at", { ascending: false });
   if (taskId) query = query.eq("task_id", taskId);
