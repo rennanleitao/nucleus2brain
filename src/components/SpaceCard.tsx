@@ -15,6 +15,7 @@ interface SpaceCardProps {
   };
   onClick?: () => void;
   variant?: "card" | "list";
+  hideCategory?: boolean;
 }
 
 export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card" }, ref) => {
