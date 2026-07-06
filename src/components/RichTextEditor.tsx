@@ -106,10 +106,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
+        heading: false,
         bulletList: { keepMarks: true },
         orderedList: { keepMarks: true },
       }),
+      DateHeading.configure({ levels: [1, 2, 3] }),
       Placeholder.configure({ placeholder }),
       Highlight.configure({ multicolor: false }),
       TaskList,
@@ -326,6 +327,20 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       if (!editor) return;
       editor.commands.setContent(html);
       onChange(editor.getHTML());
+    },
+    insertDateEntry: (date: string) => {
+      if (!editor) return;
+      editor.chain().focus("end").insertContent(buildDateEntryHtml(date)).run();
+      onChange(editor.getHTML());
+      // Scroll the freshly-inserted heading into view
+      requestAnimationFrame(() => {
+        const el = editorContainerRef.current?.querySelector<HTMLElement>(`#${CSS.escape(entryIdForDate(date))}`);
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    },
+    scrollToEntry: (date: string) => {
+      const el = editorContainerRef.current?.querySelector<HTMLElement>(`#${CSS.escape(entryIdForDate(date))}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
   }), [editor, onChange]);
 
