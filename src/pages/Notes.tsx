@@ -24,6 +24,10 @@ import { LinkNoteDialog } from "@/components/LinkNoteDialog";
 import { NotePreviewDialog } from "@/components/NotePreviewDialog";
 import { NoteTemplatesMenu } from "@/components/NoteTemplatesMenu";
 import type { NoteTemplate } from "@/lib/noteTemplates";
+import { NotesTimelineSidebar } from "@/components/NotesTimelineSidebar";
+import { NoteDateSidebar } from "@/components/NoteDateSidebar";
+import { NoteDatePicker } from "@/components/NoteDatePicker";
+import { parseNoteEntries, getLastEntryDate, buildDateEntryHtml } from "@/lib/noteEntries";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
@@ -98,6 +102,8 @@ export default function Notes() {
   const audioClipsRef = useRef<NoteAudioClip[]>([]);
   const discardStoppedAudioRef = useRef(false);
   const canRecordAudio = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
     try {
@@ -200,7 +206,8 @@ export default function Notes() {
     const matchSearch = !search || n.title.toLowerCase().includes(search.toLowerCase()) ||
       (n.content || "").toLowerCase().includes(search.toLowerCase());
     const matchTag = !filterTag || (n.tags || []).includes(filterTag);
-    return matchSearch && matchTag;
+    const matchDate = !selectedDate || parseNoteEntries(n.content || "").some(e => e.date === selectedDate);
+    return matchSearch && matchTag && matchDate;
   });
 
   // Group filtered notes by space, preserving `spaces` display order and
@@ -230,10 +237,25 @@ export default function Notes() {
     clearAudioCapture();
     setSelectedNote(note);
     setEditTitle(note.title);
-    setEditContent(note.content || "");
+    let content = note.content || "";
+    // Seed today's date entry if the note has none — so every note is date-aware.
+    if (!getLastEntryDate(content)) {
+      content = buildDateEntryHtml(getBrtToday()) + content;
+    }
+    setEditContent(content);
     setEditTags(note.tags || []);
     setEditSpaceId(note.space_id || "");
-    setDirty(false);
+    setDirty(content !== (note.content || ""));
+  };
+
+  const handleInsertDate = (date: string) => {
+    if (!editorRef.current) return;
+    editorRef.current.insertDateEntry(date);
+    setDirty(true);
+  };
+
+  const handleJumpToDate = (date: string) => {
+    editorRef.current?.scrollToEntry(date);
   };
 
   const handleCreateNote = async () => {
@@ -543,9 +565,17 @@ export default function Notes() {
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] w-full max-w-full min-w-0 overflow-hidden animate-fade-in">
+      {/* Timeline: dates across all notes */}
+      {showList && !isMobile && (
+        <NotesTimelineSidebar
+          notes={notes}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
+      )}
       {/* Sidebar - Note list */}
       {showList && (
-        <div className={`${isMobile ? "w-full" : "w-[340px]"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
+        <div className={`${isMobile ? "w-full" : "w-[300px]"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
           <div className="px-5 pt-5 pb-4 border-b border-border/60 space-y-4 min-w-0">
             <div className="flex items-end justify-between gap-2">
               <div className="min-w-0">
@@ -757,6 +787,7 @@ export default function Notes() {
                     placeholder="Título da nota"
                   />
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <NoteDatePicker onPick={handleInsertDate} compact />
                     <div className="flex items-center gap-1.5 mr-1">
                       <Save className="h-3 w-3 text-muted-foreground" />
                       <span className="text-[10px] text-muted-foreground">Autosave ✓</span>
@@ -968,60 +999,69 @@ export default function Notes() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-auto flex flex-col">
-                <div className="flex-1">
-                  <RichTextEditor
-                    ref={editorRef}
-                    content={editContent}
-                    onChange={(html) => { setEditContent(html); setDirty(true); }}
-                    onTagsDetected={handleTagsDetected}
-                    onTaskItemClick={(taskTitle) => {
-                      const task = linkedTasks.find(t => t.title === taskTitle);
-                      if (task) setEditingTask(task);
-                    }}
-                    noteId={selectedNote?.id}
-                    existingTags={allTags}
-                    spaceId={editSpaceId || null}
-                    onTaskCreated={() => { if (selectedNote?.id) loadLinkedTasks(selectedNote.id); }}
-                    toolbarExtra={
-                      <NoteTemplatesMenu
-                        compact
-                        hasSelection={hasSelection}
-                        isEmpty={!editContent || !editContent.replace(/<[^>]+>/g, "").trim()}
-                        onApply={handleApplyTemplate}
-                      />
-                    }
-                    placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
-                    className="border-0 rounded-none min-h-full"
-                    allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
-                    onLinkNote={() => setLinkNoteOpen(true)}
-                    onSelectionChange={setHasSelection}
-                    onNoteLinkClick={(noteId) => {
-                      setPreviewNoteId(noteId);
-                    }}
-                    onCreateSubNote={async (title) => {
-                      try {
-                        const newNote = await createNote({
-                          title,
-                          content: "",
-                          tags: [],
-                          space_id: editSpaceId || null,
-                        });
-                        await load();
-                        selectNote(newNote);
-                        toast.success(`Nota "${title}" criada`);
-                      } catch (err: any) {
-                        toast.error(err.message);
+              <div className="flex-1 overflow-hidden flex">
+                <div ref={editorScrollRef} className="flex-1 overflow-auto flex flex-col">
+                  <div className="flex-1">
+                    <RichTextEditor
+                      ref={editorRef}
+                      content={editContent}
+                      onChange={(html) => { setEditContent(html); setDirty(true); }}
+                      onTagsDetected={handleTagsDetected}
+                      onTaskItemClick={(taskTitle) => {
+                        const task = linkedTasks.find(t => t.title === taskTitle);
+                        if (task) setEditingTask(task);
+                      }}
+                      noteId={selectedNote?.id}
+                      existingTags={allTags}
+                      spaceId={editSpaceId || null}
+                      onTaskCreated={() => { if (selectedNote?.id) loadLinkedTasks(selectedNote.id); }}
+                      toolbarExtra={
+                        <NoteTemplatesMenu
+                          compact
+                          hasSelection={hasSelection}
+                          isEmpty={!editContent || !editContent.replace(/<[^>]+>/g, "").trim()}
+                          onApply={handleApplyTemplate}
+                        />
                       }
-                    }}
-                  />
+                      placeholder="Comece a escrever... Use #tag para tags, @nota para mencionar, ()Task para criar tasks"
+                      className="border-0 rounded-none min-h-full"
+                      allNotes={notes.map(n => ({ id: n.id, title: n.title }))}
+                      onLinkNote={() => setLinkNoteOpen(true)}
+                      onSelectionChange={setHasSelection}
+                      onNoteLinkClick={(noteId) => {
+                        setPreviewNoteId(noteId);
+                      }}
+                      onCreateSubNote={async (title) => {
+                        try {
+                          const newNote = await createNote({
+                            title,
+                            content: "",
+                            tags: [],
+                            space_id: editSpaceId || null,
+                          });
+                          await load();
+                          selectNote(newNote);
+                          toast.success(`Nota "${title}" criada`);
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        }
+                      }}
+                    />
+                  </div>
+                  {/* AI Chat */}
+                  <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
                 </div>
-
-                {/* AI Chat */}
-                <NoteAIChat noteContent={editContent} noteTitle={editTitle} />
-
-                {/* Linked Tasks Panel moved to a side sheet (icon in header) */}
+                {!isMobile && (
+                  <aside className="w-[180px] flex-shrink-0 border-l border-border/60 bg-background/50 overflow-y-auto">
+                    <NoteDateSidebar
+                      html={editContent}
+                      scrollContainer={editorScrollRef.current}
+                      onJump={handleJumpToDate}
+                    />
+                  </aside>
+                )}
               </div>
+
 
               {editingTask && (
                 <EditTaskDialog
