@@ -633,19 +633,19 @@ export default function Notes() {
                 const isCollapsed = collapsedSpaces.has(group.key);
                 return (
                   <section key={group.key} className={`${groupIdx > 0 ? "mt-7" : ""}`}>
-                    {/* Editorial group header: serif italic label + hairline rule */}
+                    {/* Group header: sans uppercase micro + hairline rule */}
                     <button
                       type="button"
                       onClick={() => toggleSpaceCollapsed(group.key)}
-                      className="w-full flex items-baseline gap-2 mb-3 group/hdr"
+                      className="w-full flex items-center gap-2 mb-2.5 group/hdr"
                     >
                       {group.icon && group.key !== NO_SPACE_KEY && (
-                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/60 self-center" />
+                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/70" />
                       )}
-                      <h3 className="font-serif italic text-[15px] leading-none text-foreground/85 group-hover/hdr:text-foreground transition-colors truncate">
+                      <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate">
                         {group.label}
                       </h3>
-                      <span className="text-[11px] tabular-nums text-muted-foreground/60 font-sans">
+                      <span className="text-[10.5px] tabular-nums text-muted-foreground/60 font-medium">
                         {group.notes.length}
                       </span>
                       <span className="flex-1 h-px bg-border/60 ml-1" />
