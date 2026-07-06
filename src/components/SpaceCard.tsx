@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
+import { SpaceCategoryQuickEdit } from "@/components/SpaceCategoryQuickEdit";
 import { ChevronRight } from "lucide-react";
 
 interface SpaceCardProps {
@@ -16,6 +17,7 @@ interface SpaceCardProps {
   onClick?: () => void;
   variant?: "card" | "list";
   hideCategory?: boolean;
+  onCategoryChanged?: () => void;
 }
 
 export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space, onClick, variant = "card", hideCategory }, ref) => {
