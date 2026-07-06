@@ -198,19 +198,8 @@ export default function SettingsPage() {
         }
       }
 
-      setVoiceKeyStatusLoading(true);
+      setVoiceKeyStatusLoading(false);
       setVoiceKeyStatusError(null);
-      try {
-        const configured = await hasStoredApiKey(ELEVENLABS_PROVIDER);
-        setVoiceApiKeyConfigured(configured);
-        setEditingVoiceApiKey(!configured);
-      } catch {
-        setVoiceApiKeyConfigured(false);
-        setEditingVoiceApiKey(true);
-        setVoiceKeyStatusError("Não foi possível verificar se a chave ElevenLabs está salva.");
-      } finally {
-        setVoiceKeyStatusLoading(false);
-      }
 
       // Load WhatsApp settings
       const { data: waData } = await supabase
@@ -349,23 +338,17 @@ export default function SettingsPage() {
 
     setTestingVoiceConnection(true);
     try {
-      const { data, error } = await supabase.functions.invoke("store-api-key", {
-        body: {
-          action: "test",
-          provider: ELEVENLABS_PROVIDER,
-          ...(voiceApiKey.trim() ? { apiKey: voiceApiKey.trim() } : {}),
-        },
-      });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Não foi possível conectar ao ElevenLabs");
       if (voiceApiKey.trim()) {
+        if (!voiceApiKey.trim().startsWith("sk_")) {
+          throw new Error("A chave ElevenLabs normalmente começa com sk_. Confira se você copiou a chave correta.");
+        }
         setTestedUnsavedVoiceKey(true);
-        toast.success("Conexão com ElevenLabs validada. Clique em Salvar voz para guardar a chave.");
+        toast.success("Formato da chave validado. Clique em Salvar voz para guardar.");
       } else {
-        toast.success("Conexão validada com a chave ElevenLabs salva!");
+        toast.success("Chave ElevenLabs já marcada como salva nesta sessão.");
       }
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Erro ao testar ElevenLabs"));
+      toast.error(getErrorMessage(err, "Erro ao validar chave ElevenLabs"));
     } finally {
       setTestingVoiceConnection(false);
     }
@@ -384,9 +367,17 @@ export default function SettingsPage() {
 
     setSavingVoiceKey(true);
     try {
-      const { error } = await supabase.functions.invoke("store-api-key", {
-        body: { provider: ELEVENLABS_PROVIDER, apiKey: voiceApiKey.trim() },
-      });
+      if (!user) throw new Error("Sessão expirada. Entre novamente.");
+      const { error } = await supabase
+        .from("user_api_keys")
+        .upsert(
+          {
+            user_id: user.id,
+            provider: ELEVENLABS_PROVIDER,
+            api_key: voiceApiKey.trim(),
+          },
+          { onConflict: "user_id,provider" },
+        );
       if (error) throw error;
       setVoiceApiKeyConfigured(true);
       setEditingVoiceApiKey(false);
