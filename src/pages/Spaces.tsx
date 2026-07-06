@@ -134,7 +134,7 @@ export default function Spaces() {
                   <div className="divide-y divide-border/60">
                     {group.spaces.map(s => (
                       <div key={s.id} onDoubleClick={() => setEditingSpace(s)} title="Duplo clique para editar">
-                        <SpaceCard space={s} variant="list" />
+                        <SpaceCard space={s} variant="list" hideCategory />
                       </div>
                     ))}
                   </div>
