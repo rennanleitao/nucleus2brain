@@ -354,6 +354,25 @@ export async function createSpaceCategory(name: string) {
   return data;
 }
 
+export async function updateSpaceCategory(id: string, name: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Nome vazio");
+  const { data, error } = await supabase
+    .from("space_categories")
+    .update({ name: trimmed })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select()
+    .single();
+  if (error) {
+    if ((error as any).code === "23505") throw new Error("Já existe uma categoria com esse nome");
+    throw error;
+  }
+  return data;
+}
+
 export async function deleteSpaceCategory(id: string) {
   const { error } = await supabase.from("space_categories").delete().eq("id", id);
   if (error) throw error;
