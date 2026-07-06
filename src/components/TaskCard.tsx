@@ -492,8 +492,6 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
 
           {!isCompleted && onDuplicate && (
-
-          {!isCompleted && onDuplicate && (
             <button
               onClick={(e) => { e.stopPropagation(); onDuplicate(task.id); }}
               className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all p-1"
