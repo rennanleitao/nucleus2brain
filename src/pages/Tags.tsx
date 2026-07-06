@@ -341,10 +341,10 @@ export default function Tags() {
                           <p className="text-xs text-muted-foreground">Nenhuma task com esta tag</p>
                         </div>
                       ) : selectedTasks.map((task: any) => (
-                        <button
+                        <div
                           key={task.id}
                           onClick={() => navigate("/tasks")}
-                          className="w-full text-left p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all"
+                          className="group/item w-full text-left p-3 sm:p-4 rounded-xl border border-border bg-card hover:shadow-elevated transition-all cursor-pointer"
                         >
                           <div className="flex items-center gap-2 mb-1">
                             <div className={`h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
@@ -360,13 +360,19 @@ export default function Tags() {
                               {task.title}
                             </h3>
                             {task.priority === "high" && <Badge variant="destructive" className="text-[10px]">Alta</Badge>}
+                            <TagItemActions
+                              allTags={allTags}
+                              currentTag={selectedTag!}
+                              onMove={async (t) => { await setTaskTag(task.id, t); await load(); toast.success(`Movido para #${t}`); }}
+                              onRemove={async () => { await setTaskTag(task.id, null); await load(); toast.success("Tag removida"); }}
+                            />
                           </div>
                           {task.due_date && (
                             <p className={`text-xs ml-6 ${task.due_date < getBrtToday() ? "text-destructive" : "text-muted-foreground"}`}>
                               {new Date(task.due_date + "T00:00:00").toLocaleDateString("pt-BR")}
                             </p>
                           )}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </ScrollArea>
