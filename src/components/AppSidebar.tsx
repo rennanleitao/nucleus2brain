@@ -125,15 +125,15 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/60">
-      <SidebarHeader className="p-4 border-b border-border/60">
+      <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-            <Zap className="h-4 w-4 text-primary-foreground" />
+          <div className="flex h-7 w-7 items-center justify-center rounded bg-foreground">
+            <Zap className="h-3.5 w-3.5 text-background" strokeWidth={2.5} />
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="font-serif text-[17px] tracking-tight text-sidebar-accent-foreground">Nucleus</span>
-              <span className="text-[10px] italic font-serif text-sidebar-foreground/70">Your executive assistant. For life.</span>
+              <span className="font-serif italic text-[19px] tracking-tight text-foreground leading-none">Nucleus</span>
+              <span className="text-[10px] font-medium tracking-[0.14em] uppercase text-muted-foreground mt-1">Executive OS</span>
             </div>
           )}
         </div>
