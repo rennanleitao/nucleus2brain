@@ -379,7 +379,7 @@ export default function Tags() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir tag #{deleteConfirmTag}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso removerá a tag de todas as notas e tasks, e excluirá todos os trechos associados. Esta ação não pode ser desfeita.
+              A tag será removida das notas, tasks e trechos vinculados, mas nenhum desses itens será excluído.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
