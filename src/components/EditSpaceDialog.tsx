@@ -3,11 +3,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { updateSpace, deleteSpace } from "@/lib/api";
 import { SpaceIconPicker } from "@/components/SpaceIconPicker";
+import { SpaceCategoryPicker } from "@/components/SpaceCategoryPicker";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 
 interface EditSpaceDialogProps {
-  space: { id: string; name: string; description?: string | null; icon: string | null };
+  space: {
+    id: string;
+    name: string;
+    description?: string | null;
+    icon: string | null;
+    category_id?: string | null;
+  };
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdated: () => void;
@@ -19,13 +26,19 @@ export function EditSpaceDialog({ space, open, onOpenChange, onUpdated, onDelete
   const [name, setName] = useState(space.name);
   const [description, setDescription] = useState(space.description || "");
   const [icon, setIcon] = useState(space.icon || "folder");
+  const [categoryId, setCategoryId] = useState<string | null>(space.category_id ?? null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setLoading(true);
     try {
-      await updateSpace(space.id, { name: name.trim(), description: description.trim() || null, icon });
+      await updateSpace(space.id, {
+        name: name.trim(),
+        description: description.trim() || null,
+        icon,
+        category_id: categoryId,
+      });
       toast.success("Space atualizado!");
       onOpenChange(false);
       onUpdated();
@@ -64,6 +77,10 @@ export function EditSpaceDialog({ space, open, onOpenChange, onUpdated, onDelete
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" required />
           <textarea placeholder="Descrição (opcional)" value={description} onChange={e => setDescription(e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary h-20 resize-none" />
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
+            <SpaceCategoryPicker value={categoryId} onChange={(id) => setCategoryId(id)} />
+          </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={loading} className="flex-1 gradient-primary text-primary-foreground border-0">
               {loading ? "Salvando..." : "Salvar"}
