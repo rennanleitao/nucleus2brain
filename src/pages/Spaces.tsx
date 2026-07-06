@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
-import { fetchSpaces } from "@/lib/api";
+import { fetchSpaces, updateSpaceCategory, deleteSpaceCategory } from "@/lib/api";
 import { SpaceCard } from "@/components/SpaceCard";
 import { CreateSpaceDialog } from "@/components/CreateSpaceDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
-import { FolderOpen, Search, ChevronDown } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { FolderOpen, Search, ChevronDown, MoreVertical, Pencil, Trash2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 const NO_CATEGORY_KEY = "__none__";
@@ -13,6 +14,8 @@ export default function Spaces() {
   const [loading, setLoading] = useState(true);
   const [editingSpace, setEditingSpace] = useState<any>(null);
   const [search, setSearch] = useState("");
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem("spaces.collapsedCategories");
@@ -20,6 +23,36 @@ export default function Spaces() {
     } catch {}
     return new Set();
   });
+
+  const startRename = (id: string, name: string) => {
+    setRenaming({ id, name });
+  };
+
+  const cancelRename = () => setRenaming(null);
+
+  const confirmRename = async () => {
+    if (!renaming) return;
+    try {
+      await updateSpaceCategory(renaming.id, renaming.name);
+      toast.success("Categoria atualizada");
+      setRenaming(null);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      await deleteSpaceCategory(deletingId);
+      toast.success("Categoria excluída");
+      setDeletingId(null);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const toggleCategoryCollapsed = (key: string) => {
     setCollapsedCategories(prev => {
@@ -115,20 +148,73 @@ export default function Spaces() {
             const isCollapsed = collapsedCategories.has(group.key);
             return (
               <section key={group.key} className={`rounded-xl border border-border/60 bg-card overflow-hidden ${groupIdx > 0 ? "mt-4" : ""}`}>
-                <button
-                  type="button"
-                  onClick={() => toggleCategoryCollapsed(group.key)}
-                  className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60 group/hdr transition-colors"
-                >
-                  <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate">
-                    {group.label}
-                  </h3>
-                  <span className="text-[10.5px] tabular-nums text-muted-foreground/60 font-medium">
-                    {group.spaces.length}
-                  </span>
-                  <span className="flex-1" />
-                  <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
-                </button>
+                {renaming?.id === group.key ? (
+                  <div className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60">
+                    <input
+                      autoFocus
+                      value={renaming.name}
+                      onChange={e => setRenaming({ ...renaming, name: e.target.value })}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") { e.preventDefault(); confirmRename(); }
+                        if (e.key === "Escape") cancelRename();
+                      }}
+                      className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-[12px] outline-none focus:border-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={confirmRename}
+                      className="p-1 rounded hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
+                      title="Salvar"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelRename}
+                      className="p-1 rounded hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
+                      title="Cancelar"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60 group/hdr transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => toggleCategoryCollapsed(group.key)}
+                      className="flex-1 flex items-center gap-2 min-w-0 text-left"
+                    >
+                      <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate">
+                        {group.label}
+                      </h3>
+                      <span className="text-[10.5px] tabular-nums text-muted-foreground/60 font-medium">
+                        {group.spaces.length}
+                      </span>
+                      <span className="flex-1" />
+                      <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
+                    </button>
+                    {group.key !== NO_CATEGORY_KEY && (
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => startRename(group.key, group.label)}
+                          className="p-1 rounded opacity-0 group-hover/hdr:opacity-100 hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground transition-opacity"
+                          title="Editar categoria"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingId(group.key)}
+                          className="p-1 rounded opacity-0 group-hover/hdr:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-opacity"
+                          title="Excluir categoria"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {!isCollapsed && (
                   <div className="divide-y divide-border/60">
@@ -161,6 +247,23 @@ export default function Spaces() {
           onDeleted={() => { setEditingSpace(null); load(); }}
         />
       )}
+
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => { if (!open) setDeletingId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir categoria?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os spaces desta categoria ficarão sem categoria. Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
