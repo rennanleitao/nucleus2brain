@@ -6,6 +6,10 @@ export interface RepositorySource {
   url: string;
   text: string;
   kind: "link" | "text";
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  storagePath?: string;
 }
 
 interface RepositoryPayload {
@@ -71,6 +75,10 @@ export function cleanRepositorySources(sources: RepositorySource[]) {
       url: source.url.trim(),
       text: source.text.trim(),
       kind: source.kind,
+      fileName: source.fileName?.trim() || undefined,
+      fileSize: typeof source.fileSize === "number" ? source.fileSize : undefined,
+      mimeType: source.mimeType?.trim() || undefined,
+      storagePath: source.storagePath?.trim() || undefined,
     }))
     .filter((source) => source.title || source.url || source.text);
 }
@@ -97,6 +105,22 @@ export function getSourceHost(url: string) {
   } catch {
     return "Abrir fonte";
   }
+}
+
+export function isImageSource(source: Pick<RepositorySource, "url" | "mimeType">) {
+  if (source.mimeType?.startsWith("image/")) return true;
+  return /\.(avif|gif|jpe?g|png|webp|svg)(\?|#|$)/i.test(source.url);
+}
+
+export function isPdfSource(source: Pick<RepositorySource, "url" | "mimeType">) {
+  if (source.mimeType === "application/pdf") return true;
+  return /\.pdf(\?|#|$)/i.test(source.url);
+}
+
+export function formatFileSize(size?: number) {
+  if (!size || size < 1) return null;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function parseRepositoryPayload(content?: string | null): RepositoryPayload | null {

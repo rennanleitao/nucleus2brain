@@ -12,8 +12,11 @@ import {
   cleanRepositorySources,
   createEmptyRepositorySource,
   ensureHtml,
+  formatFileSize,
   getPrimarySourceUrl,
   htmlToPlainText,
+  isImageSource,
+  isPdfSource,
   parseRepositorySources,
   serializeRepositorySources,
   type RepositorySource,
@@ -65,7 +68,8 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
 
   const isEvent = kind === "event";
   const hasSummary = isEvent ? summary.trim().length > 0 : htmlToPlainText(summary).length > 0;
-  const canSave = title.trim() && hasSummary && (!isEvent || !!entryDate) && !uploading;
+  const hasRepositorySource = !isEvent && cleanRepositorySources(sources).length > 0;
+  const canSave = title.trim() && (isEvent ? hasSummary && !!entryDate : hasSummary || hasRepositorySource) && !uploading;
 
   const updateSource = (id: string, patch: Partial<RepositorySource>) => {
     setSources((current) => current.map((source) => source.id === id ? { ...source, ...patch } : source));
@@ -98,6 +102,10 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
           kind: "link",
           url: data.publicUrl,
           title: file.name,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type || "application/octet-stream",
+          storagePath: path,
         });
       } else {
         setSourceUrl(data.publicUrl);
@@ -120,7 +128,7 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
       topic_id: topicId,
       kind,
       title: title.trim(),
-      summary: isEvent ? summary.trim() : summary.trim(),
+      summary: isEvent ? summary.trim() : (summary.trim() || "<p></p>"),
       source_url: isEvent ? (sourceUrl.trim() || null) : getPrimarySourceUrl(cleanedSources),
       notes: notes.trim() || null,
       tags: tagArr,
@@ -172,7 +180,7 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <Label>Fontes <span className="font-normal text-muted-foreground">(links, PDFs, apresentações ou texto livre)</span></Label>
+                  <Label>Fontes e anexos <span className="font-normal text-muted-foreground">(links, imagens, PDFs, arquivos ou texto livre)</span></Label>
                   <Button type="button" variant="outline" size="sm" onClick={addSource}>
                     <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar fonte
                   </Button>
@@ -197,13 +205,24 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
                       <Input value={source.title} onChange={(e) => updateSource(source.id, { title: e.target.value })} placeholder="Nome da fonte. Ex.: Relatório McKinsey 2026" />
                       {source.kind === "link" ? (
                         <div className="space-y-2">
-                          <Input value={source.url} onChange={(e) => updateSource(source.id, { url: e.target.value })} placeholder="https://artigo, PDF ou apresentação..." />
+                          <Input value={source.url} onChange={(e) => updateSource(source.id, { url: e.target.value })} placeholder="https://artigo, imagem, PDF ou arquivo..." />
+                          {source.url && isImageSource(source) && (
+                            <div className="overflow-hidden rounded-lg border border-border bg-background">
+                              <img src={source.url} alt={source.title || source.fileName || "Imagem anexada"} className="max-h-48 w-full object-contain" />
+                            </div>
+                          )}
+                          {source.fileName && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {isPdfSource(source) ? "PDF" : source.mimeType?.startsWith("image/") ? "Imagem" : "Arquivo"} anexado: {source.fileName}
+                              {formatFileSize(source.fileSize) && ` · ${formatFileSize(source.fileSize)}`}
+                            </p>
+                          )}
                           <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
                             {uploading && uploadingSourceId === source.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
-                            {uploading && uploadingSourceId === source.id ? "Enviando documento..." : "Ou enviar PDF, Word ou apresentação"}
+                            {uploading && uploadingSourceId === source.id ? "Enviando arquivo..." : "Ou anexar imagem, PDF ou arquivo"}
                             <input
                               type="file"
-                              accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,application/pdf"
+                              accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,application/pdf"
                               className="sr-only"
                               disabled={uploading}
                               onChange={(event) => {
@@ -225,14 +244,14 @@ export function EntryFormDialog({ open, onOpenChange, topicId, entry, defaultKin
           )}
 
           <div className="space-y-1.5">
-            <Label>{isEvent ? "Resumo *" : "Resumo e principais takeaways *"}</Label>
+            <Label>{isEvent ? "Resumo *" : "Resumo e principais takeaways"}</Label>
             {isEvent ? (
               <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={4} placeholder="Sobre o que é este registro" />
             ) : (
               <RichTextEditor
                 content={summary}
                 onChange={setSummary}
-                placeholder="Com suas palavras: por que este conteúdo importa, principais takeaways, citações e como pode ser útil..."
+                placeholder="Opcional quando você só quer anexar um arquivo ou link. Use para registrar takeaways, citações e utilidade."
                 className="[&_.ProseMirror]:min-h-[180px]"
               />
             )}

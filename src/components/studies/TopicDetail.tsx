@@ -18,6 +18,8 @@ import {
   Calendar,
   Copy,
   ExternalLink,
+  File,
+  FileImage,
   FileText,
   Link2,
   Maximize2,
@@ -26,7 +28,7 @@ import {
   NotebookPen,
   Pencil,
   Plus,
-  
+  Paperclip,
   Search,
   Sparkles,
   Trash2,
@@ -46,7 +48,15 @@ import {
 import { RichTextEditor } from "@/components/RichTextEditor";
 
 import { formatRelative } from "@/lib/studyDate";
-import { ensureHtml, getSourceHost, htmlToPlainText, parseRepositorySources } from "@/lib/studyRepository";
+import {
+  ensureHtml,
+  formatFileSize,
+  getSourceHost,
+  htmlToPlainText,
+  isImageSource,
+  isPdfSource,
+  parseRepositorySources,
+} from "@/lib/studyRepository";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { EntryAIAssist } from "./EntryAIAssist";
@@ -194,7 +204,7 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
 
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               <Button size="sm" onClick={() => openEntry("knowledge")}>
-                <BookOpen className="mr-1.5 h-3.5 w-3.5" /> Adicionar ao repositório
+                <Paperclip className="mr-1.5 h-3.5 w-3.5" /> Anexar ao tema
               </Button>
               <Button variant="outline" size="sm" onClick={() => setNoteDialog({ open: true })}>
                 <NotebookPen className="mr-1.5 h-3.5 w-3.5" /> Nova anotação
@@ -373,7 +383,7 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">Repositório</h2>
-          <p className="text-sm text-muted-foreground">{entries.length} {entries.length === 1 ? "item" : "itens"}</p>
+          <p className="text-sm text-muted-foreground">{entries.length} {entries.length === 1 ? "item" : "itens"} com links, imagens, PDFs e referências.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative sm:w-72">
@@ -381,7 +391,7 @@ function LibraryTab({ topic, entries, onAdd, onEdit, onMove, onDuplicate, onDele
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar no repositório..." className="pl-9" />
           </div>
           <Button onClick={onAdd}>
-            <Plus className="mr-1.5 h-4 w-4" /> Adicionar conteúdo
+            <Paperclip className="mr-1.5 h-4 w-4" /> Anexar conteúdo
           </Button>
         </div>
       </div>
@@ -677,13 +687,28 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
             {hasSources ? sources.map((source) => (
               <div key={source.id} className="rounded-lg border border-border bg-background/60 p-4">
                 <div className="mb-1.5 flex items-center gap-2 text-sm font-medium">
-                  {source.kind === "link" ? <Link2 className="h-3.5 w-3.5 text-primary" /> : <FileText className="h-3.5 w-3.5 text-primary" />}
+                  <SourceIcon source={source} />
                   <span className="min-w-0 truncate">{source.title || (source.url ? getSourceHost(source.url) : "Texto livre")}</span>
                 </div>
                 {source.url ? (
-                  <a href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-start gap-1.5 break-all text-xs text-primary hover:underline">
-                    <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" /> {source.url}
-                  </a>
+                  <div className="space-y-3">
+                    {isImageSource(source) && (
+                      <a href={source.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-border bg-muted/20">
+                        <img src={source.url} alt={source.title || source.fileName || "Imagem anexada"} className="max-h-80 w-full object-contain" />
+                      </a>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-start gap-1.5 break-all text-xs text-primary hover:underline">
+                        <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" /> {source.fileName || source.url}
+                      </a>
+                      {source.fileName && (
+                        <Badge variant="outline" className="text-[10px] font-normal">
+                          {isPdfSource(source) ? "PDF" : isImageSource(source) ? "Imagem" : "Arquivo"}
+                          {formatFileSize(source.fileSize) && ` · ${formatFileSize(source.fileSize)}`}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 ) : source.text ? (
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{source.text}</p>
                 ) : (
@@ -707,6 +732,13 @@ function KnowledgeCard({ topic, entry, onEdit, onMove, onDuplicate, onDelete }: 
       </div>
     </article>
   );
+}
+
+function SourceIcon({ source }: { source: ReturnType<typeof parseRepositorySources>[number] }) {
+  if (isImageSource(source)) return <FileImage className="h-3.5 w-3.5 text-primary" />;
+  if (isPdfSource(source) || source.fileName) return <File className="h-3.5 w-3.5 text-primary" />;
+  if (source.kind === "link") return <Link2 className="h-3.5 w-3.5 text-primary" />;
+  return <FileText className="h-3.5 w-3.5 text-primary" />;
 }
 
 
@@ -754,5 +786,3 @@ function SectionEyebrow({
     </div>
   );
 }
-
-
