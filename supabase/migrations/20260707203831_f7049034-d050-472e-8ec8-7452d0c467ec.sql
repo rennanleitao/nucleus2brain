@@ -1,0 +1,1 @@
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS execution_complexity TEXT CHECK (execution_complexity IN ('easy','medium','hard'));
