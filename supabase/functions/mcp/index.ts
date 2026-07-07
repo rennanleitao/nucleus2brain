@@ -2135,6 +2135,7 @@ const buildServer = (ctx: Ctx) => {
       description: z.string().optional(),
       due_date: z.string().optional(),
       priority: z.enum(["low","medium","high","urgent"]).optional(),
+      execution_complexity: z.enum(["easy","medium","hard"]).nullable().optional(),
     }),
     handler: async (input) => {
       const { data: note, error: nErr } = await db.from("notes").select("space_id,tags").eq("id", input.note_id).single();
@@ -2145,6 +2146,7 @@ const buildServer = (ctx: Ctx) => {
         description: input.description ?? null,
         due_date: input.due_date ?? null,
         priority: input.priority ?? "medium",
+        execution_complexity: input.execution_complexity ?? null,
         status: "todo",
         note_id: input.note_id,
         space_id: note?.space_id ?? null,
