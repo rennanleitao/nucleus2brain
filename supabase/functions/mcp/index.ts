@@ -617,15 +617,17 @@ const buildServer = (ctx: Ctx) => {
   // ---------- TASKS ----------
   const taskStatus = z.enum(["todo", "in_progress", "done", "cancelled"]).optional();
   const taskPriority = z.enum(["low", "medium", "high", "urgent"]).optional();
+  const taskComplexity = z.enum(["easy", "medium", "hard"]).nullable().optional();
 
   s.tool("create_task", {
-        description: "Create a new task. due_date is an ISO date (YYYY-MM-DD).",
+        description: "Create a new task. due_date is an ISO date (YYYY-MM-DD). execution_complexity is the estimated effort/difficulty (easy|medium|hard).",
     inputSchema: z.object({
       title: z.string().min(1).max(500),
       description: z.string().optional(),
       due_date: z.string().optional(),
       status: taskStatus,
       priority: taskPriority,
+      execution_complexity: taskComplexity,
       note_id: z.string().uuid().nullable().optional(),
       space_id: z.string().uuid().nullable().optional(),
       tag: z.string().nullable().optional(),
@@ -638,6 +640,7 @@ const buildServer = (ctx: Ctx) => {
         due_date: input.due_date,
         status: input.status ?? "todo",
         priority: input.priority ?? "medium",
+        execution_complexity: input.execution_complexity ?? null,
         note_id: input.note_id ?? null,
         space_id: input.space_id ?? null,
         tag: input.tag ?? null,
@@ -648,7 +651,7 @@ const buildServer = (ctx: Ctx) => {
   });
 
   s.tool("update_task", {
-        description: "Update fields of a task. Pass only fields you want to change.",
+        description: "Update fields of a task. Pass only fields you want to change. execution_complexity: easy|medium|hard or null to clear.",
     inputSchema: z.object({
       id: z.string().uuid(),
       title: z.string().min(1).max(500).optional(),
@@ -656,6 +659,7 @@ const buildServer = (ctx: Ctx) => {
       due_date: z.string().nullable().optional(),
       status: taskStatus,
       priority: taskPriority,
+      execution_complexity: taskComplexity,
       note_id: z.string().uuid().nullable().optional(),
       space_id: z.string().uuid().nullable().optional(),
       tag: z.string().nullable().optional(),
@@ -663,7 +667,7 @@ const buildServer = (ctx: Ctx) => {
     }),
     handler: async (input) => {
       const patch: Record<string, unknown> = {};
-      for (const k of ["title","description","due_date","status","priority","note_id","space_id","tag","completed_at"] as const) {
+      for (const k of ["title","description","due_date","status","priority","execution_complexity","note_id","space_id","tag","completed_at"] as const) {
         if (input[k] !== undefined) patch[k] = input[k];
       }
       if (patch.status === "done" && !("completed_at" in patch)) {
@@ -674,6 +678,7 @@ const buildServer = (ctx: Ctx) => {
       return ok(data);
     },
   });
+
 
   s.tool("delete_task", {
         description: "Soft-delete a task (sets deleted_at, purged after 1 day).",
