@@ -673,7 +673,7 @@ const buildServer = (ctx: Ctx) => {
       for (const k of ["title","description","due_date","status","priority","execution_complexity","note_id","space_id","tag","completed_at"] as const) {
         if (input[k] !== undefined) patch[k] = input[k];
       }
-      if (patch.status === "done" && !("completed_at" in patch)) {
+      if (patch.status === "completed" && !("completed_at" in patch)) {
         patch.completed_at = new Date().toISOString();
       }
       const { data, error } = await db.from("tasks").update(patch).eq("id", input.id).select().single();
