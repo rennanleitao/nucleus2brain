@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, Mic, MicOff, Pause, Play, Send, Square, User, Volume2, VolumeX } from "lucide-react";
+import { Bot, CalendarClock, ClipboardList, AlertTriangle, ListChecks, BarChart3, RefreshCw, Mic, MicOff, Pause, Play, Send, Square, User, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchTasks, fetchSpaces, createTask } from "@/lib/api";
 import { toast } from "sonner";
@@ -18,11 +18,21 @@ interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
+const QUICK_ACTIONS = [
+  { id: "plan", icon: CalendarClock, label: "Planejar meu dia", prompt: "Monte um plano objetivo para hoje considerando minhas tarefas pendentes, prazos e eventos do calendário. Seja direta, priorize o essencial e sugira horários." },
+  { id: "today", icon: ClipboardList, label: "Tarefas de hoje", prompt: "Liste de forma objetiva as tarefas previstas para hoje, agrupadas por prioridade. Sem enrolação." },
+  { id: "overdue", icon: AlertTriangle, label: "Atrasadas", prompt: "Liste minhas tarefas atrasadas e me pergunte, uma a uma ou em bloco, se quero repriorizar, reagendar ou cancelar. Seja direta." },
+  { id: "reprioritize", icon: ListChecks, label: "Repriorizar", prompt: "Analise minhas tarefas abertas e me sugira uma nova ordem de prioridade para o restante do dia. Justifique brevemente cada mudança." },
+  { id: "balance", icon: BarChart3, label: "Balanço do dia", prompt: "Faça um balanço objetivo do meu dia até agora: o que foi concluído, o que ficou pendente e o que devo levar para amanhã." },
+  { id: "reschedule", icon: RefreshCw, label: "Reprogramar", prompt: "Sugira uma reprogramação inteligente das tarefas que não caberão hoje, distribuindo pelos próximos dias conforme prioridade e prazo." },
+];
+
 export default function Assistant() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
-    { id: "1", role: "assistant", content: "Olá! Sou Helena, sua assistente do Nucleus. Posso criar tarefas, priorizar seu trabalho e ajudar na produtividade. O que você gostaria de fazer?" },
+    { id: "1", role: "assistant", content: "Olá! Sou Helena, sua assistente executiva. Escolha uma ação rápida abaixo ou me diga o que precisa." },
   ]);
+
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
