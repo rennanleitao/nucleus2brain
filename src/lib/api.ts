@@ -84,15 +84,10 @@ type NoteRow = Database["public"]["Tables"]["notes"]["Row"];
 type NoteInsert = Database["public"]["Tables"]["notes"]["Insert"];
 type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 
-function isMissingExecutionComplexityColumnError(error: unknown) {
-  const message = error instanceof Error ? error.message : String((error as any)?.message || error || "");
-  return message.includes("execution_complexity") && message.includes("schema cache");
-}
+// (previously we stripped `execution_complexity` silently when the PostgREST
+// schema cache didn't know about it — that made saves appear successful while
+// discarding the value. The column exists in the DB, so we now fail loudly.)
 
-function withoutExecutionComplexity<T extends Record<string, unknown>>(payload: T) {
-  const { execution_complexity, ...rest } = payload as T & { execution_complexity?: unknown };
-  return rest;
-}
 
 // ---- TASKS ----
 export async function fetchTasks() {
