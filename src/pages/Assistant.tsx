@@ -373,7 +373,25 @@ export default function Assistant() {
 
       <form onSubmit={sendMessage} className="p-4 border-t border-border">
         <div className="max-w-2xl mx-auto space-y-2">
+          {messages.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+              {QUICK_ACTIONS.map(({ id, icon: Icon, label, prompt }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => sendMessageText(prompt)}
+                  disabled={isLoading}
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-muted transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-40"
+                  title={label}
+                >
+                  <Icon className="h-3.5 w-3.5 text-primary" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           {speechInput.isListening && (
+
             <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-small text-foreground">
               <span className="font-medium text-primary">Ouvindo:</span>{" "}
               {speechInput.transcript || <span className="text-muted-foreground">fale agora...</span>}
