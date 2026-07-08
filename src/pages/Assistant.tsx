@@ -349,9 +349,27 @@ export default function Assistant() {
               </div>
             </div>
           )}
+          {messages.length <= 1 && !isLoading && (
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              {QUICK_ACTIONS.map(({ id, icon: Icon, label, prompt }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => sendMessageText(prompt)}
+                  className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-3 text-left text-sm text-foreground hover:border-primary/40 hover:bg-muted transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="font-medium leading-tight">{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div ref={bottomRef} />
         </div>
       </div>
+
 
       <form onSubmit={sendMessage} className="p-4 border-t border-border">
         <div className="max-w-2xl mx-auto space-y-2">
