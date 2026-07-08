@@ -1072,11 +1072,11 @@ const buildServer = (ctx: Ctx) => {
   });
 
   s.tool("complete_task", {
-        description: "Mark a task as done (sets status='done' and completed_at=now).",
+        description: "Mark a task as completed (sets status='completed' and completed_at=now).",
     inputSchema: z.object({ id: z.string().uuid() }),
     handler: async (input) => {
       const { data, error } = await db.from("tasks")
-        .update({ status: "done", completed_at: new Date().toISOString() })
+        .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("id", input.id).select().single();
       if (error) return fail(error.message);
       return ok(data);
