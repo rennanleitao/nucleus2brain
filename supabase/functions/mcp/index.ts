@@ -952,7 +952,7 @@ const buildServer = (ctx: Ctx) => {
       (tasks ?? []).forEach((t: { status: string }) => { byStatus[t.status] = (byStatus[t.status] ?? 0) + 1; });
       const today = new Date().toISOString().slice(0, 10);
       const overdue = (tasks ?? []).filter((t: { due_date: string | null; status: string }) =>
-        t.due_date && t.due_date < today && t.status !== "done").length;
+        t.due_date && t.due_date < today && t.status !== "completed").length;
       const completedLast7d = (tasks ?? []).filter((t: { completed_at: string | null }) =>
         t.completed_at && t.completed_at >= sevenDaysAgo).length;
       return ok({
@@ -2026,9 +2026,9 @@ const buildServer = (ctx: Ctx) => {
       const today = `${parts.find(p=>p.type==="year")!.value}-${parts.find(p=>p.type==="month")!.value}-${parts.find(p=>p.type==="day")!.value}`;
       const sevenAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
       const [todayT, overdue, recentDone, todayNotes, newKnowledge] = await Promise.all([
-        db.from("tasks").select("id,title,status,due_date,priority,space_id").is("deleted_at", null).eq("due_date", today).neq("status","done"),
-        db.from("tasks").select("id,title,status,due_date,priority,space_id").is("deleted_at", null).lt("due_date", today).neq("status","done").order("due_date"),
-        db.from("tasks").select("id,title,completed_at").gte("completed_at", sevenAgo).eq("status","done").order("completed_at",{ascending:false}).limit(20),
+        db.from("tasks").select("id,title,status,due_date,priority,space_id").is("deleted_at", null).eq("due_date", today).neq("status","completed"),
+        db.from("tasks").select("id,title,status,due_date,priority,space_id").is("deleted_at", null).lt("due_date", today).neq("status","completed").order("due_date"),
+        db.from("tasks").select("id,title,completed_at").gte("completed_at", sevenAgo).eq("status","completed").order("completed_at",{ascending:false}).limit(20),
         db.from("notes").select("id,title,updated_at").gte("updated_at", `${today}T00:00:00Z`).order("updated_at",{ascending:false}).limit(20),
         db.from("study_entries").select("id,topic_id,kind,title,created_at").gte("created_at", sevenAgo).order("created_at",{ascending:false}).limit(20),
       ]);
@@ -2235,8 +2235,8 @@ const buildServer = (ctx: Ctx) => {
       const v = input.query ? input.query.replace(/[,()]/g, " ") : null;
       const [spaces, tasksToday, overdue, notes, topics] = await Promise.all([
         db.from("spaces").select("id,name,description").order("updated_at",{ascending:false}).limit(lim),
-        db.from("tasks").select("id,title,due_date,status,priority,space_id").is("deleted_at", null).eq("due_date", today).neq("status","done").limit(lim),
-        db.from("tasks").select("id,title,due_date,status,priority,space_id").is("deleted_at", null).lt("due_date", today).neq("status","done").order("due_date").limit(lim),
+        db.from("tasks").select("id,title,due_date,status,priority,space_id").is("deleted_at", null).eq("due_date", today).neq("status","completed").limit(lim),
+        db.from("tasks").select("id,title,due_date,status,priority,space_id").is("deleted_at", null).lt("due_date", today).neq("status","completed").order("due_date").limit(lim),
         v ? db.from("notes").select("id,title,updated_at").or(`title.ilike.%${v}%,content.ilike.%${v}%`).limit(lim)
           : db.from("notes").select("id,title,updated_at").order("updated_at",{ascending:false}).limit(lim),
         db.from("study_topics").select("id,title,area_id,last_updated_at").order("last_updated_at",{ascending:false,nullsFirst:false}).limit(lim),
