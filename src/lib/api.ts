@@ -121,44 +121,26 @@ export async function createTask(task: Omit<TaskInsert, "user_id">) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const payload = { ...task, user_id: user.id };
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("tasks")
     .insert(payload)
     .select("*, spaces(name)")
     .single();
-  if (error && isMissingExecutionComplexityColumnError(error)) {
-    const retry = await supabase
-      .from("tasks")
-      .insert(withoutExecutionComplexity(payload))
-      .select("*, spaces(name)")
-      .single();
-    data = retry.data;
-    error = retry.error;
-  }
   if (error) throw error;
   return data;
 }
 
 export async function updateTask(id: string, updates: TaskUpdate) {
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("tasks")
     .update(updates)
     .eq("id", id)
     .select("*, spaces(name)")
     .single();
-  if (error && isMissingExecutionComplexityColumnError(error)) {
-    const retry = await supabase
-      .from("tasks")
-      .update(withoutExecutionComplexity(updates as Record<string, unknown>) as TaskUpdate)
-      .eq("id", id)
-      .select("*, spaces(name)")
-      .single();
-    data = retry.data;
-    error = retry.error;
-  }
   if (error) throw error;
   return data;
 }
+
 
 /**
  * Generate the next occurrence of a recurring task.
