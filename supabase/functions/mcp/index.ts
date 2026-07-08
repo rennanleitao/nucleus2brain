@@ -615,7 +615,10 @@ const buildServer = (ctx: Ctx) => {
   });
 
   // ---------- TASKS ----------
-  const taskStatus = z.enum(["todo", "in_progress", "done", "cancelled"]).optional();
+  // Accept "done" as an alias for "completed" for backward compatibility, then normalize below.
+  const taskStatus = z.enum(["todo", "in_progress", "completed", "done", "cancelled"])
+    .transform((v) => (v === "done" ? "completed" : v))
+    .optional();
   const taskPriority = z.enum(["low", "medium", "high", "urgent"]).optional();
   const taskComplexity = z.enum(["easy", "medium", "hard"]).nullable().optional();
 
