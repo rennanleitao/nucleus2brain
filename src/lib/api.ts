@@ -84,15 +84,10 @@ type NoteRow = Database["public"]["Tables"]["notes"]["Row"];
 type NoteInsert = Database["public"]["Tables"]["notes"]["Insert"];
 type NoteUpdate = Database["public"]["Tables"]["notes"]["Update"];
 
-function isMissingExecutionComplexityColumnError(error: unknown) {
-  const message = error instanceof Error ? error.message : String((error as any)?.message || error || "");
-  return message.includes("execution_complexity") && message.includes("schema cache");
-}
+// (previously we stripped `execution_complexity` silently when the PostgREST
+// schema cache didn't know about it — that made saves appear successful while
+// discarding the value. The column exists in the DB, so we now fail loudly.)
 
-function withoutExecutionComplexity<T extends Record<string, unknown>>(payload: T) {
-  const { execution_complexity, ...rest } = payload as T & { execution_complexity?: unknown };
-  return rest;
-}
 
 // ---- TASKS ----
 export async function fetchTasks() {
@@ -126,44 +121,26 @@ export async function createTask(task: Omit<TaskInsert, "user_id">) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
   const payload = { ...task, user_id: user.id };
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("tasks")
     .insert(payload)
     .select("*, spaces(name)")
     .single();
-  if (error && isMissingExecutionComplexityColumnError(error)) {
-    const retry = await supabase
-      .from("tasks")
-      .insert(withoutExecutionComplexity(payload))
-      .select("*, spaces(name)")
-      .single();
-    data = retry.data;
-    error = retry.error;
-  }
   if (error) throw error;
   return data;
 }
 
 export async function updateTask(id: string, updates: TaskUpdate) {
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("tasks")
     .update(updates)
     .eq("id", id)
     .select("*, spaces(name)")
     .single();
-  if (error && isMissingExecutionComplexityColumnError(error)) {
-    const retry = await supabase
-      .from("tasks")
-      .update(withoutExecutionComplexity(updates as Record<string, unknown>) as TaskUpdate)
-      .eq("id", id)
-      .select("*, spaces(name)")
-      .single();
-    data = retry.data;
-    error = retry.error;
-  }
   if (error) throw error;
   return data;
 }
+
 
 /**
  * Generate the next occurrence of a recurring task.
