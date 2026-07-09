@@ -70,9 +70,10 @@ function AppRoutes() {
         <Route path="/materials" element={<MaterialsPage />} />
         <Route path="/assistant" element={<Assistant />} />
         <Route path="/estudos" element={<Studies />} />
-        <Route path="/reunioes" element={<MeetingCopilot />} />
+        <Route path="/reunioes" element={<MeetingsHome />} />
+        <Route path="/reunioes/nova" element={<MeetingCopilot />} />
         <Route path="/reunioes/:sessionId" element={<MeetingCopilot />} />
-        <Route path="/meeting-copilot" element={<MeetingCopilot />} />
+        <Route path="/meeting-copilot" element={<MeetingsHome />} />
             <Route path="/import" element={<ImportPage />} />
             
             <Route path="/settings" element={<SettingsPage />} />
