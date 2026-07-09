@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code, FilePlus,
-  Table as TableIcon, Link2, ChevronRight,
+  Table as TableIcon, Link2, ChevronRight, Paperclip,
 } from "lucide-react";
 import { TableFiltersPanel } from "@/components/editor/TableFiltersPanel";
 import { Iframe } from "@/components/editor/IframeExtension";
@@ -93,6 +93,35 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       toast.error("Erro ao enviar imagem: " + err.message);
     }
   }, []);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    try {
+      if (file.type.startsWith("image/")) {
+        return handleImageUpload(file);
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Faça login para enviar arquivos"); return; }
+      const toastId = toast.loading(`Enviando ${file.name}...`);
+      const path = `${user.id}/notes/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+      });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+      const safeName = file.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const html = `<p><a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" download="${safeName}" data-attachment="true" class="note-attachment">📎 ${safeName} <span class="text-xs text-muted-foreground">(${formatBytes(file.size)})</span></a></p>`;
+      editorRef.current?.chain().focus().insertContent(html).run();
+      toast.success("Arquivo anexado", { id: toastId });
+    } catch (err: any) {
+      toast.error("Erro ao enviar arquivo: " + err.message);
+    }
+  }, [handleImageUpload]);
 
   // Stable suggestion config – created once
   const suggestionRef = useRef(
@@ -188,19 +217,20 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
             return true;
           }
         }
+        const files = event.clipboardData?.files;
+        if (files && files.length > 0) {
+          event.preventDefault();
+          for (const file of Array.from(files)) handleFileUpload(file);
+          return true;
+        }
         return false;
       },
       handleDrop: (_view, event) => {
         const files = event.dataTransfer?.files;
         if (!files?.length) return false;
-        for (const file of Array.from(files)) {
-          if (file.type.startsWith("image/")) {
-            event.preventDefault();
-            handleImageUpload(file);
-            return true;
-          }
-        }
-        return false;
+        event.preventDefault();
+        for (const file of Array.from(files)) handleFileUpload(file);
+        return true;
       },
       handleClick: (_view, _pos, event) => {
         // Handle note mention clicks
@@ -461,6 +491,18 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           input.click();
         }} title="Inserir imagem">
           <ImageIcon className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.multiple = true;
+          input.onchange = (e) => {
+            const files = (e.target as HTMLInputElement).files;
+            if (files) Array.from(files).forEach((f) => handleFileUpload(f));
+          };
+          input.click();
+        }} title="Anexar arquivo">
+          <Paperclip className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
