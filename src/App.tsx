@@ -28,6 +28,7 @@ import ChatGPTIntegration from "./pages/ChatGPTIntegration";
 import OAuthAuthorize from "./pages/OAuthAuthorize";
 import Studies from "./pages/Studies";
 import MeetingCopilot from "./pages/MeetingCopilot";
+import MeetingsHome from "./pages/MeetingsHome";
 
 
 const queryClient = new QueryClient();
