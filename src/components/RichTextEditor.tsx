@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import {
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3,
   List, ListOrdered, CheckSquare, Minus, Highlighter, Quote, Undo, Redo, ImageIcon, Code, FilePlus,
-  Table as TableIcon, Link2, ChevronRight,
+  Table as TableIcon, Link2, ChevronRight, Paperclip,
 } from "lucide-react";
 import { TableFiltersPanel } from "@/components/editor/TableFiltersPanel";
 import { Iframe } from "@/components/editor/IframeExtension";
