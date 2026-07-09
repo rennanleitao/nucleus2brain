@@ -217,19 +217,20 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
             return true;
           }
         }
+        const files = event.clipboardData?.files;
+        if (files && files.length > 0) {
+          event.preventDefault();
+          for (const file of Array.from(files)) handleFileUpload(file);
+          return true;
+        }
         return false;
       },
       handleDrop: (_view, event) => {
         const files = event.dataTransfer?.files;
         if (!files?.length) return false;
-        for (const file of Array.from(files)) {
-          if (file.type.startsWith("image/")) {
-            event.preventDefault();
-            handleImageUpload(file);
-            return true;
-          }
-        }
-        return false;
+        event.preventDefault();
+        for (const file of Array.from(files)) handleFileUpload(file);
+        return true;
       },
       handleClick: (_view, _pos, event) => {
         // Handle note mention clicks
