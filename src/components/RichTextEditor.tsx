@@ -94,6 +94,35 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     }
   }, []);
 
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    try {
+      if (file.type.startsWith("image/")) {
+        return handleImageUpload(file);
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Faça login para enviar arquivos"); return; }
+      const toastId = toast.loading(`Enviando ${file.name}...`);
+      const path = `${user.id}/notes/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file, {
+        contentType: file.type || "application/octet-stream",
+      });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+      const safeName = file.name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const html = `<p><a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" download="${safeName}" data-attachment="true" class="note-attachment">📎 ${safeName} <span class="text-xs text-muted-foreground">(${formatBytes(file.size)})</span></a></p>`;
+      editorRef.current?.chain().focus().insertContent(html).run();
+      toast.success("Arquivo anexado", { id: toastId });
+    } catch (err: any) {
+      toast.error("Erro ao enviar arquivo: " + err.message);
+    }
+  }, [handleImageUpload]);
+
   // Stable suggestion config – created once
   const suggestionRef = useRef(
     createNoteMentionSuggestion(async () => {
