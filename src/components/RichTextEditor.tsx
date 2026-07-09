@@ -492,6 +492,18 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         }} title="Inserir imagem">
           <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
+        <ToolbarButton onClick={() => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.multiple = true;
+          input.onchange = (e) => {
+            const files = (e.target as HTMLInputElement).files;
+            if (files) Array.from(files).forEach((f) => handleFileUpload(f));
+          };
+          input.click();
+        }} title="Anexar arquivo">
+          <Paperclip className="h-3.5 w-3.5" />
+        </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
           title="Inserir tabela"
