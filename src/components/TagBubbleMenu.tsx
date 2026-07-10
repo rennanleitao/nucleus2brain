@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { marked } from "marked";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
-import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw, ListTodo } from "lucide-react";
+import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw, ListTodo, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { createTaggedSnippet, fetchAllTags } from "@/lib/api";
+import { newTopicId } from "@/lib/noteEntries";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
@@ -302,6 +303,27 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
         >
           <ListTodo className="h-3 w-3" />
           Task
+        </Button>
+
+        {/* Divider */}
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        {/* Mark as topic button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs px-2 hover:bg-accent"
+          title="Marcar trecho como tópico importante"
+          onClick={() => {
+            const { from, to } = editor.state.selection;
+            if (from === to) return;
+            const id = newTopicId();
+            editor.chain().focus().setMark("highlight", { dataTopic: id }).run();
+            toast.success("Tópico marcado");
+          }}
+        >
+          <Sparkles className="h-3 w-3" />
+          Tópico
         </Button>
       </BubbleMenu>
 

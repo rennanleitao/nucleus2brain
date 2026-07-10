@@ -2,6 +2,23 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
+
+// Extend the Highlight mark so it can carry a stable topic id. When a user
+// marks a snippet as a "topic", we attach `data-topic="topic-…"` (also
+// mirrored to `id`) so the date/topic sidebar can list and jump to it.
+const TopicHighlight = Highlight.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      dataTopic: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute("data-topic"),
+        renderHTML: (attrs: { dataTopic?: string | null }) =>
+          attrs.dataTopic ? { "data-topic": attrs.dataTopic, id: attrs.dataTopic } : {},
+      },
+    };
+  },
+});
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Image from "@tiptap/extension-image";
@@ -64,6 +81,7 @@ export interface RichTextEditorHandle {
   setHtml: (html: string) => void;
   insertDateEntry: (date: string) => void;
   scrollToEntry: (date: string) => void;
+  removeTopic: (topicId: string) => void;
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
@@ -141,7 +159,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       }),
       DateHeading.configure({ levels: [1, 2, 3] }),
       Placeholder.configure({ placeholder }),
-      Highlight.configure({ multicolor: false }),
+      TopicHighlight.configure({ multicolor: false }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: true }),
@@ -371,6 +389,27 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     scrollToEntry: (date: string) => {
       const el = editorContainerRef.current?.querySelector<HTMLElement>(`#${CSS.escape(entryIdForDate(date))}`);
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    removeTopic: (topicId: string) => {
+      if (!editor) return;
+      // Walk the doc, find highlight marks with this dataTopic and strip them.
+      const tr = editor.state.tr;
+      const markType = editor.schema.marks.highlight;
+      if (!markType) return;
+      let changed = false;
+      editor.state.doc.descendants((node, pos) => {
+        if (!node.isText) return;
+        node.marks.forEach((mark) => {
+          if (mark.type === markType && mark.attrs?.dataTopic === topicId) {
+            tr.removeMark(pos, pos + node.nodeSize, mark);
+            changed = true;
+          }
+        });
+      });
+      if (changed) {
+        editor.view.dispatch(tr);
+        onChange(editor.getHTML());
+      }
     },
   }), [editor, onChange]);
 

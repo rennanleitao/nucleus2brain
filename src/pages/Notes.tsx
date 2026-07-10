@@ -1051,6 +1051,7 @@ export default function Notes() {
                         html={editContent}
                         scrollContainer={editorScrollRef.current}
                         onJump={handleJumpToDate}
+                        onRemoveTopic={(id) => editorRef.current?.removeTopic(id)}
                       />
                     </aside>
                   ) : (
