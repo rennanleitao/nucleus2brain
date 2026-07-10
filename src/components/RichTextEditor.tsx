@@ -158,7 +158,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       }),
       DateHeading.configure({ levels: [1, 2, 3] }),
       Placeholder.configure({ placeholder }),
-      Highlight.configure({ multicolor: false }),
+      TopicHighlight.configure({ multicolor: false }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: true }),
