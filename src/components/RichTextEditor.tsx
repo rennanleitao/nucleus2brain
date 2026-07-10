@@ -390,6 +390,27 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       const el = editorContainerRef.current?.querySelector<HTMLElement>(`#${CSS.escape(entryIdForDate(date))}`);
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
+    removeTopic: (topicId: string) => {
+      if (!editor) return;
+      // Walk the doc, find highlight marks with this dataTopic and strip them.
+      const tr = editor.state.tr;
+      const markType = editor.schema.marks.highlight;
+      if (!markType) return;
+      let changed = false;
+      editor.state.doc.descendants((node, pos) => {
+        if (!node.isText) return;
+        node.marks.forEach((mark) => {
+          if (mark.type === markType && mark.attrs?.dataTopic === topicId) {
+            tr.removeMark(pos, pos + node.nodeSize, mark);
+            changed = true;
+          }
+        });
+      });
+      if (changed) {
+        editor.view.dispatch(tr);
+        onChange(editor.getHTML());
+      }
+    },
   }), [editor, onChange]);
 
   useEffect(() => {
