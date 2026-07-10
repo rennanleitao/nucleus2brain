@@ -304,6 +304,27 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
           <ListTodo className="h-3 w-3" />
           Task
         </Button>
+
+        {/* Divider */}
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        {/* Mark as topic button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs px-2 hover:bg-accent"
+          title="Marcar trecho como tópico importante"
+          onClick={() => {
+            const { from, to } = editor.state.selection;
+            if (from === to) return;
+            const id = newTopicId();
+            editor.chain().focus().setMark("highlight", { dataTopic: id }).run();
+            toast.success("Tópico marcado");
+          }}
+        >
+          <Sparkles className="h-3 w-3" />
+          Tópico
+        </Button>
       </BubbleMenu>
 
       {/* AI Preview Dialog */}
