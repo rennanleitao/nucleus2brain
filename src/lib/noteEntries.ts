@@ -7,6 +7,33 @@ export interface NoteEntry {
   snippet: string;
 }
 
+export interface NoteTopic {
+  id: string;
+  text: string;
+}
+
+// Parse topics: <mark data-topic="topic-...">…</mark> injected via the
+// "Criar tópico" bubble action.
+export function parseNoteTopics(html: string): NoteTopic[] {
+  if (!html || typeof window === "undefined") return [];
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const marks = Array.from(doc.querySelectorAll("mark[data-topic]"));
+  const seen = new Set<string>();
+  const topics: NoteTopic[] = [];
+  marks.forEach((m) => {
+    const id = m.getAttribute("data-topic") || "";
+    const text = (m.textContent || "").replace(/\s+/g, " ").trim();
+    if (!id || !text || seen.has(id)) return;
+    seen.add(id);
+    topics.push({ id, text: text.slice(0, 120) });
+  });
+  return topics;
+}
+
+export function newTopicId(): string {
+  return `topic-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
 const DATE_ATTR = "data-entry-date";
 
 export function entryIdForDate(date: string): string {
