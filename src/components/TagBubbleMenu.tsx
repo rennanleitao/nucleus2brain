@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { createTaggedSnippet, fetchAllTags } from "@/lib/api";
+import { newTopicId } from "@/lib/noteEntries";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
