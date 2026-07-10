@@ -2,6 +2,23 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
+
+// Extend the Highlight mark so it can carry a stable topic id. When a user
+// marks a snippet as a "topic", we attach `data-topic="topic-…"` (also
+// mirrored to `id`) so the date/topic sidebar can list and jump to it.
+const TopicHighlight = Highlight.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      dataTopic: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute("data-topic"),
+        renderHTML: (attrs: { dataTopic?: string | null }) =>
+          attrs.dataTopic ? { "data-topic": attrs.dataTopic, id: attrs.dataTopic } : {},
+      },
+    };
+  },
+});
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Image from "@tiptap/extension-image";
