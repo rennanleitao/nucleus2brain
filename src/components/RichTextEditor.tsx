@@ -250,6 +250,26 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         for (const file of Array.from(files)) handleFileUpload(file);
         return true;
       },
+      handleKeyDown: (view, event) => {
+        if (event.key !== "Enter" || event.shiftKey || event.isComposing) return false;
+        const { $from, empty } = view.state.selection;
+        if (!empty) return false;
+        const parent = $from.parent;
+        if (parent.type.name !== "paragraph") return false;
+        const text = parent.textContent.trim();
+        const iso = parseFlexibleDate(text);
+        if (!iso) return false;
+        event.preventDefault();
+        const paraStart = $from.before($from.depth);
+        const paraEnd = $from.after($from.depth);
+        editorRef.current
+          ?.chain()
+          .focus()
+          .deleteRange({ from: paraStart, to: paraEnd })
+          .insertContentAt(paraStart, buildDateEntryHtml(iso))
+          .run();
+        return true;
+      },
       handleClick: (_view, _pos, event) => {
         // Handle note mention clicks
         const target = event.target as HTMLElement;
