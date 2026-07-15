@@ -127,18 +127,29 @@ export function TasksByOwnerView(props: Props) {
     return { mine, others };
   };
 
+  const filterGroupByOwner = (g: Group, owner: "mine" | "others"): Group => {
+    const pick = (arr: any[]) => splitByOwner(arr)[owner];
+    const filteredTasks = pick(g.tasks);
+    const subgroups = g.subgroups
+      ? g.subgroups
+          .map(sg => ({ ...sg, tasks: pick(sg.tasks) }))
+          .filter(sg => sg.tasks.length > 0)
+      : undefined;
+    return { ...g, tasks: filteredTasks, subgroups };
+  };
+
   const columnData = useMemo(() => {
     if (groups && groups.length > 0) {
-      const mineGroups = groups.map(g => ({ label: g.label, accent: g.accent, tasks: splitByOwner(g.tasks).mine }));
-      const othersGroups = groups.map(g => ({ label: g.label, accent: g.accent, tasks: splitByOwner(g.tasks).others }));
+      const mineGroups = groups.map(g => filterGroupByOwner(g, "mine"));
+      const othersGroups = groups.map(g => filterGroupByOwner(g, "others"));
       const mineCount = mineGroups.reduce((s, g) => s + g.tasks.length, 0);
       const othersCount = othersGroups.reduce((s, g) => s + g.tasks.length, 0);
       return { mineGroups, othersGroups, mineCount, othersCount };
     }
     const { mine, others } = splitByOwner(tasks);
     return {
-      mineGroups: [{ label: "", accent: undefined as string | undefined, tasks: mine }],
-      othersGroups: [{ label: "", accent: undefined as string | undefined, tasks: others }],
+      mineGroups: [{ label: "", tasks: mine } as Group],
+      othersGroups: [{ label: "", tasks: others } as Group],
       mineCount: mine.length,
       othersCount: others.length,
     };
