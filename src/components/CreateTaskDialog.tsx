@@ -358,15 +358,29 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       }
 
       toast.success("Task criada!");
+      const shouldOpenComm = !!delegatedTo.trim();
+      const commSnapshot = shouldOpenComm
+        ? {
+            title: title.trim(),
+            description: description.trim() || null,
+            due_date: dueDate || null,
+            delegated_to: delegatedTo.trim(),
+          }
+        : null;
       resetForm();
       setOpen(false);
       onCreated();
+      if (commSnapshot) {
+        setCreatedTaskForComm(commSnapshot);
+        setCommDialogOpen(true);
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
   };
+
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setPriority("medium"); setExecutionComplexity("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
