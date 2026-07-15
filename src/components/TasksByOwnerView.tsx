@@ -332,6 +332,17 @@ export function TasksByOwnerView(props: Props) {
           count={columnData.othersCount}
           empty="Arraste aqui as tarefas delegadas para outra pessoa."
           accent="bg-primary/10"
+          action={onDelegate ? (
+            <button
+              type="button"
+              onClick={onDelegate}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background hover:bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Delegar nova tarefa"
+              title="Delegar nova tarefa"
+            >
+              <Plus className="h-3.5 w-3.5" /> Delegar
+            </button>
+          ) : undefined}
         >
           {renderGroups(columnData.othersGroups)}
         </DroppableColumn>
