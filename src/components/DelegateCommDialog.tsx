@@ -206,7 +206,7 @@ Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
                 <Button type="button" variant="outline" size="sm" onClick={openMailto}>
                   Abrir no meu app
                 </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => handleCopy(`${subject}\n\n${emailBody}`, "E-mail")}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => handleCopy(emailBody, "E-mail")}>
                   Copiar
                 </Button>
               </div>
