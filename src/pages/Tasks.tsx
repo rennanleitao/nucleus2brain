@@ -505,7 +505,7 @@ export default function Tasks() {
         </TabsList>
       </Tabs>
 
-      {filter !== "planner" && filter !== "deleted" && (
+      {filter !== "deleted" && (
         <div className="flex items-center gap-2 flex-wrap">
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
           <div className="flex items-center border border-border rounded-md overflow-hidden">
@@ -531,7 +531,7 @@ export default function Tasks() {
               <Users className="h-4 w-4" />
             </button>
           </div>
-          {viewMode === "list" && (
+          {filter !== "planner" && viewMode === "list" && (
             <>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
@@ -626,7 +626,7 @@ export default function Tasks() {
             </>
           )}
         </div>
-      ) : filter === "planner" ? (
+      ) : filter === "planner" && viewMode !== "owner" ? (
         <DayPlanner
           tasks={tasks}
           setTasks={setTasks}
@@ -644,25 +644,9 @@ export default function Tasks() {
           onDuplicate={handleDuplicate}
           onReload={load}
         />
-      ) : viewMode === "kanban" ? (
-        <KanbanView
-          tasks={filtered}
-          subtasksMap={subtasksMap}
-          remindersMap={remindersMap}
-          onToggle={toggleTask}
-          onDelete={handleDelete}
-          onToggleSubtask={toggleSubtask}
-          onAddSubtask={handleAddSubtask}
-          onDeleteSubtask={handleDeleteSubtask}
-          onPriorityChange={handlePriorityChange}
-          onSelect={setEditingTask}
-          cardCompact={cardCompact}
-          onToggleCardCompact={toggleCardCompact}
-          allCompact={allCompact}
-        />
       ) : viewMode === "owner" ? (
         <TasksByOwnerView
-          tasks={filtered}
+          tasks={filter === "planner" ? tasks.filter(t => t.status !== "completed" && t.status !== "cancelled") : filtered}
           subtasksMap={subtasksMap}
           remindersMap={remindersMap}
           onToggle={toggleTask}
@@ -680,6 +664,22 @@ export default function Tasks() {
           allCompact={allCompact}
           onReload={load}
           onDelegate={() => setDelegateOpen(true)}
+        />
+      ) : viewMode === "kanban" ? (
+        <KanbanView
+          tasks={filtered}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onSelect={setEditingTask}
+          cardCompact={cardCompact}
+          onToggleCardCompact={toggleCardCompact}
+          allCompact={allCompact}
         />
       ) : (
       <>
