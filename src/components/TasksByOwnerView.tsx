@@ -6,6 +6,7 @@ import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DelegateCommDialog } from "@/components/DelegateCommDialog";
+import { promptDialog } from "@/components/ui/dialog-service";
 
 type Subgroup = { label: string; reference?: string; tasks: any[] };
 type Group = {
@@ -178,7 +179,14 @@ export function TasksByOwnerView(props: Props) {
     if (dropCol === currentCol) return;
     try {
       if (dropCol === "others") {
-        const name = window.prompt(`Quem está executando "${task.title}"?`, task.delegated_to || "");
+        const name = await promptDialog({
+          title: "Delegar tarefa",
+          description: `Quem está executando "${task.title}"?`,
+          defaultValue: task.delegated_to || "",
+          placeholder: "Nome da pessoa",
+          confirmLabel: "Delegar",
+          required: true,
+        });
         if (!name || !name.trim()) return;
         await updateTask(task.id, { delegated_to: name.trim() } as any);
         toast.success(`Delegada para ${name.trim()}`);

@@ -49,6 +49,7 @@ import { Separator } from "@/components/ui/separator";
 import { createNoteMentionSuggestion } from "@/components/editor/NoteMention";
 import { DateHeading } from "@/components/editor/DateHeadingExtension";
 import { buildDateEntryHtml, entryIdForDate, parseFlexibleDate, reorderNoteEntries } from "@/lib/noteEntries";
+import { promptDialog } from "@/components/ui/dialog-service";
 
 interface RichTextEditorProps {
   content: string;
@@ -537,9 +538,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     </Button>
   );
 
-  const handleInsertSubNote = () => {
+  const handleInsertSubNote = async () => {
     if (onCreateSubNote) {
-      const title = prompt("Título da nova nota:");
+      const title = await promptDialog({ title: "Nova nota", description: "Título da nova nota", placeholder: "Digite o título", required: true });
       if (title?.trim()) {
         onCreateSubNote(title.trim());
       }

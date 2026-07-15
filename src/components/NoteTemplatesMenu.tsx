@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ui/dialog-service";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -88,7 +89,7 @@ export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply, compact = fa
   };
 
   const deleteUserTemplate = async (id: string) => {
-    if (!confirm("Excluir este template?")) return;
+    if (!(await confirmDialog({ title: "Excluir template", description: "Excluir este template?", destructive: true, confirmLabel: "Excluir" }))) return;
     const { error } = await supabase.from("note_templates").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Template excluído");

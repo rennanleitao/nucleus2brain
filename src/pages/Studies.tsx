@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { confirmDialog } from "@/components/ui/dialog-service";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -131,7 +132,7 @@ export default function Studies() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setAreaDialog({ open: true, edit: a })}><Pencil className="h-3.5 w-3.5 mr-2" /> Editar</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm(`Remover área "${a.name}" e todos os temas?`)) deleteArea.mutate(a.id); }}>
+                            <DropdownMenuItem className="text-destructive" onClick={async () => { if (await confirmDialog({ title: "Remover área", description: `Remover área "${a.name}" e todos os temas?`, destructive: true, confirmLabel: "Remover" })) deleteArea.mutate(a.id); }}>
                               <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -257,7 +258,7 @@ export default function Studies() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
-                        onClick={() => { if (confirm(`Remover área "${a.name}" e todos os temas?`)) { deleteArea.mutate(a.id); if (areaId === a.id) setSelection({ area: null, topic: null }); } }}
+                        onClick={async () => { if (await confirmDialog({ title: "Remover área", description: `Remover área "${a.name}" e todos os temas?`, destructive: true, confirmLabel: "Remover" })) { deleteArea.mutate(a.id); if (areaId === a.id) setSelection({ area: null, topic: null }); } }}
                       >
                         <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
                       </DropdownMenuItem>
@@ -320,7 +321,7 @@ export default function Studies() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => { if (confirm(`Remover tema "${t.title}" e todos os registros?`)) deleteTopic.mutate(t.id); }}
+                                onClick={async () => { if (await confirmDialog({ title: "Remover tema", description: `Remover tema "${t.title}" e todos os registros?`, destructive: true, confirmLabel: "Remover" })) deleteTopic.mutate(t.id); }}
                               >
                                 <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
                               </DropdownMenuItem>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
+import { confirmDialog } from "@/components/ui/dialog-service";
 import { getBrtToday } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionErrors";
@@ -726,9 +727,9 @@ export default function Notes() {
                                   type="button"
                                   aria-label={`Excluir nota ${note.title}`}
                                   title="Excluir nota"
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
-                                    if (confirm(`Excluir a nota "${note.title}"?`)) {
+                                    if (await confirmDialog({ title: "Excluir nota", description: `Excluir a nota "${note.title}"?`, destructive: true, confirmLabel: "Excluir" })) {
                                       handleDelete(note.id);
                                     }
                                   }}
