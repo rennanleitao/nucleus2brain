@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   tasks: any[];
+  /** Optional grouping (e.g. Atrasadas / Hoje / Amanhã). If provided, tasks are ignored for rendering but still used to look up drag targets. */
+  groups?: { label: string; tasks: any[]; accent?: string }[];
   subtasksMap: Record<string, any[]>;
   remindersMap: Record<string, any>;
   onToggle: (id: string) => void;
