@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { QuickCapture } from "@/components/QuickCapture";
+
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { Search } from "lucide-react";
 
@@ -18,7 +18,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-2">
               <SidebarTrigger className="h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground touch-manipulation" />
             </div>
-            <QuickCapture />
             <button
               onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
               className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px] justify-center touch-manipulation"
