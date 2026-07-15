@@ -34,11 +34,10 @@ async function callGmail<T>(path: string, opts?: { method?: string; body?: unkno
     body: { path, method: opts?.method ?? "GET", body: opts?.body, query: cleanQuery },
   });
   if (error) {
-    // Try to extract structured error
     let detail = error.message ?? "unknown";
     try {
-      // @ts-expect-error - context may be FunctionsHttpError
-      if (error.context?.text) detail = await error.context.text();
+      const ctx = (error as unknown as { context?: { text?: () => Promise<string> } }).context;
+      if (ctx?.text) detail = await ctx.text();
     } catch { /* ignore */ }
     throw new Error(detail);
   }
