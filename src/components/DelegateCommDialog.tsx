@@ -45,6 +45,7 @@ function normalizePhone(raw: string): string {
 
 export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = "", defaultPhone = "" }: DelegateCommDialogProps) {
   const [tab, setTab] = useState<"email" | "whatsapp">("email");
+  const [mode, setMode] = useState<"delegate" | "followup">("delegate");
   const [email, setEmail] = useState(defaultEmail);
   const [phone, setPhone] = useState(defaultPhone);
   const [subject, setSubject] = useState("");
@@ -76,21 +77,31 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
           .maybeSingle();
         setGmailConnected(!!data);
       }
+    })();
+  }, [open, defaultEmail, defaultPhone]);
 
-      const subj = task.title;
+  // Rebuild message whenever mode / task info changes
+  useEffect(() => {
+    if (!open) return;
+    const greeting = firstName ? `Oi ${firstName}` : "Oi";
+    let msg = "";
+    let subj = task.title;
+    if (mode === "delegate") {
       const dueTxt = dueShort ? ` até ${dueShort}` : "";
-      const greeting = firstName ? `Oi ${firstName}, tudo certo?` : "Oi, tudo certo?";
       const descLine = task.description?.trim()
         ? `\nMe lembro que noutro momento falamos sobre ${task.description.trim()}.`
         : "";
-      const msg = `${greeting} Vc consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
+      msg = `${greeting}, tudo certo? Vc consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
 
 Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
-      setSubject(subj);
-      setEmailBody(msg);
-      setWaBody(msg);
-    })();
-  }, [open, task.title, task.description, task.due_date, task.delegated_to, defaultEmail, defaultPhone, dueShort, firstName]);
+    } else {
+      subj = `Follow-up: ${task.title}`;
+      msg = `${greeting}, tranquilo? Consegue me atualizar sobre como está a atividade "${task.title}"? Acha que consegue concluir quando?`;
+    }
+    setSubject(subj);
+    setEmailBody(msg);
+    setWaBody(msg);
+  }, [open, mode, task.title, task.description, task.due_date, firstName, dueShort]);
 
   const handleCopy = async (text: string, label: string) => {
     try {
@@ -134,13 +145,29 @@ Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
-          <DialogTitle className="text-base font-semibold">Comunicar responsabilidade</DialogTitle>
+          <DialogTitle className="text-base font-semibold">
+            {mode === "delegate" ? "Comunicar responsabilidade" : "Follow-up da atividade"}
+          </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1">
             {name ? <>Enviar para <span className="font-medium text-foreground">{name}</span></> : "Enviar mensagem"}
           </p>
         </DialogHeader>
 
-        <div className="px-5 pt-4">
+        <div className="px-5 pt-4 space-y-3">
+          <div>
+            <label className="field-label">Tipo de mensagem</label>
+            <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs">
+              <button type="button" onClick={() => setMode("delegate")}
+                className={`px-3 py-1.5 rounded-md transition-colors ${mode === "delegate" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
+                Delegar
+              </button>
+              <button type="button" onClick={() => setMode("followup")}
+                className={`px-3 py-1.5 rounded-md transition-colors ${mode === "followup" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
+                Follow-up
+              </button>
+            </div>
+          </div>
+
           <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs">
             <button type="button" onClick={() => setTab("email")}
               className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${tab === "email" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
