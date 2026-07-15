@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, Mail, MessageCircle, Send, Loader2, ExternalLink } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buildReplyRfc2822, sendRawEmail } from "@/lib/gmail";
@@ -68,29 +68,16 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
         setGmailConnected(!!data);
       }
 
-      const subj = `Nova responsabilidade: ${task.title}`;
-      const dueLine = dueStr ? `\nPrazo: ${dueStr}` : "";
-      const descLine = task.description?.trim() ? `\n\nDetalhes:\n${task.description.trim()}` : "";
-      const greeting = firstName ? `Oi ${firstName},` : "Olá,";
-      const emailMsg = `${greeting}
+      const subj = task.title;
+      const dueTxt = dueStr ? ` até ${dueStr}` : "";
+      const greeting = firstName ? `Oi ${firstName}, ` : "";
+      const descLine = task.description?.trim() ? `\n\n${task.description.trim()}` : "";
+      const msg = `${greeting}passando aqui pra alinhar contigo. Você consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
 
-Estou te passando a responsabilidade da seguinte tarefa:
-
-• ${task.title}${dueLine}${descLine}
-
-Fico à disposição para alinhar qualquer detalhe. Assim que concluir, por favor me avisa.
-
-Obrigado!${displayName ? `\n${displayName}` : ""}`;
-      const waMsg = `${greeting} tudo bem?
-
-Passando pra alinhar uma responsabilidade contigo:
-
-*${task.title}*${dueStr ? `\nPrazo: ${dueStr}` : ""}${task.description?.trim() ? `\n\n${task.description.trim()}` : ""}
-
-Qualquer dúvida me chama. Quando concluir, me avisa por aqui 🙌`;
+Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.${displayName ? `\n\n${displayName}` : ""}`;
       setSubject(subj);
-      setEmailBody(emailMsg);
-      setWaBody(waMsg);
+      setEmailBody(msg);
+      setWaBody(msg);
     })();
   }, [open, task.title, task.description, task.due_date, task.delegated_to, defaultEmail, defaultPhone, dueStr, firstName]);
 

@@ -222,7 +222,7 @@ export function TasksByOwnerView(props: Props) {
             aria-label="Comunicar responsável"
             title="Comunicar responsável"
           >
-            <Send className="h-3 w-3" /> Comunicar
+            Comunicar
           </button>
         </div>
       )}
