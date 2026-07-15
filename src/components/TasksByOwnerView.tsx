@@ -369,6 +369,18 @@ export function TasksByOwnerView(props: Props) {
           </div>
         ) : null}
       </DragOverlay>
+      {commTask && (
+        <DelegateCommDialog
+          open={!!commTask}
+          onOpenChange={(o) => { if (!o) setCommTask(null); }}
+          task={{
+            title: commTask.title,
+            description: commTask.description,
+            due_date: commTask.due_date,
+            delegated_to: commTask.delegated_to,
+          }}
+        />
+      )}
     </DndContext>
   );
 }
