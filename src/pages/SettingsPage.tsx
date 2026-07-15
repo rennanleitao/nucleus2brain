@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Settings as SettingsIcon, Bot, Bell, User, Save, ExternalLink, Check, MessageSquare, Copy, Phone, Upload, BookOpen, FileText, CheckCircle2, AlertCircle, Send, LayoutGrid, RotateCcw, Link2, Volume2 } from "lucide-react";
 import { useSidebarItems } from "@/hooks/useSidebarItems";
+import { useDefaultLanding } from "@/hooks/useDefaultLanding";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -1182,6 +1184,7 @@ export default function SettingsPage() {
 
         {/* SIDEBAR TAB */}
         <TabsContent value="sidebar" className="space-y-4">
+          <DefaultLandingSettings />
           <SidebarItemsSettings />
         </TabsContent>
 
@@ -1326,6 +1329,30 @@ function SidebarItemsSettings() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function DefaultLandingSettings() {
+  const { route, setDefault, options } = useDefaultLanding();
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold">Tela inicial</h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Escolha em qual tela o Nucleus abre ao entrar no app.
+        </p>
+      </div>
+      <Select value={route} onValueChange={setDefault}>
+        <SelectTrigger className="w-full sm:w-64">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

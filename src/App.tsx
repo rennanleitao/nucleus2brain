@@ -3,7 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { DialogServiceHost } from "@/components/ui/dialog-service";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useDefaultLanding } from "@/hooks/useDefaultLanding";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useReminders } from "@/hooks/useReminders";
 import { PomodoroProvider } from "@/hooks/usePomodoroStore";
@@ -35,6 +36,11 @@ import Emails from "./pages/Emails";
 
 const queryClient = new QueryClient();
 
+function DefaultLandingRedirect() {
+  const { route } = useDefaultLanding();
+  return <Navigate to={route} replace />;
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
   useReminders();
@@ -60,7 +66,7 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Routes>
-        <Route path="/" element={<Assistant />} />
+        <Route path="/" element={<DefaultLandingRedirect />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/spaces" element={<Spaces />} />
         <Route path="/spaces/:id" element={<SpaceDetail />} />
