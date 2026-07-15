@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send } from "lucide-react";
+import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send, Mail, MessageCircle, Copy } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DelegateCommDialog } from "@/components/DelegateCommDialog";
 import { promptDialog } from "@/components/ui/dialog-service";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { buildDelegateMessage } from "@/lib/delegate-messages";
 
 type Subgroup = { label: string; reference?: string; tasks: any[] };
 type Group = {
