@@ -370,6 +370,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const filteredTags = allTags.filter(t => !tagInput || t.toLowerCase().includes(tagInput.toLowerCase()));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-background p-0 gap-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
