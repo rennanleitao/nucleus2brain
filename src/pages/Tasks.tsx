@@ -475,8 +475,27 @@ export default function Tasks() {
           />
         </div>
         <VoiceTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setDelegateOpen(true)}
+          title="Criar task para delegar"
+          className="h-9 w-9 p-0 shrink-0"
+        >
+          <UserPlus className="h-4 w-4" />
+        </Button>
         <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
+        <CreateTaskDialog
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          onCreated={load}
+          trigger={null}
+          externalOpen={delegateOpen}
+          onExternalOpenChange={setDelegateOpen}
+          startDelegated
+        />
       </div>
+
 
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-nowrap">
