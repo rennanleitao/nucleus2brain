@@ -388,8 +388,10 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
     setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
     setShowMaterials(false);
+    setDelegatedTo(""); setDelegatedEmail(""); setDelegatedPhone(""); setShowDelegation(!!startDelegated);
     setValidationState("idle"); setValidationResult(null); setSelectedSuggestions(new Set());
   };
+
 
   const todayStr = getBrtToday();
   const tomorrowStr = getBrtTomorrow();
