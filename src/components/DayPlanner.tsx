@@ -68,14 +68,24 @@ export function DayPlanner({
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
-  const [showAISchedule, setShowAISchedule] = useState(false);
+  const [internalShowAISchedule, setInternalShowAISchedule] = useState(false);
+  const showAISchedule = externalAIScheduleOpen ?? internalShowAISchedule;
+  const setShowAISchedule = (v: boolean) => {
+    if (onExternalAIScheduleOpenChange) onExternalAIScheduleOpenChange(v);
+    else setInternalShowAISchedule(v);
+  };
   const [todayEvents, setTodayEvents] = useState<GoogleEvent[]>([]);
-  const [allCompact, setAllCompact] = useState(true);
+  const [internalAllCompact, setInternalAllCompact] = useState(true);
+  const allCompact = externalAllCompact ?? internalAllCompact;
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const cardCompact = (id: string) => allCompact && !expandedCards[id];
   const toggleCardCompact = (id: string) => setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
   const handleToggleAllCompact = () => {
-    setAllCompact(prev => !prev);
+    if (onExternalToggleAllCompact) {
+      onExternalToggleAllCompact();
+    } else {
+      setInternalAllCompact(prev => !prev);
+    }
     setExpandedCards({});
   };
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
