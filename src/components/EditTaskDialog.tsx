@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { updateTask, fetchAllTags, fetchSubtasks, createSubtask, updateSubtask, deleteSubtask, fetchTaskLinks, deleteTaskLink, fetchTaskMaterials, createTaskMaterial, deleteTaskMaterial } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink, Sparkles, Loader2, AlertTriangle, Check, Repeat } from "lucide-react";
+import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink, Sparkles, Loader2, AlertTriangle, Check, Repeat, UserPlus, Send } from "lucide-react";
+import { DelegateCommDialog } from "@/components/DelegateCommDialog";
 import { generateNextRecurrence } from "@/lib/api";
 import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +81,7 @@ interface EditTaskDialogProps {
     execution_complexity?: TaskExecutionComplexity | null;
     estimated_minutes?: number | null;
     recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
+    delegated_to?: string | null;
   };
   spaces: { id: string; name: string }[];
   open: boolean;
@@ -106,6 +108,12 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [estimatedMinutes, setEstimatedMinutes] = useState(task.estimated_minutes?.toString() || "");
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(!!task.recurrence);
   const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly" | "yearly">(task.recurrence || "weekly");
+  const [delegatedTo, setDelegatedTo] = useState(task.delegated_to || "");
+  const [delegatedEmail, setDelegatedEmail] = useState("");
+  const [delegatedPhone, setDelegatedPhone] = useState("");
+  const [showDelegation, setShowDelegation] = useState(!!task.delegated_to);
+  const [commDialogOpen, setCommDialogOpen] = useState(false);
+
 
   // Subtasks state
   const [subtasks, setSubtasks] = useState<any[]>([]);
@@ -299,6 +307,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         tag: tag || null,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
         recurrence: recurrenceEnabled ? recurrence : null,
+        delegated_to: delegatedTo.trim() || null,
       } as any);
 
       if (executionComplexity !== "medium" && updatedTask && !("execution_complexity" in updatedTask)) {
@@ -361,6 +370,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const filteredTags = allTags.filter(t => !tagInput || t.toLowerCase().includes(tagInput.toLowerCase()));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-background p-0 gap-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
@@ -587,7 +597,37 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             )}
           </div>
 
+          {/* Delegação */}
+          <div className="border border-border rounded-lg p-3 space-y-2">
+            <button type="button" onClick={() => setShowDelegation(v => !v)}
+              className="w-full flex items-center gap-2 text-left">
+              <UserPlus className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium flex-1">Delegar para outra pessoa</span>
+              {delegatedTo.trim() && !showDelegation && (
+                <span className="text-[10px] text-primary font-medium truncate max-w-[120px]">{delegatedTo}</span>
+              )}
+              <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${showDelegation ? "rotate-180" : ""}`} />
+            </button>
+            {showDelegation && (
+              <div className="space-y-2">
+                <input type="text" placeholder="Nome do responsável" value={delegatedTo}
+                  onChange={e => setDelegatedTo(e.target.value)} className="field-input-sm text-xs py-1.5" />
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="email" placeholder="E-mail" value={delegatedEmail}
+                    onChange={e => setDelegatedEmail(e.target.value)} className="field-input-sm text-xs py-1.5" />
+                  <input type="tel" placeholder="WhatsApp" value={delegatedPhone}
+                    onChange={e => setDelegatedPhone(e.target.value)} className="field-input-sm text-xs py-1.5" />
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() => setCommDialogOpen(true)}
+                  disabled={!delegatedTo.trim()} className="h-7 text-xs w-full">
+                  <Send className="h-3 w-3 mr-1" /> Enviar comunicação
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Subtasks */}
+
           <div className="border border-border rounded-lg p-3 space-y-2">
             <label className="text-xs text-muted-foreground font-medium">Subtasks</label>
             {subtasks.length > 0 && (
@@ -762,5 +802,19 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         </form>
       </DialogContent>
     </Dialog>
+    <DelegateCommDialog
+      open={commDialogOpen}
+      onOpenChange={setCommDialogOpen}
+      task={{
+        title: title.trim() || task.title,
+        description: description.trim() || null,
+        due_date: dueDate || null,
+        delegated_to: delegatedTo.trim() || null,
+      }}
+      defaultEmail={delegatedEmail}
+      defaultPhone={delegatedPhone}
+    />
+    </>
   );
 }
+

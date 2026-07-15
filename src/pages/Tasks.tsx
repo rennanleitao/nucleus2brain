@@ -6,7 +6,7 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users, UserPlus } from "lucide-react";
 import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
@@ -40,6 +40,7 @@ export default function Tasks() {
   const [spaces, setSpaces] = useState<any[]>([]);
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
   const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
+  const [delegateOpen, setDelegateOpen] = useState(false);
   const [filter, setFilter] = useState("planner");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [complexityFilter, setComplexityFilter] = useState("all");
@@ -474,8 +475,27 @@ export default function Tasks() {
           />
         </div>
         <VoiceTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setDelegateOpen(true)}
+          title="Criar task para delegar"
+          className="h-9 w-9 p-0 shrink-0"
+        >
+          <UserPlus className="h-4 w-4" />
+        </Button>
         <CreateTaskDialog spaces={spaces.map(s => ({ id: s.id, name: s.name }))} onCreated={load} />
+        <CreateTaskDialog
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          onCreated={load}
+          trigger={null}
+          externalOpen={delegateOpen}
+          onExternalOpenChange={setDelegateOpen}
+          startDelegated
+        />
       </div>
+
 
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-nowrap">

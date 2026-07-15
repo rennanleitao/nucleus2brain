@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Tag, X, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks, Repeat } from "lucide-react";
+import { Plus, Tag, X, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks, Repeat, UserPlus, Send } from "lucide-react";
+import { DelegateCommDialog } from "@/components/DelegateCommDialog";
 import { createTask, createSpace, createSubtask, createTaskMaterial, fetchAllTags } from "@/lib/api";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -130,9 +131,10 @@ interface CreateTaskDialogProps {
   defaultTitle?: string;
   defaultDescription?: string;
   defaultNoteId?: string | null;
+  startDelegated?: boolean;
 }
 
-export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange, defaultTitle = "", defaultDescription = "", defaultNoteId = null }: CreateTaskDialogProps) {
+export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange, defaultTitle = "", defaultDescription = "", defaultNoteId = null, startDelegated = false }: CreateTaskDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = externalOpen !== undefined;
   const open = isControlled ? externalOpen : internalOpen;
@@ -167,6 +169,19 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskDate, setSubtaskDate] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
+
+  // Delegation state
+  const [delegatedTo, setDelegatedTo] = useState("");
+  const [delegatedEmail, setDelegatedEmail] = useState("");
+  const [delegatedPhone, setDelegatedPhone] = useState("");
+  const [showDelegation, setShowDelegation] = useState(!!startDelegated);
+  const [commDialogOpen, setCommDialogOpen] = useState(false);
+  const [createdTaskForComm, setCreatedTaskForComm] = useState<null | { title: string; description: string | null; due_date: string | null; delegated_to: string | null }>(null);
+
+  useEffect(() => {
+    if (open && startDelegated) setShowDelegation(true);
+  }, [open, startDelegated]);
+
 
   // Materials state
   const [pendingMaterials, setPendingMaterials] = useState<{ title: string; url: string; description?: string }[]>([]);
@@ -311,7 +326,9 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         note_id: defaultNoteId || null,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
         recurrence: recurrenceEnabled ? recurrence : null,
+        delegated_to: delegatedTo.trim() || null,
       } as any);
+
 
       if (executionComplexity !== "medium" && task && !("execution_complexity" in task)) {
         toast.warning("Task criada, mas a complexidade ainda não foi salva porque a migration do banco não foi aplicada.");
@@ -341,9 +358,22 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
       }
 
       toast.success("Task criada!");
+      const shouldOpenComm = !!delegatedTo.trim();
+      const commSnapshot = shouldOpenComm
+        ? {
+            title: title.trim(),
+            description: description.trim() || null,
+            due_date: dueDate || null,
+            delegated_to: delegatedTo.trim(),
+          }
+        : null;
       resetForm();
       setOpen(false);
       onCreated();
+      if (commSnapshot) {
+        setCreatedTaskForComm(commSnapshot);
+        setCommDialogOpen(true);
+      }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -351,20 +381,24 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     }
   };
 
+
   const resetForm = () => {
     setTitle(""); setDescription(""); setPriority("medium"); setExecutionComplexity("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
     setRecurrenceEnabled(false); setRecurrence("weekly");
     setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
     setPendingMaterials([]); setMaterialTitle(""); setMaterialUrl(""); setMaterialDesc("");
     setShowMaterials(false);
+    setDelegatedTo(""); setDelegatedEmail(""); setDelegatedPhone(""); setShowDelegation(!!startDelegated);
     setValidationState("idle"); setValidationResult(null); setSelectedSuggestions(new Set());
   };
+
 
   const todayStr = getBrtToday();
   const tomorrowStr = getBrtTomorrow();
   const filteredTags = allTags.filter(t => !tagInput || t.toLowerCase().includes(tagInput.toLowerCase()));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger !== undefined ? (
         trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -561,6 +595,47 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
           </section>
 
+          {/* Seção: Delegação */}
+          <section className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <button type="button" onClick={() => setShowDelegation(v => !v)}
+              className="w-full flex items-center gap-2 text-left">
+              <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex-1">
+                Delegar para outra pessoa
+              </h3>
+              {delegatedTo.trim() && !showDelegation && (
+                <span className="text-[10px] text-primary font-medium">{delegatedTo}</span>
+              )}
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showDelegation ? "rotate-180" : ""}`} />
+            </button>
+            {showDelegation && (
+              <div className="space-y-2">
+                <div>
+                  <label className="field-label">Responsável</label>
+                  <input type="text" placeholder="Nome de quem vai executar" value={delegatedTo}
+                    onChange={e => setDelegatedTo(e.target.value)} className="field-input" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="field-label">E-mail (opcional)</label>
+                    <input type="email" placeholder="pessoa@exemplo.com" value={delegatedEmail}
+                      onChange={e => setDelegatedEmail(e.target.value)} className="field-input" />
+                  </div>
+                  <div>
+                    <label className="field-label">WhatsApp (opcional)</label>
+                    <input type="tel" placeholder="Ex: 11 91234-5678" value={delegatedPhone}
+                      onChange={e => setDelegatedPhone(e.target.value)} className="field-input" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Send className="h-3 w-3" /> Ao criar a task, você poderá enviar um e-mail ou gerar a mensagem para o WhatsApp.
+                </p>
+              </div>
+            )}
+          </section>
+
+
+
           {/* Seção: Agendamento */}
           <section className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2">
@@ -722,5 +797,16 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         </form>
       </DialogContent>
     </Dialog>
+    {createdTaskForComm && (
+      <DelegateCommDialog
+        open={commDialogOpen}
+        onOpenChange={(v) => { setCommDialogOpen(v); if (!v) setCreatedTaskForComm(null); }}
+        task={createdTaskForComm}
+        defaultEmail={delegatedEmail}
+        defaultPhone={delegatedPhone}
+      />
+    )}
+    </>
   );
 }
+
