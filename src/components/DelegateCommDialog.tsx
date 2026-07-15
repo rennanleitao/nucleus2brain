@@ -54,7 +54,6 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
   const [sending, setSending] = useState(false);
   const [senderName, setSenderName] = useState("");
 
-  const dueStr = useMemo(() => formatDate(task.due_date), [task.due_date]);
   const dueShort = useMemo(() => formatDateShort(task.due_date), [task.due_date]);
   const name = task.delegated_to?.trim() || "";
   const firstName = name.split(/\s+/)[0] || name;
@@ -91,7 +90,7 @@ Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
       setEmailBody(msg);
       setWaBody(msg);
     })();
-  }, [open, task.title, task.description, task.due_date, task.delegated_to, defaultEmail, defaultPhone, dueStr, dueShort, firstName]);
+  }, [open, task.title, task.description, task.due_date, task.delegated_to, defaultEmail, defaultPhone, dueShort, firstName]);
 
   const handleCopy = async (text: string, label: string) => {
     try {
