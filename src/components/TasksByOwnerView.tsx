@@ -178,7 +178,14 @@ export function TasksByOwnerView(props: Props) {
     if (dropCol === currentCol) return;
     try {
       if (dropCol === "others") {
-        const name = window.prompt(`Quem está executando "${task.title}"?`, task.delegated_to || "");
+        const name = await promptDialog({
+          title: "Delegar tarefa",
+          description: `Quem está executando "${task.title}"?`,
+          defaultValue: task.delegated_to || "",
+          placeholder: "Nome da pessoa",
+          confirmLabel: "Delegar",
+          required: true,
+        });
         if (!name || !name.trim()) return;
         await updateTask(task.id, { delegated_to: name.trim() } as any);
         toast.success(`Delegada para ${name.trim()}`);
