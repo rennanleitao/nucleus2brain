@@ -537,9 +537,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     </Button>
   );
 
-  const handleInsertSubNote = () => {
+  const handleInsertSubNote = async () => {
     if (onCreateSubNote) {
-      const title = prompt("Título da nova nota:");
+      const title = await promptDialog({ title: "Nova nota", description: "Título da nova nota", placeholder: "Digite o título", required: true });
       if (title?.trim()) {
         onCreateSubNote(title.trim());
       }
