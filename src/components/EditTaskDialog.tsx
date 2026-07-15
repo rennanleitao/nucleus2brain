@@ -81,6 +81,7 @@ interface EditTaskDialogProps {
     execution_complexity?: TaskExecutionComplexity | null;
     estimated_minutes?: number | null;
     recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
+    delegated_to?: string | null;
   };
   spaces: { id: string; name: string }[];
   open: boolean;
