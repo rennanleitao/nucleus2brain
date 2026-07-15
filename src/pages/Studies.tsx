@@ -320,7 +320,7 @@ export default function Studies() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => { if (confirm(`Remover tema "${t.title}" e todos os registros?`)) deleteTopic.mutate(t.id); }}
+                                onClick={async () => { if (await confirmDialog({ title: "Remover tema", description: `Remover tema "${t.title}" e todos os registros?`, destructive: true, confirmLabel: "Remover" })) deleteTopic.mutate(t.id); }}
                               >
                                 <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
                               </DropdownMenuItem>
