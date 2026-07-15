@@ -517,25 +517,59 @@ export default function SpaceDetail() {
               <Upload className="h-4 w-4 mr-1" /> {uploading ? "Enviando..." : "Upload"}
             </Button>
           </div>
-          {attachments.length > 0 ? (
-            <div className="space-y-2">
-              {attachments.map(att => (
-                <div key={att.id} className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-                  <div className="flex-1 min-w-0">
-                    <a href={getAttachmentUrl(att.file_path)} target="_blank" rel="noopener noreferrer"
-                      className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
-                      {att.file_name} <ExternalLink className="h-3 w-3" />
-                    </a>
-                    <p className="text-[11px] text-muted-foreground">
-                      {att.content_type} · {att.file_size ? formatFileSize(att.file_size) : ""}
-                    </p>
-                  </div>
-                  <button onClick={() => handleDeleteAttachment(att)}
-                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+          {(attachments.length > 0 || noteAttachments.length > 0) ? (
+            <div className="space-y-4">
+              {attachments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Enviados ao espaço</p>
+                  {attachments.map(att => (
+                    <div key={att.id} className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+                      <div className="flex-1 min-w-0">
+                        <a href={getAttachmentUrl(att.file_path)} target="_blank" rel="noopener noreferrer"
+                          className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
+                          {att.file_name} <ExternalLink className="h-3 w-3" />
+                        </a>
+                        <p className="text-[11px] text-muted-foreground">
+                          {att.content_type} · {att.file_size ? formatFileSize(att.file_size) : ""}
+                        </p>
+                      </div>
+                      <button onClick={() => handleDeleteAttachment(att)}
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {noteAttachments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Nas notas</p>
+                  {noteAttachments.map((att, idx) => {
+                    const Icon = att.kind === "image" ? ImageIcon : att.kind === "file" ? FileText : Link2;
+                    const note = notes.find((n: any) => n.id === att.noteId);
+                    return (
+                      <div key={`${att.noteId}:${att.href}:${idx}`} className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+                        <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <a href={att.href} target="_blank" rel="noopener noreferrer"
+                            className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1 truncate">
+                            <span className="truncate">{att.label}</span>
+                            <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => note && openNoteEditor(note)}
+                            className="text-[11px] text-muted-foreground hover:text-foreground truncate block max-w-full text-left"
+                          >
+                            em {att.noteTitle}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">
