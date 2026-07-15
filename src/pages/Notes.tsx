@@ -726,9 +726,9 @@ export default function Notes() {
                                   type="button"
                                   aria-label={`Excluir nota ${note.title}`}
                                   title="Excluir nota"
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
-                                    if (confirm(`Excluir a nota "${note.title}"?`)) {
+                                    if (await confirmDialog({ title: "Excluir nota", description: `Excluir a nota "${note.title}"?`, destructive: true, confirmLabel: "Excluir" })) {
                                       handleDelete(note.id);
                                     }
                                   }}
