@@ -48,7 +48,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { createNoteMentionSuggestion } from "@/components/editor/NoteMention";
 import { DateHeading } from "@/components/editor/DateHeadingExtension";
-import { buildDateEntryHtml, entryIdForDate } from "@/lib/noteEntries";
+import { buildDateEntryHtml, entryIdForDate, parseFlexibleDate, reorderNoteEntries } from "@/lib/noteEntries";
 
 interface RichTextEditorProps {
   content: string;
