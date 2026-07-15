@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* Consulting shell — slate + blue-600 accent, Inter body + Instrument Serif headings */
+    /* Consulting shell — slate + blue-600 accent, unified Inter typography */
     --background: 0.984 0.003 247.86;      /* slate-50 #f8fafc */
     --foreground: 0.208 0.042 265.75;      /* slate-900 #0f172a */
     --card: 1 0 0;                          /* white */
@@ -37,9 +37,9 @@
     --sidebar-accent-foreground: 0.208 0.042 265.75; /* slate-900 hover text */
     --sidebar-border: 0.929 0.013 255.5;    /* slate-200 */
     --sidebar-ring: 0.546 0.245 262.88;
-    --font-sans: 'Inter', 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --font-display: 'Inter', 'Figtree', system-ui, sans-serif;
-    --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-serif: 'Inter', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     --radius: 0.75rem;
     --shadow-2xs: 0px 1px 2px 0px hsl(220 13% 10% / 0.04);
@@ -138,40 +138,41 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.6;
     font-weight: 400;
-    letter-spacing: 0;
+    letter-spacing: -0.005em;
     /* Prevent iOS zoom on input focus */
     touch-action: manipulation;
   }
 
   h1, .text-title, .text-h1 {
-    font-family: var(--font-serif);
-    letter-spacing: -0.012em;
-    font-weight: 400;
+    font-family: var(--font-sans);
+    letter-spacing: -0.028em;
+    font-weight: 600;
   }
 
   h2, h3, h4, h5, h6, .text-h2, .text-h3 {
     font-family: var(--font-sans);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     font-weight: 600;
   }
 
   h1 {
     font-size: 1.75rem; /* 28px */
-    line-height: 1.15;
+    line-height: 1.2;
   }
 
   h2 {
     font-size: 1.125rem; /* 18px */
-    line-height: 1.3;
+    line-height: 1.35;
   }
 
   h3 {
     font-size: 0.9375rem; /* 15px */
-    line-height: 1.35;
+    line-height: 1.4;
   }
+
 
   code, pre {
     font-family: var(--font-mono);
@@ -217,42 +218,42 @@
 
 @layer utilities {
   .text-title {
-    font-family: var(--font-serif);
-    font-size: 2rem; /* 32px */
-    line-height: 1.1;
-    font-weight: 400;
-    letter-spacing: -0.015em;
+    font-family: var(--font-sans);
+    font-size: 1.875rem; /* 30px */
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.03em;
   }
 
   .text-h1 {
-    font-family: var(--font-serif);
-    font-size: 1.75rem; /* 28px */
-    line-height: 1.15;
-    font-weight: 400;
-    letter-spacing: -0.012em;
+    font-family: var(--font-sans);
+    font-size: 1.5rem; /* 24px */
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.028em;
   }
 
   .text-h2 {
     font-family: var(--font-sans);
     font-size: 1.125rem; /* 18px */
-    line-height: 1.3;
+    line-height: 1.35;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   .text-h3 {
     font-family: var(--font-sans);
     font-size: 0.9375rem; /* 15px */
-    line-height: 1.35;
+    line-height: 1.4;
     font-weight: 600;
-    letter-spacing: -0.005em;
+    letter-spacing: -0.015em;
   }
 
   /* Editorial primitives */
   .font-editorial {
-    font-family: var(--font-serif);
-    font-weight: 400;
-    letter-spacing: -0.01em;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
   .eyebrow {
     font-family: var(--font-sans);
@@ -770,3 +771,142 @@ html, body {
 .ProseMirror [data-entry-date].note-date-drop-target {
   box-shadow: inset 0 2px 0 0 oklch(var(--primary));
 }
+
+/* ==========================================================================
+   Notes editor — a calm reading/writing surface.
+   Larger type, generous line-height, comfortable measure.
+   ========================================================================== */
+.notes-editor {
+  font-family: var(--font-sans);
+  color: oklch(var(--foreground));
+  font-size: 16.5px;
+  line-height: 1.75;
+  letter-spacing: -0.005em;
+  font-weight: 400;
+  max-width: 68ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.notes-editor:focus { outline: none; }
+
+.notes-editor > * + * { margin-top: 0.9em; }
+
+.notes-editor p {
+  margin: 0;
+}
+
+.notes-editor h1,
+.notes-editor h2,
+.notes-editor h3,
+.notes-editor h4 {
+  font-family: var(--font-sans);
+  color: oklch(var(--foreground));
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.25;
+}
+
+.notes-editor h1 { font-size: 1.75rem; margin-top: 1.75em; margin-bottom: 0.15em; }
+.notes-editor h2 { font-size: 1.35rem; margin-top: 1.6em; margin-bottom: 0.1em; letter-spacing: -0.024em; }
+.notes-editor h3 { font-size: 1.1rem; margin-top: 1.4em; margin-bottom: 0.1em; letter-spacing: -0.02em; }
+.notes-editor h4 { font-size: 1rem; margin-top: 1.2em; margin-bottom: 0.1em; letter-spacing: -0.018em; }
+
+.notes-editor > h1:first-child,
+.notes-editor > h2:first-child,
+.notes-editor > h3:first-child { margin-top: 0; }
+
+.notes-editor ul,
+.notes-editor ol {
+  padding-left: 1.5rem;
+  margin: 0.5em 0;
+}
+.notes-editor ul { list-style: disc; }
+.notes-editor ol { list-style: decimal; }
+.notes-editor li { margin: 0.35em 0; padding-left: 0.25rem; }
+.notes-editor li::marker { color: oklch(var(--muted-foreground) / 0.55); }
+.notes-editor li > p { margin: 0; }
+
+.notes-editor blockquote {
+  border-left: 2px solid oklch(var(--border));
+  padding: 0.1em 0 0.1em 1.1em;
+  color: oklch(var(--muted-foreground));
+  margin: 1em 0;
+  font-style: normal;
+}
+
+.notes-editor strong { font-weight: 600; color: oklch(var(--foreground)); }
+.notes-editor em { font-style: italic; }
+
+.notes-editor a {
+  color: oklch(var(--primary));
+  text-decoration: underline;
+  text-decoration-color: oklch(var(--primary) / 0.35);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease;
+}
+.notes-editor a:hover { text-decoration-color: oklch(var(--primary)); }
+
+.notes-editor code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: oklch(var(--muted) / 0.7);
+  padding: 1px 6px;
+  border-radius: 5px;
+  color: oklch(var(--foreground));
+}
+.notes-editor pre {
+  background: oklch(var(--muted));
+  border: 1px solid oklch(var(--border));
+  border-radius: 0.6rem;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 1em 0;
+}
+.notes-editor pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.notes-editor hr {
+  border: none;
+  border-top: 1px solid oklch(var(--border));
+  margin: 2em 0;
+}
+
+.notes-editor img {
+  border-radius: 0.5rem;
+  margin: 1em 0;
+  max-width: 100%;
+}
+
+.notes-editor table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 14.5px;
+}
+.notes-editor th,
+.notes-editor td {
+  border: 1px solid oklch(var(--border));
+  padding: 0.55em 0.75em;
+  text-align: left;
+}
+.notes-editor th {
+  background: oklch(var(--muted) / 0.5);
+  font-weight: 600;
+}
+
+/* Placeholder — subtle, no italic */
+.notes-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: oklch(var(--muted-foreground) / 0.55);
+  float: left;
+  pointer-events: none;
+  height: 0;
+}
+
