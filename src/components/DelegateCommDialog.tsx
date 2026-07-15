@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, Mail, MessageCircle, Send, Loader2, ExternalLink } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buildReplyRfc2822, sendRawEmail } from "@/lib/gmail";
@@ -68,29 +68,16 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
         setGmailConnected(!!data);
       }
 
-      const subj = `Nova responsabilidade: ${task.title}`;
-      const dueLine = dueStr ? `\nPrazo: ${dueStr}` : "";
-      const descLine = task.description?.trim() ? `\n\nDetalhes:\n${task.description.trim()}` : "";
-      const greeting = firstName ? `Oi ${firstName},` : "Olá,";
-      const emailMsg = `${greeting}
+      const subj = task.title;
+      const dueTxt = dueStr ? ` até ${dueStr}` : "";
+      const greeting = firstName ? `Oi ${firstName}, ` : "";
+      const descLine = task.description?.trim() ? `\n\n${task.description.trim()}` : "";
+      const msg = `${greeting}passando aqui pra alinhar contigo. Você consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
 
-Estou te passando a responsabilidade da seguinte tarefa:
-
-• ${task.title}${dueLine}${descLine}
-
-Fico à disposição para alinhar qualquer detalhe. Assim que concluir, por favor me avisa.
-
-Obrigado!${displayName ? `\n${displayName}` : ""}`;
-      const waMsg = `${greeting} tudo bem?
-
-Passando pra alinhar uma responsabilidade contigo:
-
-*${task.title}*${dueStr ? `\nPrazo: ${dueStr}` : ""}${task.description?.trim() ? `\n\n${task.description.trim()}` : ""}
-
-Qualquer dúvida me chama. Quando concluir, me avisa por aqui 🙌`;
+Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.${displayName ? `\n\n${displayName}` : ""}`;
       setSubject(subj);
-      setEmailBody(emailMsg);
-      setWaBody(waMsg);
+      setEmailBody(msg);
+      setWaBody(msg);
     })();
   }, [open, task.title, task.description, task.due_date, task.delegated_to, defaultEmail, defaultPhone, dueStr, firstName]);
 
@@ -146,11 +133,11 @@ Qualquer dúvida me chama. Quando concluir, me avisa por aqui 🙌`;
           <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs">
             <button type="button" onClick={() => setTab("email")}
               className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${tab === "email" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
-              <Mail className="h-3.5 w-3.5" /> E-mail
+              E-mail
             </button>
             <button type="button" onClick={() => setTab("whatsapp")}
               className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${tab === "whatsapp" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
-              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+              WhatsApp
             </button>
           </div>
         </div>
@@ -175,14 +162,14 @@ Qualquer dúvida me chama. Quando concluir, me avisa por aqui 🙌`;
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button type="button" onClick={handleSendEmail} disabled={sending || !gmailConnected}
                   className="gradient-primary text-primary-foreground border-0" size="sm">
-                  {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                  {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
                   Enviar via Gmail
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={openMailto}>
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir no meu app
+                  Abrir no meu app
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => handleCopy(`${subject}\n\n${emailBody}`, "E-mail")}>
-                  <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                  Copiar
                 </Button>
               </div>
               {!gmailConnected && (
@@ -207,10 +194,10 @@ Qualquer dúvida me chama. Quando concluir, me avisa por aqui 🙌`;
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button type="button" onClick={openWhatsApp} size="sm"
                   className="gradient-primary text-primary-foreground border-0">
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir no WhatsApp
+                  Abrir no WhatsApp
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => handleCopy(waBody, "Mensagem")}>
-                  <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                  Copiar
                 </Button>
               </div>
             </>
