@@ -269,6 +269,7 @@ export default function SpaceDetail() {
         <TabsList className="bg-muted">
           <TabsTrigger value="tasks" className="text-xs gap-1"><CheckSquare className="h-3 w-3" /> Tasks</TabsTrigger>
           <TabsTrigger value="notes" className="text-xs gap-1"><FileText className="h-3 w-3" /> Notas</TabsTrigger>
+          <TabsTrigger value="topics" className="text-xs gap-1"><Sparkles className="h-3 w-3" /> Tópicos</TabsTrigger>
           <TabsTrigger value="links" className="text-xs gap-1"><Link2 className="h-3 w-3" /> Links</TabsTrigger>
           <TabsTrigger value="attachments" className="text-xs gap-1"><Paperclip className="h-3 w-3" /> Anexos</TabsTrigger>
         </TabsList>
