@@ -58,7 +58,7 @@ export function NoteDateSidebar({ html, scrollContainer, onJump, onRemoveTopic }
     );
   };
 
-  const isEmpty = entries.length === 0 && topics.length === 0;
+  const isEmpty = entries.length === 0 && topics.length === 0 && attachments.length === 0;
   if (isEmpty) {
     return (
       <div className="p-4 text-[11px] leading-relaxed text-muted-foreground/70">
