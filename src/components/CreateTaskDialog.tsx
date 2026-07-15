@@ -401,103 +401,109 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
           </section>
 
 
-          {/* Seção: Agendamento */}
+          {/* Seção: Detalhamento (subtasks + materiais) */}
           <section className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Agendamento</h3>
+              <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhamento</h3>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="field-label">Prioridade</label>
-                <select value={priority} onChange={e => setPriority(e.target.value as any)}
-                  className="field-input">
-                  <option value="low">Baixa</option>
-                  <option value="medium">Média</option>
-                  <option value="high">Alta</option>
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Data limite</label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                  className="field-input" />
-                <div className="flex gap-1 mt-1">
-                  <button type="button" onClick={() => setDueDate(todayStr)}
-                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
-                    Hoje
-                  </button>
-                  <button type="button" onClick={() => setDueDate(tomorrowStr)}
-                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
-                    Amanhã
-                  </button>
+            {/* Subtasks */}
+            <div>
+              <label className="field-label">Subtasks (opcional)</label>
+              {pendingSubtasks.length > 0 && (
+                <div className="space-y-1 mb-2 ml-2 border-l border-border pl-2">
+                  {pendingSubtasks.map((sub, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <span className="flex-1 truncate">{sub.title}</span>
+                      {sub.due_date && <span className="text-muted-foreground text-[10px]">{sub.due_date}</span>}
+                      <button type="button" onClick={() => handleRemovePendingSubtask(idx)} className="text-muted-foreground hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
-                </p>
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Título da subtask"
+                  value={subtaskTitle}
+                  onChange={e => setSubtaskTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingSubtask(); } }}
+                  className="field-input-sm flex-1 text-xs py-1.5"
+                />
+                <input
+                  type="date"
+                  value={subtaskDate}
+                  onChange={e => setSubtaskDate(e.target.value)}
+                  className="field-input-sm w-[110px] text-[10px] py-1.5 px-2"
+                />
+                <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingSubtask} disabled={!subtaskTitle.trim()} className="h-7 px-2">
+                  <Plus className="h-3 w-3" />
+                </Button>
               </div>
-            </div>
-            <div>
-              <label className="field-label">Complexidade de Execução</label>
-              <select value={executionComplexity} onChange={e => setExecutionComplexity(e.target.value as TaskExecutionComplexity)}
-                className="field-input">
-                {TASK_EXECUTION_COMPLEXITIES.map(level => (
-                  <option key={level} value={level}>
-                    {taskExecutionComplexityLabels[level]} - {taskExecutionComplexityDurationReference[level]}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Quão difícil é iniciar esta tarefa.
-              </p>
-            </div>
-            <div>
-              <label className="field-label">Tempo estimado (minutos)</label>
-              <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
-                className="field-input" />
             </div>
 
-            {/* Recurrence (optional) */}
-            <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
-              <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={recurrenceEnabled}
-                  onChange={e => setRecurrenceEnabled(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-border accent-primary"
-                />
-                <Repeat className="h-3.5 w-3.5 text-muted-foreground" />
-                Tarefa recorrente
-              </label>
-              {recurrenceEnabled && (
-                <div className="pl-6 space-y-1">
-                  <label className="text-[10px] text-muted-foreground block">Frequência</label>
-                  <select
-                    value={recurrence}
-                    onChange={e => setRecurrence(e.target.value as any)}
-                    className="field-input"
-                  >
-                    <option value="daily">Todos os dias</option>
-                    <option value="weekly">Toda semana</option>
-                    <option value="monthly">Todo mês</option>
-                    <option value="yearly">Todo ano</option>
-                  </select>
-                  <p className="text-[10px] text-muted-foreground pt-0.5">
-                    Ao concluir, uma nova ocorrência será criada automaticamente.
-                    {!dueDate && " Defina uma data limite para ativar."}
-                  </p>
+            {/* Materiais */}
+            <div>
+              <button type="button" onClick={() => setShowMaterials(!showMaterials)}
+                className="field-label flex items-center gap-1.5 hover:text-foreground transition-colors">
+                <LinkIcon className="h-3 w-3" />
+                Materiais relacionados
+                <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
+                {pendingMaterials.length > 0 && <span className="text-[10px] text-primary">({pendingMaterials.length})</span>}
+              </button>
+              {showMaterials && (
+                <div className="border border-border rounded-lg p-3 space-y-2 mt-1">
+                  {pendingMaterials.length > 0 && (
+                    <div className="space-y-1">
+                      {pendingMaterials.map((mat, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
+                          <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{mat.title}</p>
+                            {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                            <p className="text-[10px] text-muted-foreground truncate">{mat.url}</p>
+                          </div>
+                          <button type="button" onClick={() => handleRemovePendingMaterial(idx)} className="text-muted-foreground hover:text-destructive shrink-0">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
+                    className="field-input-sm text-xs py-1.5" />
+                  <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                    className="field-input-sm text-xs py-1.5" />
+                  <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                    className="field-input-sm text-xs py-1.5" />
+                  <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
+                    disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
+                    <Plus className="h-3 w-3 mr-1" /> Adicionar material
+                  </Button>
                 </div>
               )}
             </div>
           </section>
 
-
-          {/* Seção: Organização */}
+          {/* Seção: Organização (space + tag) */}
           <section className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2">
               <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Organização</h3>
             </div>
-            {/* Tag selector */}
+
+            <SpaceCombobox
+              spaces={spaces}
+              spaceId={spaceId}
+              onSelect={setSpaceId}
+              creatingSpace={creatingSpace}
+              onCreateSpace={handleCreateSpace}
+            />
+
             <div>
               <label className="field-label flex items-center gap-1.5">
                 <Tag className="h-3 w-3" /> Tag (opcional)
@@ -554,111 +560,92 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                 </div>
               )}
             </div>
-
-            {/* Space selector with inline creation */}
-            <SpaceCombobox
-              spaces={spaces}
-              spaceId={spaceId}
-              onSelect={setSpaceId}
-              showNewSpace={showNewSpace}
-              setShowNewSpace={setShowNewSpace}
-              newSpaceName={newSpaceName}
-              setNewSpaceName={setNewSpaceName}
-              newSpaceIcon={newSpaceIcon}
-              setNewSpaceIcon={setNewSpaceIcon}
-              creatingSpace={creatingSpace}
-              onCreateSpace={handleCreateSpace}
-            />
           </section>
 
-
-          {/* Seção: Detalhamento */}
+          {/* Seção: Agendamento */}
           <section className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhamento</h3>
+              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Agendamento</h3>
             </div>
-            {/* Subtasks section */}
-            <div>
-              <label className="field-label">Subtasks (opcional)</label>
-              {pendingSubtasks.length > 0 && (
-                <div className="space-y-1 mb-2 ml-2 border-l border-border pl-2">
-                  {pendingSubtasks.map((sub, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs">
-                      <span className="flex-1 truncate">{sub.title}</span>
-                      {sub.due_date && <span className="text-muted-foreground text-[10px]">{sub.due_date}</span>}
-                      <button type="button" onClick={() => handleRemovePendingSubtask(idx)} className="text-muted-foreground hover:text-destructive">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="field-label">Prioridade</label>
+                <select value={priority} onChange={e => setPriority(e.target.value as any)}
+                  className="field-input">
+                  <option value="low">Baixa</option>
+                  <option value="medium">Média</option>
+                  <option value="high">Alta</option>
+                </select>
+              </div>
+              <div>
+                <label className="field-label">Data limite</label>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                  className="field-input" />
+                <div className="flex gap-1 mt-1">
+                  <button type="button" onClick={() => setDueDate(todayStr)}
+                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                    Hoje
+                  </button>
+                  <button type="button" onClick={() => setDueDate(tomorrowStr)}
+                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                    Amanhã
+                  </button>
                 </div>
-              )}
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Título da subtask"
-                  value={subtaskTitle}
-                  onChange={e => setSubtaskTitle(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingSubtask(); } }}
-                  className="field-input-sm flex-1 text-xs py-1.5"
-                />
-                <input
-                  type="date"
-                  value={subtaskDate}
-                  onChange={e => setSubtaskDate(e.target.value)}
-                  className="field-input-sm w-[110px] text-[10px] py-1.5 px-2"
-                />
-                <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingSubtask} disabled={!subtaskTitle.trim()} className="h-7 px-2">
-                  <Plus className="h-3 w-3" />
-                </Button>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
+                </p>
               </div>
             </div>
-
-            {/* Materials section */}
             <div>
-              <button type="button" onClick={() => setShowMaterials(!showMaterials)}
-                className="field-label flex items-center gap-1.5 hover:text-foreground transition-colors">
-                <LinkIcon className="h-3 w-3" />
-                Materiais relacionados
-                <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
-                {pendingMaterials.length > 0 && <span className="text-[10px] text-primary">({pendingMaterials.length})</span>}
-              </button>
-              {showMaterials && (
-                <div className="border border-border rounded-lg p-3 space-y-2">
-                  {pendingMaterials.length > 0 && (
-                    <div className="space-y-1">
-                      {pendingMaterials.map((mat, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
-                          <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{mat.title}</p>
-                            {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
-                            <p className="text-[10px] text-muted-foreground truncate">{mat.url}</p>
-                          </div>
-                          <button type="button" onClick={() => handleRemovePendingMaterial(idx)} className="text-muted-foreground hover:text-destructive shrink-0">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
-                    className="field-input-sm text-xs py-1.5" />
-                  <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
-                    className="field-input-sm text-xs py-1.5" />
-                  <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
-                    className="field-input-sm text-xs py-1.5" />
-                  <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
-                    disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
-                    <Plus className="h-3 w-3 mr-1" /> Adicionar material
-                  </Button>
+              <label className="field-label">Complexidade de Execução</label>
+              <select value={executionComplexity} onChange={e => setExecutionComplexity(e.target.value as TaskExecutionComplexity)}
+                className="field-input">
+                {TASK_EXECUTION_COMPLEXITIES.map(level => (
+                  <option key={level} value={level}>
+                    {taskExecutionComplexityLabels[level]} - {taskExecutionComplexityDurationReference[level]}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Quão difícil é iniciar esta tarefa.
+              </p>
+            </div>
+
+            {/* Recurrence (optional) */}
+            <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={recurrenceEnabled}
+                  onChange={e => setRecurrenceEnabled(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary"
+                />
+                <Repeat className="h-3.5 w-3.5 text-muted-foreground" />
+                Tarefa recorrente
+              </label>
+              {recurrenceEnabled && (
+                <div className="pl-6 space-y-1">
+                  <label className="text-[10px] text-muted-foreground block">Frequência</label>
+                  <select
+                    value={recurrence}
+                    onChange={e => setRecurrence(e.target.value as any)}
+                    className="field-input"
+                  >
+                    <option value="daily">Todos os dias</option>
+                    <option value="weekly">Toda semana</option>
+                    <option value="monthly">Todo mês</option>
+                    <option value="yearly">Todo ano</option>
+                  </select>
+                  <p className="text-[10px] text-muted-foreground pt-0.5">
+                    Ao concluir, uma nova ocorrência será criada automaticamente.
+                    {!dueDate && " Defina uma data limite para ativar."}
+                  </p>
                 </div>
               )}
             </div>
           </section>
+
 
           {/* AI Validation feedback */}
           {validationState === "validating" && (
