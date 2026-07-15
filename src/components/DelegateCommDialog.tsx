@@ -26,6 +26,15 @@ function formatDate(d?: string | null) {
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
+function formatDateShort(d?: string | null) {
+  if (!d) return "";
+  const parts = d.split("-");
+  if (parts.length !== 3) return d;
+  const currentYear = new Date().getFullYear().toString();
+  const dayMonth = `${parts[2]}/${parts[1]}`;
+  return parts[0] === currentYear ? dayMonth : `${dayMonth}/${parts[0]}`;
+}
+
 function normalizePhone(raw: string): string {
   // Keep digits only; assume Brazil if 10-11 digits and no leading 55
   const digits = raw.replace(/\D/g, "");
@@ -45,7 +54,7 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
   const [sending, setSending] = useState(false);
   const [senderName, setSenderName] = useState("");
 
-  const dueStr = useMemo(() => formatDate(task.due_date), [task.due_date]);
+  const dueShort = useMemo(() => formatDateShort(task.due_date), [task.due_date]);
   const name = task.delegated_to?.trim() || "";
   const firstName = name.split(/\s+/)[0] || name;
 
@@ -69,17 +78,19 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
       }
 
       const subj = task.title;
-      const dueTxt = dueStr ? ` até ${dueStr}` : "";
-      const greeting = firstName ? `Oi ${firstName}, ` : "";
-      const descLine = task.description?.trim() ? `\n\n${task.description.trim()}` : "";
-      const msg = `${greeting}passando aqui pra alinhar contigo. Você consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
+      const dueTxt = dueShort ? ` até ${dueShort}` : "";
+      const greeting = firstName ? `Oi ${firstName}, tudo certo?` : "Oi, tudo certo?";
+      const descLine = task.description?.trim()
+        ? `\nMe lembro que noutro momento falamos sobre ${task.description.trim()}.`
+        : "";
+      const msg = `${greeting} Vc consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
 
-Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.${displayName ? `\n\n${displayName}` : ""}`;
+Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
       setSubject(subj);
       setEmailBody(msg);
       setWaBody(msg);
     })();
-  }, [open, task.title, task.description, task.due_date, task.delegated_to, defaultEmail, defaultPhone, dueStr, firstName]);
+  }, [open, task.title, task.description, task.due_date, task.delegated_to, defaultEmail, defaultPhone, dueShort, firstName]);
 
   const handleCopy = async (text: string, label: string) => {
     try {
