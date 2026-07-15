@@ -91,12 +91,12 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
       const descLine = task.description?.trim()
         ? `\nMe lembro que noutro momento falamos sobre ${task.description.trim()}.`
         : "";
-      msg = `${greeting}, tudo certo? Vc consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
+      msg = `${greeting}, tudo certo? Vc consegue tocar a atividade *${task.title}*${dueTxt}? Se sim, me avisa.${descLine}
 
 Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
     } else {
       subj = `Follow-up: ${task.title}`;
-      msg = `${greeting}, tranquilo? Consegue me atualizar sobre como está a atividade "${task.title}"? Acha que consegue concluir quando?`;
+      msg = `${greeting}, tranquilo? Consegue me atualizar sobre como está a atividade *${task.title}*? Acha que consegue concluir quando?`;
     }
     setSubject(subj);
     setEmailBody(msg);
