@@ -1,0 +1,2 @@
+ALTER TABLE public.study_entries DROP CONSTRAINT IF EXISTS study_entries_kind_check;
+ALTER TABLE public.study_entries ADD CONSTRAINT study_entries_kind_check CHECK (kind = ANY (ARRAY['event'::text, 'knowledge'::text, 'note'::text]));
