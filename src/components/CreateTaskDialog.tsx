@@ -796,5 +796,16 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         </form>
       </DialogContent>
     </Dialog>
+    {createdTaskForComm && (
+      <DelegateCommDialog
+        open={commDialogOpen}
+        onOpenChange={(v) => { setCommDialogOpen(v); if (!v) setCreatedTaskForComm(null); }}
+        task={createdTaskForComm}
+        defaultEmail={delegatedEmail}
+        defaultPhone={delegatedPhone}
+      />
+    )}
+    </>
   );
 }
+
