@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { QuickCapture } from "@/components/QuickCapture";
+
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { Search } from "lucide-react";
 
