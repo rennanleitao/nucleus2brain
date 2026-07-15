@@ -211,9 +211,20 @@ export function TasksByOwnerView(props: Props) {
         onToggleCompact={allCompact ? onToggleCardCompact : undefined}
       />
       {t.delegated_to && (
-        <p className="text-[11px] text-muted-foreground mt-1 pl-1">
-          Executada por <span className="font-medium text-foreground">{t.delegated_to}</span>
-        </p>
+        <div className="flex items-center gap-1.5 mt-1 pl-1">
+          <p className="text-[11px] text-muted-foreground">
+            Executada por <span className="font-medium text-foreground">{t.delegated_to}</span>
+          </p>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setCommTask(t); }}
+            className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-background hover:bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Comunicar responsável"
+            title="Comunicar responsável"
+          >
+            <Send className="h-3 w-3" /> Comunicar
+          </button>
+        </div>
       )}
     </div>
   );
