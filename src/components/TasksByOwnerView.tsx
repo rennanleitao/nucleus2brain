@@ -70,6 +70,7 @@ function DroppableColumn({
   empty,
   children,
   accent,
+  action,
 }: {
   id: ColumnId;
   title: string;
@@ -78,6 +79,7 @@ function DroppableColumn({
   empty: string;
   children: React.ReactNode;
   accent?: string;
+  action?: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
@@ -94,6 +96,7 @@ function DroppableColumn({
         </div>
         <h2 className="text-sm font-semibold flex-1">{title}</h2>
         <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{count}</span>
+        {action}
       </header>
       <div className="flex-1 p-3 space-y-2">
         {count === 0 ? (
