@@ -6,7 +6,7 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users, UserPlus } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users, UserPlus, Clock, FolderOpen, Gauge, Sparkles, Timer } from "lucide-react";
 import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
@@ -48,6 +48,8 @@ export default function Tasks() {
   
   const [groupBy, setGroupBy] = useState("space");
   const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
+  const [plannerView, setPlannerView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner">("date-complexity");
+  const [aiScheduleOpen, setAiScheduleOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [deletedTasks, setDeletedTasks] = useState<any[]>([]);
@@ -508,76 +510,131 @@ export default function Tasks() {
       {filter !== "deleted" && (
         <div className="flex items-center gap-2 flex-wrap">
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
-          <div className="flex items-center border border-border rounded-md overflow-hidden">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Lista"
-            >
-              <LayoutList className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("kanban")}
-              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Kanban"
-            >
-              <Columns3 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("owner")}
-              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Por responsável (mim / outros)"
-            >
-              <Users className="h-4 w-4" />
-            </button>
-          </div>
-          {filter !== "planner" && viewMode === "list" && (
+          {filter === "planner" ? (
             <>
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All priorities</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={complexityFilter} onValueChange={setComplexityFilter}>
-                <SelectTrigger className="w-[136px] sm:w-[170px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Complexidade" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas complexidades</SelectItem>
-                  {TASK_EXECUTION_COMPLEXITIES.map(level => (
-                    <SelectItem key={level} value={level}>{taskExecutionComplexityLabels[level]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[120px] sm:w-[150px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Ordenar" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">Ordenar: data</SelectItem>
-                  <SelectItem value="priority">Ordenar: prioridade</SelectItem>
-                  <SelectItem value="complexity">Ordenar: complexidade</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={groupBy} onValueChange={setGroupBy}>
-                <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No grouping</SelectItem>
-                  <SelectItem value="space">By Space</SelectItem>
-                  <SelectItem value="date">By Date</SelectItem>
-                  <SelectItem value="complexity">Por Complexidade</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center border border-border rounded-md overflow-hidden">
+                <button onClick={() => setPlannerView("list")} title="Lista"
+                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <LayoutList className="h-4 w-4" />
+                </button>
+                <button onClick={() => setPlannerView("kanban")} title="Kanban"
+                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <Columns3 className="h-4 w-4" />
+                </button>
+                <button onClick={() => setPlannerView("timeline")} title="Timeline"
+                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "timeline" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <Clock className="h-4 w-4" />
+                </button>
+                <button onClick={() => setPlannerView("space")} title="Por Space"
+                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "space" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <FolderOpen className="h-4 w-4" />
+                </button>
+                <button onClick={() => setPlannerView("date-complexity")} title="Por Data e Complexidade"
+                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <Gauge className="h-4 w-4" />
+                </button>
+                <button onClick={() => setPlannerView("owner")} title="Por responsável (mim / outros)"
+                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <Users className="h-4 w-4" />
+                </button>
+              </div>
+              <button
+                onClick={() => setAiScheduleOpen(true)}
+                title="Sugerir ordem com IA"
+                className="flex items-center gap-1 h-10 sm:h-8 px-2 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
+              >
+                <Sparkles className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleToggleAllCompact}
+                title={allCompact ? "Expandir todas" : "Recolher todas"}
+                className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors ${allCompact ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
+              >
+                {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{allCompact ? "Expandir" : "Recolher"}</span>
+              </button>
+              <button
+                onClick={() => navigate("/pomodoro")}
+                title="Abrir Pomodoro"
+                className="flex items-center gap-1 h-10 sm:h-8 px-2 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
+              >
+                <Timer className="h-4 w-4" />
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center border border-border rounded-md overflow-hidden">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                  title="Lista"
+                >
+                  <LayoutList className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("kanban")}
+                  className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                  title="Kanban"
+                >
+                  <Columns3 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("owner")}
+                  className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                  title="Por responsável (mim / outros)"
+                >
+                  <Users className="h-4 w-4" />
+                </button>
+              </div>
+              {viewMode === "list" && (
+                <>
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Priority" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All priorities</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={complexityFilter} onValueChange={setComplexityFilter}>
+                    <SelectTrigger className="w-[136px] sm:w-[170px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Complexidade" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas complexidades</SelectItem>
+                      {TASK_EXECUTION_COMPLEXITIES.map(level => (
+                        <SelectItem key={level} value={level}>{taskExecutionComplexityLabels[level]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-[120px] sm:w-[150px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Ordenar" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="date">Ordenar: data</SelectItem>
+                      <SelectItem value="priority">Ordenar: prioridade</SelectItem>
+                      <SelectItem value="complexity">Ordenar: complexidade</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={groupBy} onValueChange={setGroupBy}>
+                    <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No grouping</SelectItem>
+                      <SelectItem value="space">By Space</SelectItem>
+                      <SelectItem value="date">By Date</SelectItem>
+                      <SelectItem value="complexity">Por Complexidade</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+              <button
+                onClick={handleToggleAllCompact}
+                className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors touch-manipulation ${allCompact ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
+                title={allCompact ? "Expandir todas" : "Recolher todas"}
+              >
+                {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{allCompact ? "Expandir" : "Recolher"}</span>
+              </button>
             </>
           )}
-          <button
-            onClick={handleToggleAllCompact}
-            className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors touch-manipulation ${allCompact ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
-            title={allCompact ? "Expandir todas" : "Recolher todas"}
-          >
-            {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
-            <span className="hidden sm:inline">{allCompact ? "Expandir" : "Recolher"}</span>
-          </button>
         </div>
       )}
 
@@ -626,7 +683,7 @@ export default function Tasks() {
             </>
           )}
         </div>
-      ) : filter === "planner" && viewMode !== "owner" ? (
+      ) : filter === "planner" && plannerView !== "owner" ? (
         <DayPlanner
           tasks={tasks}
           setTasks={setTasks}
@@ -643,8 +700,15 @@ export default function Tasks() {
           onRescheduleSubtask={handleRescheduleSubtask}
           onDuplicate={handleDuplicate}
           onReload={load}
+          externalView={plannerView}
+          onExternalViewChange={setPlannerView}
+          externalAllCompact={allCompact}
+          onExternalToggleAllCompact={handleToggleAllCompact}
+          externalAIScheduleOpen={aiScheduleOpen}
+          onExternalAIScheduleOpenChange={setAiScheduleOpen}
+          hideHeader
         />
-      ) : viewMode === "owner" ? (
+      ) : (filter === "planner" ? plannerView === "owner" : viewMode === "owner") ? (
         <TasksByOwnerView
           tasks={filter === "planner" ? tasks.filter(t => t.status !== "completed" && t.status !== "cancelled") : filtered}
           subtasksMap={subtasksMap}
