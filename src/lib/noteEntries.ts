@@ -12,6 +12,55 @@ export interface NoteTopic {
   text: string;
 }
 
+export interface NoteAttachment {
+  href: string;
+  label: string;
+  kind: "image" | "file" | "link";
+}
+
+// Parse attachments: images (<img>) and links (<a href>) inside a note.
+// Storage/attachment URLs are marked as "file", other links as "link".
+export function parseNoteAttachments(html: string): NoteAttachment[] {
+  if (!html || typeof window === "undefined") return [];
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const out: NoteAttachment[] = [];
+  const seen = new Set<string>();
+  const push = (att: NoteAttachment) => {
+    if (!att.href || seen.has(att.href)) return;
+    seen.add(att.href);
+    out.push(att);
+  };
+  doc.querySelectorAll("img[src]").forEach((img) => {
+    const src = img.getAttribute("src") || "";
+    const alt = (img.getAttribute("alt") || "").trim();
+    if (!src || src.startsWith("data:")) return;
+    push({ href: src, label: alt || filenameFromUrl(src) || "Imagem", kind: "image" });
+  });
+  doc.querySelectorAll("a[href]").forEach((a) => {
+    const href = a.getAttribute("href") || "";
+    if (!href || href.startsWith("#") || href.startsWith("mailto:")) return;
+    const text = (a.textContent || "").replace(/\s+/g, " ").trim();
+    const looksLikeFile = /\/attachments\//i.test(href)
+      || /\.(pdf|docx?|xlsx?|pptx?|txt|csv|zip|rar|mp3|mp4|mov|wav|m4a|png|jpe?g|gif|webp|svg)(\?|$)/i.test(href);
+    push({
+      href,
+      label: text || filenameFromUrl(href) || href,
+      kind: looksLikeFile ? "file" : "link",
+    });
+  });
+  return out;
+}
+
+function filenameFromUrl(url: string): string {
+  try {
+    const u = new URL(url, "http://x");
+    const name = decodeURIComponent(u.pathname.split("/").pop() || "");
+    return name;
+  } catch {
+    return "";
+  }
+}
+
 // Parse topics: <mark data-topic="topic-...">…</mark> injected via the
 // "Criar tópico" bubble action.
 export function parseNoteTopics(html: string): NoteTopic[] {
