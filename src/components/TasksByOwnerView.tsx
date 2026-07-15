@@ -38,6 +38,7 @@ interface Props {
   onToggleCardCompact: (id: string) => void;
   allCompact: boolean;
   onReload: () => void;
+  onDelegate?: () => void;
 }
 
 type ColumnId = "mine" | "others";
