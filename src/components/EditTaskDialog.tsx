@@ -108,6 +108,12 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [estimatedMinutes, setEstimatedMinutes] = useState(task.estimated_minutes?.toString() || "");
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(!!task.recurrence);
   const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly" | "yearly">(task.recurrence || "weekly");
+  const [delegatedTo, setDelegatedTo] = useState(task.delegated_to || "");
+  const [delegatedEmail, setDelegatedEmail] = useState("");
+  const [delegatedPhone, setDelegatedPhone] = useState("");
+  const [showDelegation, setShowDelegation] = useState(!!task.delegated_to);
+  const [commDialogOpen, setCommDialogOpen] = useState(false);
+
 
   // Subtasks state
   const [subtasks, setSubtasks] = useState<any[]>([]);
