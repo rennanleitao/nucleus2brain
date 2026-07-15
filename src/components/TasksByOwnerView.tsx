@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { User, Users, GripVertical, CalendarDays, Gauge } from "lucide-react";
+import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { DelegateCommDialog } from "@/components/DelegateCommDialog";
 
 type Subgroup = { label: string; reference?: string; tasks: any[] };
 type Group = {
@@ -37,6 +38,7 @@ interface Props {
   onToggleCardCompact: (id: string) => void;
   allCompact: boolean;
   onReload: () => void;
+  onDelegate?: () => void;
 }
 
 type ColumnId = "mine" | "others";
@@ -68,6 +70,7 @@ function DroppableColumn({
   empty,
   children,
   accent,
+  action,
 }: {
   id: ColumnId;
   title: string;
@@ -76,6 +79,7 @@ function DroppableColumn({
   empty: string;
   children: React.ReactNode;
   accent?: string;
+  action?: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
@@ -92,6 +96,7 @@ function DroppableColumn({
         </div>
         <h2 className="text-sm font-semibold flex-1">{title}</h2>
         <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{count}</span>
+        {action}
       </header>
       <div className="flex-1 p-3 space-y-2">
         {count === 0 ? (
@@ -111,10 +116,11 @@ export function TasksByOwnerView(props: Props) {
     tasks, groups, subtasksMap, remindersMap, onToggle, onDelete, onToggleSubtask,
     onAddSubtask, onDeleteSubtask, onPriorityChange, onReschedule,
     onRescheduleSubtask, onDuplicate, onSelect, cardCompact, onToggleCardCompact,
-    allCompact, onReload,
+    allCompact, onReload, onDelegate,
   } = props;
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [commTask, setCommTask] = useState<any | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const splitByOwner = (arr: any[]) => {
@@ -205,9 +211,20 @@ export function TasksByOwnerView(props: Props) {
         onToggleCompact={allCompact ? onToggleCardCompact : undefined}
       />
       {t.delegated_to && (
-        <p className="text-[11px] text-muted-foreground mt-1 pl-1">
-          Executada por <span className="font-medium text-foreground">{t.delegated_to}</span>
-        </p>
+        <div className="flex items-center gap-1.5 mt-1 pl-1">
+          <p className="text-[11px] text-muted-foreground">
+            Executada por <span className="font-medium text-foreground">{t.delegated_to}</span>
+          </p>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setCommTask(t); }}
+            className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-background hover:bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Comunicar responsável"
+            title="Comunicar responsável"
+          >
+            <Send className="h-3 w-3" /> Comunicar
+          </button>
+        </div>
       )}
     </div>
   );
@@ -315,6 +332,17 @@ export function TasksByOwnerView(props: Props) {
           count={columnData.othersCount}
           empty="Arraste aqui as tarefas delegadas para outra pessoa."
           accent="bg-primary/10"
+          action={onDelegate ? (
+            <button
+              type="button"
+              onClick={onDelegate}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background hover:bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Delegar nova tarefa"
+              title="Delegar nova tarefa"
+            >
+              <Plus className="h-3.5 w-3.5" /> Delegar
+            </button>
+          ) : undefined}
         >
           {renderGroups(columnData.othersGroups)}
         </DroppableColumn>
@@ -341,6 +369,18 @@ export function TasksByOwnerView(props: Props) {
           </div>
         ) : null}
       </DragOverlay>
+      {commTask && (
+        <DelegateCommDialog
+          open={!!commTask}
+          onOpenChange={(o) => { if (!o) setCommTask(null); }}
+          task={{
+            title: commTask.title,
+            description: commTask.description,
+            due_date: commTask.due_date,
+            delegated_to: commTask.delegated_to,
+          }}
+        />
+      )}
     </DndContext>
   );
 }

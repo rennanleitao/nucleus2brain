@@ -679,6 +679,7 @@ export default function Tasks() {
           onToggleCardCompact={toggleCardCompact}
           allCompact={allCompact}
           onReload={load}
+          onDelegate={() => setDelegateOpen(true)}
         />
       ) : (
       <>
