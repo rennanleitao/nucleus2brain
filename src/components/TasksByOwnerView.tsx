@@ -114,6 +114,88 @@ function DroppableColumn({
   );
 }
 
+function QuickCommButton({
+  channel,
+  task,
+  label,
+  Icon,
+  onOpenFull,
+}: {
+  channel: "email" | "whatsapp";
+  task: any;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  onOpenFull: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const handleCopy = async () => {
+    const { body } = buildDelegateMessage(task);
+    try {
+      await navigator.clipboard.writeText(body);
+      toast.success("Mensagem copiada");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+    setOpen(false);
+  };
+
+  const handleSend = () => {
+    const { subject, body } = buildDelegateMessage(task);
+    if (channel === "whatsapp") {
+      const url = `https://wa.me/?text=${encodeURIComponent(body)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = url;
+    }
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center justify-center rounded-md border border-border/70 bg-background hover:bg-muted h-5 w-5 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={label}
+          title={label}
+        >
+          <Icon className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-auto p-1 flex items-center gap-0.5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={handleSend}
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-muted transition-colors"
+        >
+          <Send className="h-3 w-3" /> Enviar
+        </button>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-muted transition-colors"
+        >
+          <Copy className="h-3 w-3" /> Copiar
+        </button>
+        <button
+          type="button"
+          onClick={() => { onOpenFull(); setOpen(false); }}
+          className="inline-flex items-center rounded-md px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          Editar…
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function TasksByOwnerView(props: Props) {
   const {
     tasks, groups, subtasksMap, remindersMap, onToggle, onDelete, onToggleSubtask,
