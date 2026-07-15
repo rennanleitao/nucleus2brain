@@ -802,5 +802,19 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         </form>
       </DialogContent>
     </Dialog>
+    <DelegateCommDialog
+      open={commDialogOpen}
+      onOpenChange={setCommDialogOpen}
+      task={{
+        title: title.trim() || task.title,
+        description: description.trim() || null,
+        due_date: dueDate || null,
+        delegated_to: delegatedTo.trim() || null,
+      }}
+      defaultEmail={delegatedEmail}
+      defaultPhone={delegatedPhone}
+    />
+    </>
   );
 }
+
