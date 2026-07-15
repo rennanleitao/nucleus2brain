@@ -33,10 +33,7 @@ export function SharedNoteEditor({ content, onChange, editable = false }: Shared
     editable,
     editorProps: {
       attributes: {
-        class: "prose prose-sm max-w-none dark:prose-invert focus:outline-none min-h-[40vh] " +
-          "prose-headings:font-semibold prose-headings:tracking-tight " +
-          "prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 " +
-          "prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground",
+        class: "notes-editor focus:outline-none min-h-[40vh] px-6 py-8 md:px-10 md:py-10",
       },
     },
     onUpdate: ({ editor }) => {
