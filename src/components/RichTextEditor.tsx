@@ -213,7 +213,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     },
     editorProps: {
       attributes: {
-        class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
+        class: "notes-editor focus:outline-none min-h-[240px] px-6 py-8 md:px-10 md:py-10",
       },
       handlePaste: (_view, event) => {
         const text = event.clipboardData?.getData("text/plain")?.trim();
