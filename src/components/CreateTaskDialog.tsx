@@ -326,7 +326,9 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         note_id: defaultNoteId || null,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
         recurrence: recurrenceEnabled ? recurrence : null,
+        delegated_to: delegatedTo.trim() || null,
       } as any);
+
 
       if (executionComplexity !== "medium" && task && !("execution_complexity" in task)) {
         toast.warning("Task criada, mas a complexidade ainda não foi salva porque a migration do banco não foi aplicada.");
