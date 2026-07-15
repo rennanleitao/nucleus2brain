@@ -429,89 +429,65 @@ export function DayPlanner({
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <CalendarCheck className="h-4 w-4 text-primary" />
-          <h2 className="text-h2">Planejamento do Dia</h2>
-          <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
-            {dayTasks.length + todayOrphanSubtasks.length} item{(dayTasks.length + todayOrphanSubtasks.length) !== 1 ? "s" : ""}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex items-center border border-border rounded-md overflow-hidden">
-            <button
-              onClick={() => setView("list")}
-              className={`p-1.5 transition-colors ${view === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Lista"
-            >
-              <LayoutList className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setView("kanban")}
-              className={`p-1.5 transition-colors ${view === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Kanban"
-            >
-              <Columns3 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setView("timeline")}
-              className={`p-1.5 transition-colors ${view === "timeline" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Timeline"
-            >
-              <Clock className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setView("space")}
-              className={`p-1.5 transition-colors ${view === "space" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Por Space"
-            >
-              <FolderOpen className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setView("date-complexity")}
-              className={`p-1.5 transition-colors ${view === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Por Data e Complexidade"
-            >
-              <Gauge className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setView("owner")}
-              className={`p-1.5 transition-colors ${view === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-              title="Por responsável (mim / outros)"
-            >
-              <Users className="h-3.5 w-3.5" />
-            </button>
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarCheck className="h-4 w-4 text-primary" />
+            <h2 className="text-h2">Planejamento do Dia</h2>
+            <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
+              {dayTasks.length + todayOrphanSubtasks.length} item{(dayTasks.length + todayOrphanSubtasks.length) !== 1 ? "s" : ""}
+            </span>
           </div>
-          <button
-            onClick={() => setShowAISchedule(true)}
-            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-md px-2 py-1.5 transition-colors"
-            title="Sugerir ordem com IA"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={handleToggleAllCompact}
-            className={`flex items-center gap-1 text-xs font-medium border rounded-md px-2 py-1.5 transition-colors ${allCompact ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground hover:text-primary border-border hover:border-primary/30"}`}
-            title={allCompact ? "Expandir todas" : "Recolher todas"}
-          >
-            {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
-          </button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => navigate("/pomodoro")}
-                  className="flex items-center gap-1.5 text-small font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-lg px-2.5 py-1.5 transition-colors"
-                >
-                  <Timer className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent><p className="text-xs">Abrir Pomodoro</p></TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="flex items-center border border-border rounded-md overflow-hidden">
+              <button onClick={() => setView("list")} title="Lista"
+                className={`p-1.5 transition-colors ${view === "list" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                <LayoutList className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setView("kanban")} title="Kanban"
+                className={`p-1.5 transition-colors ${view === "kanban" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                <Columns3 className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setView("timeline")} title="Timeline"
+                className={`p-1.5 transition-colors ${view === "timeline" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                <Clock className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setView("space")} title="Por Space"
+                className={`p-1.5 transition-colors ${view === "space" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                <FolderOpen className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setView("date-complexity")} title="Por Data e Complexidade"
+                className={`p-1.5 transition-colors ${view === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                <Gauge className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setView("owner")} title="Por responsável (mim / outros)"
+                className={`p-1.5 transition-colors ${view === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                <Users className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <button onClick={() => setShowAISchedule(true)} title="Sugerir ordem com IA"
+              className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-md px-2 py-1.5 transition-colors">
+              <Sparkles className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={handleToggleAllCompact} title={allCompact ? "Expandir todas" : "Recolher todas"}
+              className={`flex items-center gap-1 text-xs font-medium border rounded-md px-2 py-1.5 transition-colors ${allCompact ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground hover:text-primary border-border hover:border-primary/30"}`}>
+              {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={() => navigate("/pomodoro")}
+                    className="flex items-center gap-1.5 text-small font-medium text-muted-foreground hover:text-primary border border-border hover:border-primary/30 rounded-lg px-2.5 py-1.5 transition-colors">
+                    <Timer className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent><p className="text-xs">Abrir Pomodoro</p></TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* LIST VIEW */}
       {view === "list" && (
