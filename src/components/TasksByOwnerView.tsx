@@ -1,15 +1,26 @@
 import { useMemo, useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { User, Users, GripVertical } from "lucide-react";
+import { User, Users, GripVertical, CalendarDays, Gauge } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+type Subgroup = { label: string; reference?: string; tasks: any[] };
+type Group = {
+  label: string;
+  tasks: any[];
+  accent?: string;
+  /** "date" gives the section the same colored header used by the day planner. */
+  variant?: "date" | "plain";
+  tone?: "today" | "overdue" | "default";
+  subgroups?: Subgroup[];
+};
+
 interface Props {
   tasks: any[];
-  /** Optional grouping (e.g. Atrasadas / Hoje / Amanhã). If provided, tasks are ignored for rendering but still used to look up drag targets. */
-  groups?: { label: string; tasks: any[]; accent?: string }[];
+  /** Optional grouping. If provided, tasks are still used to look up drag targets. */
+  groups?: Group[];
   subtasksMap: Record<string, any[]>;
   remindersMap: Record<string, any>;
   onToggle: (id: string) => void;
