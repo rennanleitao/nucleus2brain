@@ -131,6 +131,7 @@ interface CreateTaskDialogProps {
   defaultTitle?: string;
   defaultDescription?: string;
   defaultNoteId?: string | null;
+  startDelegated?: boolean;
 }
 
 export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange, defaultTitle = "", defaultDescription = "", defaultNoteId = null }: CreateTaskDialogProps) {
