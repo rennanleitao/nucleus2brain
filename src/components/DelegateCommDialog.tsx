@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buildReplyRfc2822, sendRawEmail } from "@/lib/gmail";
+import {
+  BUILTIN_TEMPLATES,
+  loadUserTemplates,
+  saveUserTemplates,
+  renderTemplate,
+  normalizePhone,
+  type DelegateTemplate,
+} from "@/lib/delegate-messages";
+import { promptDialog } from "@/components/ui/dialog-service";
 
 interface DelegateCommDialogProps {
   open: boolean;
@@ -19,33 +28,10 @@ interface DelegateCommDialogProps {
   defaultPhone?: string;
 }
 
-function formatDate(d?: string | null) {
-  if (!d) return "";
-  const parts = d.split("-");
-  if (parts.length !== 3) return d;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
-}
-
-function formatDateShort(d?: string | null) {
-  if (!d) return "";
-  const parts = d.split("-");
-  if (parts.length !== 3) return d;
-  const currentYear = new Date().getFullYear().toString();
-  const dayMonth = `${parts[2]}/${parts[1]}`;
-  return parts[0] === currentYear ? dayMonth : `${dayMonth}/${parts[0]}`;
-}
-
-function normalizePhone(raw: string): string {
-  // Keep digits only; assume Brazil if 10-11 digits and no leading 55
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.length <= 11 && !digits.startsWith("55")) return `55${digits}`;
-  return digits;
-}
-
 export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = "", defaultPhone = "" }: DelegateCommDialogProps) {
   const [tab, setTab] = useState<"email" | "whatsapp">("email");
-  const [mode, setMode] = useState<"delegate" | "followup">("delegate");
+  const [userTemplates, setUserTemplates] = useState<DelegateTemplate[]>([]);
+  const [templateId, setTemplateId] = useState<string>(BUILTIN_TEMPLATES[0].id);
   const [email, setEmail] = useState(defaultEmail);
   const [phone, setPhone] = useState(defaultPhone);
   const [subject, setSubject] = useState("");
@@ -53,22 +39,28 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
   const [waBody, setWaBody] = useState("");
   const [gmailConnected, setGmailConnected] = useState(false);
   const [sending, setSending] = useState(false);
-  const [senderName, setSenderName] = useState("");
 
-  const dueShort = useMemo(() => formatDateShort(task.due_date), [task.due_date]);
   const name = task.delegated_to?.trim() || "";
-  const firstName = name.split(/\s+/)[0] || name;
 
+  const allTemplates = useMemo<DelegateTemplate[]>(
+    () => [...BUILTIN_TEMPLATES, ...userTemplates],
+    [userTemplates],
+  );
+  const currentTemplate = useMemo(
+    () => allTemplates.find(t => t.id === templateId) || BUILTIN_TEMPLATES[0],
+    [allTemplates, templateId],
+  );
+
+  // On open: reset recipients, load Gmail status + saved templates.
   useEffect(() => {
     if (!open) return;
     setEmail(defaultEmail);
     setPhone(defaultPhone);
+    setUserTemplates(loadUserTemplates());
+    setTemplateId(BUILTIN_TEMPLATES[0].id);
 
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const displayName = (user?.user_metadata as any)?.full_name || user?.email?.split("@")[0] || "";
-      setSenderName(displayName);
-
       if (user) {
         const { data } = await supabase
           .from("gmail_connections")
@@ -80,28 +72,14 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
     })();
   }, [open, defaultEmail, defaultPhone]);
 
-  // Rebuild message whenever mode / task info changes
+  // Rebuild message whenever the selected template or task changes.
   useEffect(() => {
     if (!open) return;
-    const greeting = firstName ? `Oi ${firstName}` : "Oi";
-    let msg = "";
-    let subj = task.title;
-    if (mode === "delegate") {
-      const dueTxt = dueShort ? ` até ${dueShort}` : "";
-      const descLine = task.description?.trim()
-        ? `\nMe lembro que noutro momento falamos sobre ${task.description.trim()}.`
-        : "";
-      msg = `${greeting}, tudo certo? Vc consegue tocar a atividade *${task.title}*${dueTxt}? Se sim, me avisa.${descLine}
-
-Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
-    } else {
-      subj = `Follow-up: ${task.title}`;
-      msg = `${greeting}, tranquilo? Consegue me atualizar sobre como está a atividade *${task.title}*? Acha que consegue concluir quando?`;
-    }
-    setSubject(subj);
-    setEmailBody(msg);
-    setWaBody(msg);
-  }, [open, mode, task.title, task.description, task.due_date, firstName, dueShort]);
+    const rendered = renderTemplate(currentTemplate, task);
+    setSubject(rendered.subject);
+    setEmailBody(rendered.body);
+    setWaBody(rendered.body);
+  }, [open, currentTemplate, task.title, task.description, task.due_date, task.delegated_to]);
 
   const handleCopy = async (text: string, label: string) => {
     try {
@@ -141,12 +119,44 @@ Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const handleSaveAsTemplate = async () => {
+    const body = tab === "email" ? emailBody : waBody;
+    const name = await promptDialog({
+      title: "Salvar como template",
+      description: "Dê um nome para reutilizar essa mensagem depois.",
+      placeholder: "Ex: Cobrança gentil",
+      confirmLabel: "Salvar",
+      required: true,
+    });
+    if (!name || !name.trim()) return;
+    const next: DelegateTemplate = {
+      id: `user-${Date.now()}`,
+      name: name.trim(),
+      subject: tab === "email" ? subject : "{{title}}",
+      body,
+    };
+    const updated = [...userTemplates, next];
+    setUserTemplates(updated);
+    saveUserTemplates(updated);
+    setTemplateId(next.id);
+    toast.success("Template salvo");
+  };
+
+  const handleDeleteTemplate = () => {
+    if (currentTemplate.builtin) return;
+    const updated = userTemplates.filter(t => t.id !== currentTemplate.id);
+    setUserTemplates(updated);
+    saveUserTemplates(updated);
+    setTemplateId(BUILTIN_TEMPLATES[0].id);
+    toast.success("Template removido");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
           <DialogTitle className="text-base font-semibold">
-            {mode === "delegate" ? "Comunicar responsabilidade" : "Follow-up da atividade"}
+            Comunicar
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-1">
             {name ? <>Enviar para <span className="font-medium text-foreground">{name}</span></> : "Enviar mensagem"}
@@ -155,17 +165,48 @@ Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
 
         <div className="px-5 pt-4 space-y-3">
           <div>
-            <label className="field-label">Tipo de mensagem</label>
-            <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs">
-              <button type="button" onClick={() => setMode("delegate")}
-                className={`px-3 py-1.5 rounded-md transition-colors ${mode === "delegate" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
-                Delegar
+            <label className="field-label">Template</label>
+            <div className="flex items-center gap-2">
+              <select
+                value={templateId}
+                onChange={(e) => setTemplateId(e.target.value)}
+                className="field-input flex-1"
+              >
+                <optgroup label="Padrão">
+                  {BUILTIN_TEMPLATES.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </optgroup>
+                {userTemplates.length > 0 && (
+                  <optgroup label="Meus templates">
+                    {userTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+              <button
+                type="button"
+                onClick={handleSaveAsTemplate}
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-background hover:bg-muted px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                title="Salvar mensagem atual como novo template"
+              >
+                <Save className="h-3.5 w-3.5" /> Salvar
               </button>
-              <button type="button" onClick={() => setMode("followup")}
-                className={`px-3 py-1.5 rounded-md transition-colors ${mode === "followup" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
-                Follow-up
-              </button>
+              {!currentTemplate.builtin && (
+                <button
+                  type="button"
+                  onClick={handleDeleteTemplate}
+                  className="inline-flex items-center rounded-md border border-border bg-background hover:bg-destructive/10 hover:text-destructive px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors"
+                  title="Excluir template"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Variáveis: <code>{`{{firstName}}`}</code>, <code>{`{{title}}`}</code>, <code>{`{{dueDate}}`}</code>, <code>{`{{description}}`}</code>
+            </p>
           </div>
 
           <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs">

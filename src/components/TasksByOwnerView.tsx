@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send } from "lucide-react";
+import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send, Mail, MessageCircle, Copy } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DelegateCommDialog } from "@/components/DelegateCommDialog";
 import { promptDialog } from "@/components/ui/dialog-service";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { buildDelegateMessage } from "@/lib/delegate-messages";
 
 type Subgroup = { label: string; reference?: string; tasks: any[] };
 type Group = {
@@ -109,6 +111,88 @@ function DroppableColumn({
         )}
       </div>
     </section>
+  );
+}
+
+function QuickCommButton({
+  channel,
+  task,
+  label,
+  Icon,
+  onOpenFull,
+}: {
+  channel: "email" | "whatsapp";
+  task: any;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  onOpenFull: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const handleCopy = async () => {
+    const { body } = buildDelegateMessage(task);
+    try {
+      await navigator.clipboard.writeText(body);
+      toast.success("Mensagem copiada");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+    setOpen(false);
+  };
+
+  const handleSend = () => {
+    const { subject, body } = buildDelegateMessage(task);
+    if (channel === "whatsapp") {
+      const url = `https://wa.me/?text=${encodeURIComponent(body)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = url;
+    }
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center justify-center rounded-md border border-border/70 bg-background hover:bg-muted h-5 w-5 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={label}
+          title={label}
+        >
+          <Icon className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-auto p-1 flex items-center gap-0.5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={handleSend}
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-muted transition-colors"
+        >
+          <Send className="h-3 w-3" /> Enviar
+        </button>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-muted transition-colors"
+        >
+          <Copy className="h-3 w-3" /> Copiar
+        </button>
+        <button
+          type="button"
+          onClick={() => { onOpenFull(); setOpen(false); }}
+          className="inline-flex items-center rounded-md px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          Editar…
+        </button>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -219,7 +303,7 @@ export function TasksByOwnerView(props: Props) {
         onToggleCompact={allCompact ? onToggleCardCompact : undefined}
       />
       {t.delegated_to && (
-        <div className="flex items-center gap-1.5 mt-1 pl-1">
+        <div className="flex items-center gap-1.5 mt-1 pl-1" onClick={(e) => e.stopPropagation()}>
           <p className="text-[11px] text-muted-foreground">
             Executada por <span className="font-medium text-foreground">{t.delegated_to}</span>
           </p>
@@ -232,6 +316,20 @@ export function TasksByOwnerView(props: Props) {
           >
             Comunicar
           </button>
+          <QuickCommButton
+            channel="whatsapp"
+            task={t}
+            label="Comunicar por WhatsApp"
+            Icon={MessageCircle}
+            onOpenFull={() => setCommTask(t)}
+          />
+          <QuickCommButton
+            channel="email"
+            task={t}
+            label="Comunicar por e-mail"
+            Icon={Mail}
+            onOpenFull={() => setCommTask(t)}
+          />
         </div>
       )}
     </div>
