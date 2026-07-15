@@ -45,6 +45,7 @@ function normalizePhone(raw: string): string {
 
 export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = "", defaultPhone = "" }: DelegateCommDialogProps) {
   const [tab, setTab] = useState<"email" | "whatsapp">("email");
+  const [mode, setMode] = useState<"delegate" | "followup">("delegate");
   const [email, setEmail] = useState(defaultEmail);
   const [phone, setPhone] = useState(defaultPhone);
   const [subject, setSubject] = useState("");
@@ -76,21 +77,31 @@ export function DelegateCommDialog({ open, onOpenChange, task, defaultEmail = ""
           .maybeSingle();
         setGmailConnected(!!data);
       }
+    })();
+  }, [open, defaultEmail, defaultPhone]);
 
-      const subj = task.title;
+  // Rebuild message whenever mode / task info changes
+  useEffect(() => {
+    if (!open) return;
+    const greeting = firstName ? `Oi ${firstName}` : "Oi";
+    let msg = "";
+    let subj = task.title;
+    if (mode === "delegate") {
       const dueTxt = dueShort ? ` até ${dueShort}` : "";
-      const greeting = firstName ? `Oi ${firstName}, tudo certo?` : "Oi, tudo certo?";
       const descLine = task.description?.trim()
         ? `\nMe lembro que noutro momento falamos sobre ${task.description.trim()}.`
         : "";
-      const msg = `${greeting} Vc consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
+      msg = `${greeting}, tudo certo? Vc consegue tocar a atividade "${task.title}"${dueTxt}? Se sim, me avisa.${descLine}
 
 Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.`;
-      setSubject(subj);
-      setEmailBody(msg);
-      setWaBody(msg);
-    })();
-  }, [open, task.title, task.description, task.due_date, task.delegated_to, defaultEmail, defaultPhone, dueShort, firstName]);
+    } else {
+      subj = `Follow-up: ${task.title}`;
+      msg = `${greeting}, tranquilo? Consegue me atualizar sobre como está a atividade "${task.title}"? Acha que consegue concluir quando?`;
+    }
+    setSubject(subj);
+    setEmailBody(msg);
+    setWaBody(msg);
+  }, [open, mode, task.title, task.description, task.due_date, firstName, dueShort]);
 
   const handleCopy = async (text: string, label: string) => {
     try {
