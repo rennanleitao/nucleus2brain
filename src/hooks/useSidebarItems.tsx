@@ -7,6 +7,7 @@ export const SIDEBAR_ITEMS = [
   { key: "spaces", title: "Spaces", url: "/spaces" },
   { key: "notes", title: "Notes", url: "/notes" },
   { key: "tasks", title: "Tasks", url: "/tasks" },
+  { key: "emails", title: "E-mails", url: "/emails" },
   { key: "studies", title: "Conhecimento", url: "/estudos" },
   { key: "meeting-copilot", title: "Meeting Copilot", url: "/reunioes" },
   { key: "materials", title: "Materials", url: "/materials" },
@@ -23,7 +24,7 @@ const EVENT_NAME = "sidebar-visible-items-changed";
 const ALL_KEYS = SIDEBAR_ITEMS.map((i) => i.key) as SidebarItemKey[];
 // Keys added after the storage key was first introduced — auto-enable so users
 // who already have a stored visibility list still see new modules.
-const AUTO_ENABLE_NEW_KEYS: SidebarItemKey[] = ["studies", "meeting-copilot"];
+const AUTO_ENABLE_NEW_KEYS: SidebarItemKey[] = ["studies", "meeting-copilot", "emails"];
 
 function readStored(): SidebarItemKey[] {
   try {

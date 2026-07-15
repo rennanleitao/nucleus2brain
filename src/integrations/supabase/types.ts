@@ -82,6 +82,105 @@ export type Database = {
           },
         ]
       }
+      email_task_links: {
+        Row: {
+          created_at: string
+          from_address: string | null
+          id: string
+          message_id: string
+          note_id: string | null
+          snippet: string | null
+          subject: string | null
+          task_id: string | null
+          thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          message_id: string
+          note_id?: string | null
+          snippet?: string | null
+          subject?: string | null
+          task_id?: string | null
+          thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          message_id?: string
+          note_id?: string | null
+          snippet?: string | null
+          subject?: string | null
+          task_id?: string | null
+          thread_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_task_links_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_task_links_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gmail_connections: {
+        Row: {
+          connected_at: string
+          connection_api_key: string
+          email: string | null
+          scopes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          connection_api_key: string
+          email?: string | null
+          scopes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          connection_api_key?: string
+          email?: string | null
+          scopes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gmail_oauth_sessions: {
+        Row: {
+          created_at: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_calendar_selections: {
         Row: {
           calendar_color: string | null
