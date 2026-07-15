@@ -634,6 +634,26 @@ export default function Tasks() {
           onToggleCardCompact={toggleCardCompact}
           allCompact={allCompact}
         />
+      ) : viewMode === "owner" ? (
+        <TasksByOwnerView
+          tasks={filtered}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onReschedule={handleReschedule}
+          onRescheduleSubtask={handleRescheduleSubtask}
+          onDuplicate={handleDuplicate}
+          onSelect={setEditingTask}
+          cardCompact={cardCompact}
+          onToggleCardCompact={toggleCardCompact}
+          allCompact={allCompact}
+          onReload={load}
+        />
       ) : (
       <>
       {filter === "done" && filtered.length > 0 && (
