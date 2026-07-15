@@ -182,3 +182,71 @@ export function formatEntryRelative(date: string, today: string): string {
 export function buildDateEntryHtml(date: string): string {
   return `<h2 data-entry-date="${date}" id="${entryIdForDate(date)}">${formatEntryLabel(date)}</h2><p></p>`;
 }
+
+// Parse a user-typed date in flexible Brazilian formats.
+// Accepts: DD.MM.AA, DD.MM.AAAA, DD/MM/AA, DD/MM/AAAA, DD-MM-AA, DD-MM-AAAA,
+// or a bare 4-digit year AAAA (mapped to Jan 1st).
+// Returns YYYY-MM-DD or null.
+export function parseFlexibleDate(input: string): string | null {
+  const s = (input || "").trim();
+  if (!s) return null;
+  let m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})$/);
+  if (m) {
+    const d = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10);
+    let y = parseInt(m[3], 10);
+    if (m[3].length === 2) y = 2000 + y;
+    if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900 || y > 2200) return null;
+    return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  m = s.match(/^(\d{4})$/);
+  if (m) {
+    const y = parseInt(m[1], 10);
+    if (y < 1900 || y > 2200) return null;
+    return `${y}-01-01`;
+  }
+  return null;
+}
+
+// Move a date-entry section (heading + all content until the next date-entry
+// heading) so it lands before/after the target section. Returns updated HTML,
+// or the original HTML if the move is a no-op.
+export function reorderNoteEntries(
+  html: string,
+  fromDate: string,
+  toDate: string,
+  position: "before" | "after" = "before",
+): string {
+  if (!html || typeof window === "undefined" || fromDate === toDate) return html;
+  const doc = new DOMParser().parseFromString(`<div id="__root__">${html}</div>`, "text/html");
+  const container = doc.getElementById("__root__");
+  if (!container) return html;
+
+  type Section = { date: string | null; nodes: Element[] };
+  const sections: Section[] = [];
+  let current: Section = { date: null, nodes: [] };
+  sections.push(current);
+  Array.from(container.children).forEach((child) => {
+    if (child.hasAttribute(DATE_ATTR)) {
+      current = { date: child.getAttribute(DATE_ATTR), nodes: [child] };
+      sections.push(current);
+    } else {
+      current.nodes.push(child);
+    }
+  });
+
+  const fromIdx = sections.findIndex((s) => s.date === fromDate);
+  if (fromIdx < 0) return html;
+  const [moved] = sections.splice(fromIdx, 1);
+  const targetIdx = sections.findIndex((s) => s.date === toDate);
+  if (targetIdx < 0) {
+    sections.splice(fromIdx, 0, moved);
+    return html;
+  }
+  const insertIdx = position === "after" ? targetIdx + 1 : targetIdx;
+  sections.splice(insertIdx, 0, moved);
+
+  container.innerHTML = "";
+  sections.forEach((sec) => sec.nodes.forEach((n) => container.appendChild(n)));
+  return container.innerHTML;
+}
