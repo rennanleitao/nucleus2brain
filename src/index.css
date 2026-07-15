@@ -138,40 +138,41 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.6;
     font-weight: 400;
-    letter-spacing: 0;
+    letter-spacing: -0.005em;
     /* Prevent iOS zoom on input focus */
     touch-action: manipulation;
   }
 
   h1, .text-title, .text-h1 {
-    font-family: var(--font-serif);
-    letter-spacing: -0.012em;
-    font-weight: 400;
+    font-family: var(--font-sans);
+    letter-spacing: -0.028em;
+    font-weight: 600;
   }
 
   h2, h3, h4, h5, h6, .text-h2, .text-h3 {
     font-family: var(--font-sans);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     font-weight: 600;
   }
 
   h1 {
     font-size: 1.75rem; /* 28px */
-    line-height: 1.15;
+    line-height: 1.2;
   }
 
   h2 {
     font-size: 1.125rem; /* 18px */
-    line-height: 1.3;
+    line-height: 1.35;
   }
 
   h3 {
     font-size: 0.9375rem; /* 15px */
-    line-height: 1.35;
+    line-height: 1.4;
   }
+
 
   code, pre {
     font-family: var(--font-mono);
