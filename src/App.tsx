@@ -95,6 +95,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <DialogServiceHost />
       <BrowserRouter>
         <AuthProvider>
           <PomodoroProvider>
