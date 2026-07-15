@@ -133,11 +133,11 @@ Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.${displayName 
           <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs">
             <button type="button" onClick={() => setTab("email")}
               className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${tab === "email" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
-              <Mail className="h-3.5 w-3.5" /> E-mail
+              E-mail
             </button>
             <button type="button" onClick={() => setTab("whatsapp")}
               className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${tab === "whatsapp" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}>
-              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+              WhatsApp
             </button>
           </div>
         </div>
@@ -162,14 +162,14 @@ Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.${displayName 
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button type="button" onClick={handleSendEmail} disabled={sending || !gmailConnected}
                   className="gradient-primary text-primary-foreground border-0" size="sm">
-                  {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                  {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
                   Enviar via Gmail
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={openMailto}>
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir no meu app
+                  Abrir no meu app
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => handleCopy(`${subject}\n\n${emailBody}`, "E-mail")}>
-                  <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                  Copiar
                 </Button>
               </div>
               {!gmailConnected && (
@@ -194,10 +194,10 @@ Depois me conta se rolou, ok? Se precisar de algum apoio me avisa.${displayName 
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button type="button" onClick={openWhatsApp} size="sm"
                   className="gradient-primary text-primary-foreground border-0">
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir no WhatsApp
+                  Abrir no WhatsApp
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => handleCopy(waBody, "Mensagem")}>
-                  <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                  Copiar
                 </Button>
               </div>
             </>
