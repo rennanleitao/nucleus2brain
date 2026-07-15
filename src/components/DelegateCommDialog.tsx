@@ -26,6 +26,15 @@ function formatDate(d?: string | null) {
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
+function formatDateShort(d?: string | null) {
+  if (!d) return "";
+  const parts = d.split("-");
+  if (parts.length !== 3) return d;
+  const currentYear = new Date().getFullYear().toString();
+  const dayMonth = `${parts[2]}/${parts[1]}`;
+  return parts[0] === currentYear ? dayMonth : `${dayMonth}/${parts[0]}`;
+}
+
 function normalizePhone(raw: string): string {
   // Keep digits only; assume Brazil if 10-11 digits and no leading 55
   const digits = raw.replace(/\D/g, "");
