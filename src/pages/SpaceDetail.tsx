@@ -418,6 +418,48 @@ export default function SpaceDetail() {
             </>
           )}
         </TabsContent>
+
+        {/* TOPICS TAB */}
+        <TabsContent value="topics" className="space-y-3">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-small font-semibold">Tópicos importantes</h3>
+              <span className="text-[11px] text-muted-foreground">
+                {noteTopics.length > 0 ? `${noteTopics.length} tópico${noteTopics.length === 1 ? "" : "s"}` : ""}
+              </span>
+            </div>
+            {noteTopics.length > 0 ? (
+              <ul className="space-y-1.5">
+                {noteTopics.map((t) => {
+                  const note = notes.find((n: any) => n.id === t.noteId);
+                  return (
+                    <li key={`${t.noteId}:${t.id}`}>
+                      <button
+                        type="button"
+                        onClick={() => note && openNoteEditor(note)}
+                        className="w-full flex items-start gap-2 px-3 py-2 rounded-lg border border-border/60 bg-background hover:bg-muted/40 text-left transition-colors"
+                      >
+                        <span className="mt-1.5 block w-1 h-1 rounded-full bg-primary/70 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12.5px] leading-snug text-foreground/90 line-clamp-2">{t.text}</p>
+                          <p className="text-[10.5px] text-muted-foreground mt-0.5 truncate">{t.noteTitle}</p>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-small text-muted-foreground">
+                  Nenhum tópico marcado ainda. No editor de nota, selecione um trecho e clique em <span className="font-medium text-foreground">Tópico</span>.
+                </p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
         <TabsContent value="links" className="space-y-3">
           <div className="flex justify-end">
             <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
