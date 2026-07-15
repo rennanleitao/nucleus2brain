@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles, X, Paperclip, Image as ImageIcon, ExternalLink, FileText, Link as LinkIcon } from "lucide-react";
 import {
   parseNoteEntries,
   parseNoteTopics,
+  parseNoteAttachments,
   formatEntryShort,
   entryIdForDate,
 } from "@/lib/noteEntries";
@@ -19,6 +20,7 @@ interface NoteDateSidebarProps {
 export function NoteDateSidebar({ html, scrollContainer, onJump, onRemoveTopic }: NoteDateSidebarProps) {
   const entries = useMemo(() => parseNoteEntries(html), [html]);
   const topics = useMemo(() => parseNoteTopics(html), [html]);
+  const attachments = useMemo(() => parseNoteAttachments(html), [html]);
   const today = getBrtToday();
   const [activeDate, setActiveDate] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export function NoteDateSidebar({ html, scrollContainer, onJump, onRemoveTopic }
     );
   };
 
-  const isEmpty = entries.length === 0 && topics.length === 0;
+  const isEmpty = entries.length === 0 && topics.length === 0 && attachments.length === 0;
   if (isEmpty) {
     return (
       <div className="p-4 text-[11px] leading-relaxed text-muted-foreground/70">
@@ -157,6 +159,37 @@ export function NoteDateSidebar({ html, scrollContainer, onJump, onRemoveTopic }
           </ul>
         )}
       </div>
+
+      {attachments.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80 mb-3 flex items-center gap-1.5">
+            <Paperclip className="h-3 w-3" />
+            Anexos
+          </p>
+          <ul className="space-y-0.5">
+            {attachments.map((a) => {
+              const Icon = a.kind === "image" ? ImageIcon : a.kind === "file" ? FileText : LinkIcon;
+              return (
+                <li key={a.href}>
+                  <a
+                    href={a.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={a.label}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-muted/40 transition-colors group"
+                  >
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <span className="text-[11.5px] leading-snug text-foreground/85 truncate flex-1">
+                      {a.label}
+                    </span>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
