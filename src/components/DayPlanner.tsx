@@ -39,18 +39,32 @@ interface DayPlannerProps {
   onRescheduleSubtask: (id: string, newDate: string) => void;
   onDuplicate: (id: string) => void;
   onReload: () => void;
+  externalView?: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner";
+  onExternalViewChange?: (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner") => void;
+  externalAllCompact?: boolean;
+  onExternalToggleAllCompact?: () => void;
+  externalAIScheduleOpen?: boolean;
+  onExternalAIScheduleOpenChange?: (open: boolean) => void;
+  hideHeader?: boolean;
 }
 
 export function DayPlanner({
   tasks, setTasks, subtasksMap, remindersMap,
   onToggle, onDelete, onToggleSubtask, onAddSubtask,
   onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onDuplicate, onReload,
+  externalView, onExternalViewChange, externalAllCompact, onExternalToggleAllCompact,
+  externalAIScheduleOpen, onExternalAIScheduleOpenChange, hideHeader,
 }: DayPlannerProps) {
   const navigate = useNavigate();
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [view, setView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner">("date-complexity");
+  const [internalView, setInternalView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner">("date-complexity");
+  const view = externalView ?? internalView;
+  const setView = (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner") => {
+    if (onExternalViewChange) onExternalViewChange(v);
+    else setInternalView(v);
+  };
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
