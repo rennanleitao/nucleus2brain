@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles, X, Paperclip, Image as ImageIcon, ExternalLink, FileText, Link as LinkIcon } from "lucide-react";
 import {
   parseNoteEntries,
   parseNoteTopics,
+  parseNoteAttachments,
   formatEntryShort,
   entryIdForDate,
 } from "@/lib/noteEntries";
@@ -19,6 +20,7 @@ interface NoteDateSidebarProps {
 export function NoteDateSidebar({ html, scrollContainer, onJump, onRemoveTopic }: NoteDateSidebarProps) {
   const entries = useMemo(() => parseNoteEntries(html), [html]);
   const topics = useMemo(() => parseNoteTopics(html), [html]);
+  const attachments = useMemo(() => parseNoteAttachments(html), [html]);
   const today = getBrtToday();
   const [activeDate, setActiveDate] = useState<string | null>(null);
 
