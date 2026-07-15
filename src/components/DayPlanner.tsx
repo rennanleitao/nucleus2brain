@@ -451,6 +451,13 @@ export function DayPlanner({
             >
               <Gauge className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={() => setView("owner")}
+              className={`p-1.5 transition-colors ${view === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Por responsável (mim / outros)"
+            >
+              <Users className="h-3.5 w-3.5" />
+            </button>
           </div>
           <button
             onClick={() => setShowAISchedule(true)}
