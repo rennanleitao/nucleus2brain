@@ -212,10 +212,63 @@ export function TasksByOwnerView(props: Props) {
     </div>
   );
 
-  const renderGroups = (grps: { label: string; accent?: string; tasks: any[] }[]) => {
+  const renderGroups = (grps: Group[]) => {
     const useSections = groups && groups.length > 0;
     return grps.map((g, idx) => {
       if (useSections && g.tasks.length === 0) return null;
+
+      // Day-planner-style container (date header + complexity subgroups)
+      if (g.variant === "date") {
+        const isToday = g.tone === "today";
+        const isOverdue = g.tone === "overdue";
+        return (
+          <div
+            key={g.label || idx}
+            className={cn(
+              "rounded-xl border overflow-hidden",
+              idx > 0 && "mt-3",
+              isToday ? "border-primary/30 bg-primary/5"
+                : isOverdue ? "border-destructive/30 bg-destructive/5"
+                : "border-border bg-card",
+            )}
+          >
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border">
+              <CalendarDays className={cn("h-3.5 w-3.5", isToday ? "text-primary" : isOverdue ? "text-destructive" : "text-muted-foreground")} />
+              <h3 className="text-sm font-semibold text-foreground truncate">{g.label}</h3>
+              <span className="text-[10px] text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                {g.tasks.length}
+              </span>
+            </div>
+            <div className="p-2 space-y-2">
+              {g.subgroups && g.subgroups.length > 0 ? (
+                g.subgroups.map(sg => (
+                  <div key={sg.label} className="rounded-lg border border-border/60 bg-background/60 overflow-hidden">
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 bg-muted/30 border-b border-border/60">
+                      <Gauge className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs font-semibold text-foreground">{sg.label}</span>
+                      {sg.reference && <span className="text-[10px] text-muted-foreground">· {sg.reference}</span>}
+                      <span className="text-[10px] text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                        {sg.tasks.length}
+                      </span>
+                    </div>
+                    <div className="p-2 space-y-2">
+                      {sg.tasks.map(t => (
+                        <DraggableTask key={t.id} id={t.id}>{renderCard(t)}</DraggableTask>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                g.tasks.map(t => (
+                  <DraggableTask key={t.id} id={t.id}>{renderCard(t)}</DraggableTask>
+                ))
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // Fallback plain section
       return (
         <div key={g.label || idx} className={cn(useSections && idx > 0 && "mt-3")}>
           {useSections && g.label && (
