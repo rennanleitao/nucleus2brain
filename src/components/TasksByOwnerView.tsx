@@ -214,3 +214,58 @@ export function TasksByOwnerView(props: Props) {
       );
     });
   };
+
+  return (
+    <DndContext
+      sensors={sensors}
+      onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveId(null)}
+    >
+      <div className="grid gap-4 md:grid-cols-2">
+        <DroppableColumn
+          id="mine"
+          title="Executadas por mim"
+          icon={User}
+          count={columnData.mineCount}
+          empty="Arraste aqui as tarefas que voltarem para você."
+        >
+          {renderGroups(columnData.mineGroups)}
+        </DroppableColumn>
+
+        <DroppableColumn
+          id="others"
+          title="Executadas por outros"
+          icon={Users}
+          count={columnData.othersCount}
+          empty="Arraste aqui as tarefas delegadas para outra pessoa."
+          accent="bg-primary/10"
+        >
+          {renderGroups(columnData.othersGroups)}
+        </DroppableColumn>
+      </div>
+
+      <DragOverlay>
+        {activeTask ? (
+          <div className="rotate-1 shadow-lg opacity-90 pointer-events-none">
+            <TaskCard
+              task={activeTask}
+              subtasks={subtasksMap[activeTask.id] || []}
+              reminder={remindersMap[activeTask.id] || null}
+              onToggle={() => {}}
+              onDelete={() => {}}
+              onToggleSubtask={() => {}}
+              onAddSubtask={() => {}}
+              onDeleteSubtask={() => {}}
+              onPriorityChange={() => {}}
+              onReschedule={() => {}}
+              onRescheduleSubtask={() => {}}
+              onDuplicate={() => {}}
+              compact
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
