@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Tag, X, Search, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks, Repeat } from "lucide-react";
+import { Plus, Tag, X, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks, Repeat } from "lucide-react";
 import { createTask, createSpace, createSubtask, createTaskMaterial, fetchAllTags } from "@/lib/api";
-import { SpaceIconPicker } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,70 +34,86 @@ function SpaceLetterAvatar({ name }: { name: string }) {
   );
 }
 
-function SpaceCombobox({ spaces, spaceId, onSelect, showNewSpace, setShowNewSpace, newSpaceName, setNewSpaceName, newSpaceIcon, setNewSpaceIcon, creatingSpace, onCreateSpace }: {
-  spaces: { id: string; name: string }[]; spaceId: string; onSelect: (id: string) => void;
-  showNewSpace: boolean; setShowNewSpace: (v: boolean) => void;
-  newSpaceName: string; setNewSpaceName: (v: string) => void;
-  newSpaceIcon: string; setNewSpaceIcon: (v: string) => void;
-  creatingSpace: boolean; onCreateSpace: () => void;
+function SpaceCombobox({ spaces, spaceId, onSelect, onCreateSpace, creatingSpace }: {
+  spaces: { id: string; name: string }[];
+  spaceId: string;
+  onSelect: (id: string) => void;
+  onCreateSpace: (name: string) => Promise<void>;
+  creatingSpace: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const sorted = useMemo(() => [...spaces].sort((a, b) => a.name.localeCompare(b.name)), [spaces]);
   const filtered = sorted.filter(s => !query || s.name.toLowerCase().includes(query.toLowerCase()));
   const selected = spaces.find(s => s.id === spaceId);
+  const trimmedQuery = query.trim();
+  const exactMatch = trimmedQuery && sorted.some(s => s.name.toLowerCase() === trimmedQuery.toLowerCase());
+
+  const handleCreate = async () => {
+    if (!trimmedQuery || creatingSpace) return;
+    await onCreateSpace(trimmedQuery);
+    setQuery("");
+    setIsOpen(false);
+  };
 
   return (
     <div>
       <label className="field-label">Space</label>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <button type="button" onClick={() => setIsOpen(!isOpen)}
-            className="field-input flex items-center gap-2 text-left">
-            {selected ? (<><SpaceLetterAvatar name={selected.name} /><span className="truncate">{selected.name}</span></>) : (
-              <span className="text-muted-foreground">Sem space</span>
-            )}
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0" />
+      {selected ? (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2 field-input">
+            <SpaceLetterAvatar name={selected.name} />
+            <span className="truncate">{selected.name}</span>
+          </div>
+          <button type="button" onClick={() => onSelect("")} className="text-muted-foreground hover:text-destructive shrink-0 p-1">
+            <X className="h-3.5 w-3.5" />
           </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Buscar ou criar space..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onFocus={() => setIsOpen(true)}
+            onBlur={() => setTimeout(() => setIsOpen(false), 150)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && trimmedQuery && !exactMatch) {
+                e.preventDefault();
+                handleCreate();
+              }
+            }}
+            className="field-input"
+          />
           {isOpen && (
             <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
-              <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border">
-                <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <input type="text" placeholder="Buscar space..." value={query} onChange={e => setQuery(e.target.value)}
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" autoFocus />
-              </div>
               <div className="max-h-40 overflow-y-auto">
-                <button type="button" onClick={() => { onSelect(""); setIsOpen(false); setQuery(""); }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors text-left ${!spaceId ? "bg-accent" : ""}`}>
-                  <span className="text-muted-foreground">Sem space</span>
-                </button>
                 {filtered.map(s => (
-                  <button key={s.id} type="button" onClick={() => { onSelect(s.id); setIsOpen(false); setQuery(""); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors text-left ${spaceId === s.id ? "bg-accent" : ""}`}>
+                  <button key={s.id} type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { onSelect(s.id); setIsOpen(false); setQuery(""); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors text-left">
                     <SpaceLetterAvatar name={s.name} />
                     <span className="truncate">{s.name}</span>
                   </button>
                 ))}
-                {filtered.length === 0 && query && <p className="px-3 py-2 text-xs text-muted-foreground">Nenhum space encontrado</p>}
+                {trimmedQuery && !exactMatch && (
+                  <button type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={handleCreate}
+                    disabled={creatingSpace}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors text-primary font-medium border-t border-border">
+                    <Plus className="h-3 w-3 inline mr-1" />
+                    {creatingSpace ? "Criando..." : `Criar space "${trimmedQuery}"`}
+                  </button>
+                )}
+                {filtered.length === 0 && !trimmedQuery && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">Digite para buscar ou criar</p>
+                )}
               </div>
             </div>
           )}
-        </div>
-        <Button type="button" variant="outline" size="sm" className="shrink-0 h-auto" onClick={() => setShowNewSpace(!showNewSpace)}>
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-      {showNewSpace && (
-        <div className="mt-2 border border-border rounded-lg p-3 space-y-2 bg-muted/30">
-          <p className="text-xs font-medium text-foreground">Novo Space</p>
-          <SpaceIconPicker value={newSpaceIcon} onChange={setNewSpaceIcon} />
-          <input type="text" placeholder="Nome do space" value={newSpaceName} onChange={e => setNewSpaceName(e.target.value)}
-            className="field-input" />
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant="ghost" onClick={() => setShowNewSpace(false)} className="flex-1">Cancelar</Button>
-            <Button type="button" size="sm" disabled={creatingSpace || !newSpaceName.trim()} onClick={onCreateSpace}
-              className="flex-1 gradient-primary text-primary-foreground border-0">{creatingSpace ? "Criando..." : "Criar"}</Button>
-          </div>
         </div>
       )}
     </div>
@@ -177,20 +192,14 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   }, [open]);
 
   // Inline space creation
-  const [showNewSpace, setShowNewSpace] = useState(false);
-  const [newSpaceName, setNewSpaceName] = useState("");
-  const [newSpaceIcon, setNewSpaceIcon] = useState("folder");
   const [creatingSpace, setCreatingSpace] = useState(false);
 
-  const handleCreateSpace = async () => {
-    if (!newSpaceName.trim()) return;
+  const handleCreateSpace = async (name: string) => {
+    if (!name.trim()) return;
     setCreatingSpace(true);
     try {
-      const space = await createSpace({ name: newSpaceName.trim(), icon: newSpaceIcon });
+      const space = await createSpace({ name: name.trim(), icon: "folder" });
       setSpaceId(space.id);
-      setNewSpaceName("");
-      setNewSpaceIcon("folder");
-      setShowNewSpace(false);
       toast.success("Space criado!");
       onCreated();
     } catch (err: any) {
@@ -391,103 +400,109 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
           </section>
 
 
-          {/* Seção: Agendamento */}
+          {/* Seção: Detalhamento (subtasks + materiais) */}
           <section className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Agendamento</h3>
+              <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhamento</h3>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="field-label">Prioridade</label>
-                <select value={priority} onChange={e => setPriority(e.target.value as any)}
-                  className="field-input">
-                  <option value="low">Baixa</option>
-                  <option value="medium">Média</option>
-                  <option value="high">Alta</option>
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Data limite</label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                  className="field-input" />
-                <div className="flex gap-1 mt-1">
-                  <button type="button" onClick={() => setDueDate(todayStr)}
-                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
-                    Hoje
-                  </button>
-                  <button type="button" onClick={() => setDueDate(tomorrowStr)}
-                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
-                    Amanhã
-                  </button>
+            {/* Subtasks */}
+            <div>
+              <label className="field-label">Subtasks (opcional)</label>
+              {pendingSubtasks.length > 0 && (
+                <div className="space-y-1 mb-2 ml-2 border-l border-border pl-2">
+                  {pendingSubtasks.map((sub, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <span className="flex-1 truncate">{sub.title}</span>
+                      {sub.due_date && <span className="text-muted-foreground text-[10px]">{sub.due_date}</span>}
+                      <button type="button" onClick={() => handleRemovePendingSubtask(idx)} className="text-muted-foreground hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
-                </p>
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Título da subtask"
+                  value={subtaskTitle}
+                  onChange={e => setSubtaskTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingSubtask(); } }}
+                  className="field-input-sm flex-1 text-xs py-1.5"
+                />
+                <input
+                  type="date"
+                  value={subtaskDate}
+                  onChange={e => setSubtaskDate(e.target.value)}
+                  className="field-input-sm w-[110px] text-[10px] py-1.5 px-2"
+                />
+                <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingSubtask} disabled={!subtaskTitle.trim()} className="h-7 px-2">
+                  <Plus className="h-3 w-3" />
+                </Button>
               </div>
-            </div>
-            <div>
-              <label className="field-label">Complexidade de Execução</label>
-              <select value={executionComplexity} onChange={e => setExecutionComplexity(e.target.value as TaskExecutionComplexity)}
-                className="field-input">
-                {TASK_EXECUTION_COMPLEXITIES.map(level => (
-                  <option key={level} value={level}>
-                    {taskExecutionComplexityLabels[level]} - {taskExecutionComplexityDurationReference[level]}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Quão difícil é iniciar esta tarefa.
-              </p>
-            </div>
-            <div>
-              <label className="field-label">Tempo estimado (minutos)</label>
-              <input type="number" min="1" placeholder="Ex: 30" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)}
-                className="field-input" />
             </div>
 
-            {/* Recurrence (optional) */}
-            <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
-              <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={recurrenceEnabled}
-                  onChange={e => setRecurrenceEnabled(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-border accent-primary"
-                />
-                <Repeat className="h-3.5 w-3.5 text-muted-foreground" />
-                Tarefa recorrente
-              </label>
-              {recurrenceEnabled && (
-                <div className="pl-6 space-y-1">
-                  <label className="text-[10px] text-muted-foreground block">Frequência</label>
-                  <select
-                    value={recurrence}
-                    onChange={e => setRecurrence(e.target.value as any)}
-                    className="field-input"
-                  >
-                    <option value="daily">Todos os dias</option>
-                    <option value="weekly">Toda semana</option>
-                    <option value="monthly">Todo mês</option>
-                    <option value="yearly">Todo ano</option>
-                  </select>
-                  <p className="text-[10px] text-muted-foreground pt-0.5">
-                    Ao concluir, uma nova ocorrência será criada automaticamente.
-                    {!dueDate && " Defina uma data limite para ativar."}
-                  </p>
+            {/* Materiais */}
+            <div>
+              <button type="button" onClick={() => setShowMaterials(!showMaterials)}
+                className="field-label flex items-center gap-1.5 hover:text-foreground transition-colors">
+                <LinkIcon className="h-3 w-3" />
+                Materiais relacionados
+                <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
+                {pendingMaterials.length > 0 && <span className="text-[10px] text-primary">({pendingMaterials.length})</span>}
+              </button>
+              {showMaterials && (
+                <div className="border border-border rounded-lg p-3 space-y-2 mt-1">
+                  {pendingMaterials.length > 0 && (
+                    <div className="space-y-1">
+                      {pendingMaterials.map((mat, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
+                          <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{mat.title}</p>
+                            {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
+                            <p className="text-[10px] text-muted-foreground truncate">{mat.url}</p>
+                          </div>
+                          <button type="button" onClick={() => handleRemovePendingMaterial(idx)} className="text-muted-foreground hover:text-destructive shrink-0">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
+                    className="field-input-sm text-xs py-1.5" />
+                  <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                    className="field-input-sm text-xs py-1.5" />
+                  <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
+                    className="field-input-sm text-xs py-1.5" />
+                  <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
+                    disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
+                    <Plus className="h-3 w-3 mr-1" /> Adicionar material
+                  </Button>
                 </div>
               )}
             </div>
           </section>
 
-
-          {/* Seção: Organização */}
+          {/* Seção: Organização (space + tag) */}
           <section className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2">
               <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Organização</h3>
             </div>
-            {/* Tag selector */}
+
+            <SpaceCombobox
+              spaces={spaces}
+              spaceId={spaceId}
+              onSelect={setSpaceId}
+              creatingSpace={creatingSpace}
+              onCreateSpace={handleCreateSpace}
+            />
+
             <div>
               <label className="field-label flex items-center gap-1.5">
                 <Tag className="h-3 w-3" /> Tag (opcional)
@@ -544,111 +559,92 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
                 </div>
               )}
             </div>
-
-            {/* Space selector with inline creation */}
-            <SpaceCombobox
-              spaces={spaces}
-              spaceId={spaceId}
-              onSelect={setSpaceId}
-              showNewSpace={showNewSpace}
-              setShowNewSpace={setShowNewSpace}
-              newSpaceName={newSpaceName}
-              setNewSpaceName={setNewSpaceName}
-              newSpaceIcon={newSpaceIcon}
-              setNewSpaceIcon={setNewSpaceIcon}
-              creatingSpace={creatingSpace}
-              onCreateSpace={handleCreateSpace}
-            />
           </section>
 
-
-          {/* Seção: Detalhamento */}
+          {/* Seção: Agendamento */}
           <section className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhamento</h3>
+              <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Agendamento</h3>
             </div>
-            {/* Subtasks section */}
-            <div>
-              <label className="field-label">Subtasks (opcional)</label>
-              {pendingSubtasks.length > 0 && (
-                <div className="space-y-1 mb-2 ml-2 border-l border-border pl-2">
-                  {pendingSubtasks.map((sub, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs">
-                      <span className="flex-1 truncate">{sub.title}</span>
-                      {sub.due_date && <span className="text-muted-foreground text-[10px]">{sub.due_date}</span>}
-                      <button type="button" onClick={() => handleRemovePendingSubtask(idx)} className="text-muted-foreground hover:text-destructive">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="field-label">Prioridade</label>
+                <select value={priority} onChange={e => setPriority(e.target.value as any)}
+                  className="field-input">
+                  <option value="low">Baixa</option>
+                  <option value="medium">Média</option>
+                  <option value="high">Alta</option>
+                </select>
+              </div>
+              <div>
+                <label className="field-label">Data limite</label>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                  className="field-input" />
+                <div className="flex gap-1 mt-1">
+                  <button type="button" onClick={() => setDueDate(todayStr)}
+                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === todayStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                    Hoje
+                  </button>
+                  <button type="button" onClick={() => setDueDate(tomorrowStr)}
+                    className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${dueDate === tomorrowStr ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary"}`}>
+                    Amanhã
+                  </button>
                 </div>
-              )}
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Título da subtask"
-                  value={subtaskTitle}
-                  onChange={e => setSubtaskTitle(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingSubtask(); } }}
-                  className="field-input-sm flex-1 text-xs py-1.5"
-                />
-                <input
-                  type="date"
-                  value={subtaskDate}
-                  onChange={e => setSubtaskDate(e.target.value)}
-                  className="field-input-sm w-[110px] text-[10px] py-1.5 px-2"
-                />
-                <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingSubtask} disabled={!subtaskTitle.trim()} className="h-7 px-2">
-                  <Plus className="h-3 w-3" />
-                </Button>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {dueDate ? "Status: Em Progresso" : "Status: A Fazer"}
+                </p>
               </div>
             </div>
-
-            {/* Materials section */}
             <div>
-              <button type="button" onClick={() => setShowMaterials(!showMaterials)}
-                className="field-label flex items-center gap-1.5 hover:text-foreground transition-colors">
-                <LinkIcon className="h-3 w-3" />
-                Materiais relacionados
-                <ChevronDown className={`h-3 w-3 transition-transform ${showMaterials ? "rotate-180" : ""}`} />
-                {pendingMaterials.length > 0 && <span className="text-[10px] text-primary">({pendingMaterials.length})</span>}
-              </button>
-              {showMaterials && (
-                <div className="border border-border rounded-lg p-3 space-y-2">
-                  {pendingMaterials.length > 0 && (
-                    <div className="space-y-1">
-                      {pendingMaterials.map((mat, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-xs bg-muted/30 rounded p-1.5">
-                          <ExternalLink className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{mat.title}</p>
-                            {mat.description && <p className="text-[10px] text-muted-foreground truncate">{mat.description}</p>}
-                            <p className="text-[10px] text-muted-foreground truncate">{mat.url}</p>
-                          </div>
-                          <button type="button" onClick={() => handleRemovePendingMaterial(idx)} className="text-muted-foreground hover:text-destructive shrink-0">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <input type="text" placeholder="Nome do material" value={materialTitle} onChange={e => setMaterialTitle(e.target.value)}
-                    className="field-input-sm text-xs py-1.5" />
-                  <input type="url" placeholder="https://..." value={materialUrl} onChange={e => setMaterialUrl(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
-                    className="field-input-sm text-xs py-1.5" />
-                  <input type="text" placeholder="Descrição curta (opcional)" value={materialDesc} onChange={e => setMaterialDesc(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddPendingMaterial(); } }}
-                    className="field-input-sm text-xs py-1.5" />
-                  <Button type="button" variant="ghost" size="sm" onClick={handleAddPendingMaterial}
-                    disabled={!materialTitle.trim() || !materialUrl.trim()} className="h-7 text-xs w-full">
-                    <Plus className="h-3 w-3 mr-1" /> Adicionar material
-                  </Button>
+              <label className="field-label">Complexidade de Execução</label>
+              <select value={executionComplexity} onChange={e => setExecutionComplexity(e.target.value as TaskExecutionComplexity)}
+                className="field-input">
+                {TASK_EXECUTION_COMPLEXITIES.map(level => (
+                  <option key={level} value={level}>
+                    {taskExecutionComplexityLabels[level]} - {taskExecutionComplexityDurationReference[level]}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Quão difícil é iniciar esta tarefa.
+              </p>
+            </div>
+
+            {/* Recurrence (optional) */}
+            <div className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={recurrenceEnabled}
+                  onChange={e => setRecurrenceEnabled(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary"
+                />
+                <Repeat className="h-3.5 w-3.5 text-muted-foreground" />
+                Tarefa recorrente
+              </label>
+              {recurrenceEnabled && (
+                <div className="pl-6 space-y-1">
+                  <label className="text-[10px] text-muted-foreground block">Frequência</label>
+                  <select
+                    value={recurrence}
+                    onChange={e => setRecurrence(e.target.value as any)}
+                    className="field-input"
+                  >
+                    <option value="daily">Todos os dias</option>
+                    <option value="weekly">Toda semana</option>
+                    <option value="monthly">Todo mês</option>
+                    <option value="yearly">Todo ano</option>
+                  </select>
+                  <p className="text-[10px] text-muted-foreground pt-0.5">
+                    Ao concluir, uma nova ocorrência será criada automaticamente.
+                    {!dueDate && " Defina uma data limite para ativar."}
+                  </p>
                 </div>
               )}
             </div>
           </section>
+
 
           {/* AI Validation feedback */}
           {validationState === "validating" && (
