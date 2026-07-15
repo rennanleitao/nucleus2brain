@@ -22,10 +22,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon, Pencil, Users, Save, Share2,
+  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon, Pencil, Users, Save, Share2, Sparkles, Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { parseNoteTopics, parseNoteAttachments } from "@/lib/noteEntries";
 
 export default function SpaceDetail() {
   const { id } = useParams<{ id: string }>();
@@ -203,6 +204,16 @@ export default function SpaceDetail() {
     return `${(bytes / 1048576).toFixed(1)} MB`;
   };
 
+  // Aggregate topics highlighted across every note in this space.
+  const noteTopics = notes.flatMap((n: any) =>
+    parseNoteTopics(n.content || "").map((t) => ({ ...t, noteId: n.id, noteTitle: n.title })),
+  );
+
+  // Aggregate attachments referenced in note bodies (images + links + files).
+  const noteAttachments = notes.flatMap((n: any) =>
+    parseNoteAttachments(n.content || "").map((a) => ({ ...a, noteId: n.id, noteTitle: n.title })),
+  );
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
@@ -258,6 +269,7 @@ export default function SpaceDetail() {
         <TabsList className="bg-muted">
           <TabsTrigger value="tasks" className="text-xs gap-1"><CheckSquare className="h-3 w-3" /> Tasks</TabsTrigger>
           <TabsTrigger value="notes" className="text-xs gap-1"><FileText className="h-3 w-3" /> Notas</TabsTrigger>
+          <TabsTrigger value="topics" className="text-xs gap-1"><Sparkles className="h-3 w-3" /> Tópicos</TabsTrigger>
           <TabsTrigger value="links" className="text-xs gap-1"><Link2 className="h-3 w-3" /> Links</TabsTrigger>
           <TabsTrigger value="attachments" className="text-xs gap-1"><Paperclip className="h-3 w-3" /> Anexos</TabsTrigger>
         </TabsList>
@@ -406,6 +418,48 @@ export default function SpaceDetail() {
             </>
           )}
         </TabsContent>
+
+        {/* TOPICS TAB */}
+        <TabsContent value="topics" className="space-y-3">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-small font-semibold">Tópicos importantes</h3>
+              <span className="text-[11px] text-muted-foreground">
+                {noteTopics.length > 0 ? `${noteTopics.length} tópico${noteTopics.length === 1 ? "" : "s"}` : ""}
+              </span>
+            </div>
+            {noteTopics.length > 0 ? (
+              <ul className="space-y-1.5">
+                {noteTopics.map((t) => {
+                  const note = notes.find((n: any) => n.id === t.noteId);
+                  return (
+                    <li key={`${t.noteId}:${t.id}`}>
+                      <button
+                        type="button"
+                        onClick={() => note && openNoteEditor(note)}
+                        className="w-full flex items-start gap-2 px-3 py-2 rounded-lg border border-border/60 bg-background hover:bg-muted/40 text-left transition-colors"
+                      >
+                        <span className="mt-1.5 block w-1 h-1 rounded-full bg-primary/70 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12.5px] leading-snug text-foreground/90 line-clamp-2">{t.text}</p>
+                          <p className="text-[10.5px] text-muted-foreground mt-0.5 truncate">{t.noteTitle}</p>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-small text-muted-foreground">
+                  Nenhum tópico marcado ainda. No editor de nota, selecione um trecho e clique em <span className="font-medium text-foreground">Tópico</span>.
+                </p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
         <TabsContent value="links" className="space-y-3">
           <div className="flex justify-end">
             <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
@@ -463,25 +517,59 @@ export default function SpaceDetail() {
               <Upload className="h-4 w-4 mr-1" /> {uploading ? "Enviando..." : "Upload"}
             </Button>
           </div>
-          {attachments.length > 0 ? (
-            <div className="space-y-2">
-              {attachments.map(att => (
-                <div key={att.id} className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-                  <div className="flex-1 min-w-0">
-                    <a href={getAttachmentUrl(att.file_path)} target="_blank" rel="noopener noreferrer"
-                      className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
-                      {att.file_name} <ExternalLink className="h-3 w-3" />
-                    </a>
-                    <p className="text-[11px] text-muted-foreground">
-                      {att.content_type} · {att.file_size ? formatFileSize(att.file_size) : ""}
-                    </p>
-                  </div>
-                  <button onClick={() => handleDeleteAttachment(att)}
-                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+          {(attachments.length > 0 || noteAttachments.length > 0) ? (
+            <div className="space-y-4">
+              {attachments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Enviados ao espaço</p>
+                  {attachments.map(att => (
+                    <div key={att.id} className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+                      <div className="flex-1 min-w-0">
+                        <a href={getAttachmentUrl(att.file_path)} target="_blank" rel="noopener noreferrer"
+                          className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
+                          {att.file_name} <ExternalLink className="h-3 w-3" />
+                        </a>
+                        <p className="text-[11px] text-muted-foreground">
+                          {att.content_type} · {att.file_size ? formatFileSize(att.file_size) : ""}
+                        </p>
+                      </div>
+                      <button onClick={() => handleDeleteAttachment(att)}
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {noteAttachments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Nas notas</p>
+                  {noteAttachments.map((att, idx) => {
+                    const Icon = att.kind === "image" ? ImageIcon : att.kind === "file" ? FileText : Link2;
+                    const note = notes.find((n: any) => n.id === att.noteId);
+                    return (
+                      <div key={`${att.noteId}:${att.href}:${idx}`} className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+                        <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <a href={att.href} target="_blank" rel="noopener noreferrer"
+                            className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1 truncate">
+                            <span className="truncate">{att.label}</span>
+                            <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => note && openNoteEditor(note)}
+                            className="text-[11px] text-muted-foreground hover:text-foreground truncate block max-w-full text-left"
+                          >
+                            em {att.noteTitle}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">
