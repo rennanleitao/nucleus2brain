@@ -398,6 +398,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const filteredTags = allTags.filter(t => !tagInput || t.toLowerCase().includes(tagInput.toLowerCase()));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger !== undefined ? (
         trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>
