@@ -35,70 +35,86 @@ function SpaceLetterAvatar({ name }: { name: string }) {
   );
 }
 
-function SpaceCombobox({ spaces, spaceId, onSelect, showNewSpace, setShowNewSpace, newSpaceName, setNewSpaceName, newSpaceIcon, setNewSpaceIcon, creatingSpace, onCreateSpace }: {
-  spaces: { id: string; name: string }[]; spaceId: string; onSelect: (id: string) => void;
-  showNewSpace: boolean; setShowNewSpace: (v: boolean) => void;
-  newSpaceName: string; setNewSpaceName: (v: string) => void;
-  newSpaceIcon: string; setNewSpaceIcon: (v: string) => void;
-  creatingSpace: boolean; onCreateSpace: () => void;
+function SpaceCombobox({ spaces, spaceId, onSelect, onCreateSpace, creatingSpace }: {
+  spaces: { id: string; name: string }[];
+  spaceId: string;
+  onSelect: (id: string) => void;
+  onCreateSpace: (name: string) => Promise<void>;
+  creatingSpace: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const sorted = useMemo(() => [...spaces].sort((a, b) => a.name.localeCompare(b.name)), [spaces]);
   const filtered = sorted.filter(s => !query || s.name.toLowerCase().includes(query.toLowerCase()));
   const selected = spaces.find(s => s.id === spaceId);
+  const trimmedQuery = query.trim();
+  const exactMatch = trimmedQuery && sorted.some(s => s.name.toLowerCase() === trimmedQuery.toLowerCase());
+
+  const handleCreate = async () => {
+    if (!trimmedQuery || creatingSpace) return;
+    await onCreateSpace(trimmedQuery);
+    setQuery("");
+    setIsOpen(false);
+  };
 
   return (
     <div>
       <label className="field-label">Space</label>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <button type="button" onClick={() => setIsOpen(!isOpen)}
-            className="field-input flex items-center gap-2 text-left">
-            {selected ? (<><SpaceLetterAvatar name={selected.name} /><span className="truncate">{selected.name}</span></>) : (
-              <span className="text-muted-foreground">Sem space</span>
-            )}
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0" />
+      {selected ? (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2 field-input">
+            <SpaceLetterAvatar name={selected.name} />
+            <span className="truncate">{selected.name}</span>
+          </div>
+          <button type="button" onClick={() => onSelect("")} className="text-muted-foreground hover:text-destructive shrink-0 p-1">
+            <X className="h-3.5 w-3.5" />
           </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Buscar ou criar space..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onFocus={() => setIsOpen(true)}
+            onBlur={() => setTimeout(() => setIsOpen(false), 150)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && trimmedQuery && !exactMatch) {
+                e.preventDefault();
+                handleCreate();
+              }
+            }}
+            className="field-input"
+          />
           {isOpen && (
             <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
-              <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border">
-                <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <input type="text" placeholder="Buscar space..." value={query} onChange={e => setQuery(e.target.value)}
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" autoFocus />
-              </div>
               <div className="max-h-40 overflow-y-auto">
-                <button type="button" onClick={() => { onSelect(""); setIsOpen(false); setQuery(""); }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors text-left ${!spaceId ? "bg-accent" : ""}`}>
-                  <span className="text-muted-foreground">Sem space</span>
-                </button>
                 {filtered.map(s => (
-                  <button key={s.id} type="button" onClick={() => { onSelect(s.id); setIsOpen(false); setQuery(""); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors text-left ${spaceId === s.id ? "bg-accent" : ""}`}>
+                  <button key={s.id} type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { onSelect(s.id); setIsOpen(false); setQuery(""); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-accent transition-colors text-left">
                     <SpaceLetterAvatar name={s.name} />
                     <span className="truncate">{s.name}</span>
                   </button>
                 ))}
-                {filtered.length === 0 && query && <p className="px-3 py-2 text-xs text-muted-foreground">Nenhum space encontrado</p>}
+                {trimmedQuery && !exactMatch && (
+                  <button type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={handleCreate}
+                    disabled={creatingSpace}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors text-primary font-medium border-t border-border">
+                    <Plus className="h-3 w-3 inline mr-1" />
+                    {creatingSpace ? "Criando..." : `Criar space "${trimmedQuery}"`}
+                  </button>
+                )}
+                {filtered.length === 0 && !trimmedQuery && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">Digite para buscar ou criar</p>
+                )}
               </div>
             </div>
           )}
-        </div>
-        <Button type="button" variant="outline" size="sm" className="shrink-0 h-auto" onClick={() => setShowNewSpace(!showNewSpace)}>
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-      {showNewSpace && (
-        <div className="mt-2 border border-border rounded-lg p-3 space-y-2 bg-muted/30">
-          <p className="text-xs font-medium text-foreground">Novo Space</p>
-          <SpaceIconPicker value={newSpaceIcon} onChange={setNewSpaceIcon} />
-          <input type="text" placeholder="Nome do space" value={newSpaceName} onChange={e => setNewSpaceName(e.target.value)}
-            className="field-input" />
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant="ghost" onClick={() => setShowNewSpace(false)} className="flex-1">Cancelar</Button>
-            <Button type="button" size="sm" disabled={creatingSpace || !newSpaceName.trim()} onClick={onCreateSpace}
-              className="flex-1 gradient-primary text-primary-foreground border-0">{creatingSpace ? "Criando..." : "Criar"}</Button>
-          </div>
         </div>
       )}
     </div>
