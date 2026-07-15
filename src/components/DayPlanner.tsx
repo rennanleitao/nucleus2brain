@@ -753,11 +753,19 @@ export function DayPlanner({
       {view === "owner" && (
         <TasksByOwnerView
           tasks={[...overdueTasks, ...todayTasks, ...tomorrowTasks]}
-          groups={[
-            { label: "Atrasadas", tasks: overdueTasks, accent: "text-destructive" },
-            { label: "Hoje", tasks: todayTasks, accent: "text-primary" },
-            { label: "Amanhã", tasks: tomorrowTasks },
-          ]}
+          groups={(() => {
+            const buildSubgroups = (arr: any[]) =>
+              TASK_EXECUTION_COMPLEXITIES.map(level => ({
+                label: taskExecutionComplexityLabels[level],
+                reference: taskExecutionComplexityDurationReference[level],
+                tasks: arr.filter(t => (t.execution_complexity || "medium") === level),
+              })).filter(sg => sg.tasks.length > 0);
+            return [
+              { label: "Atrasadas", tasks: overdueTasks, variant: "date" as const, tone: "overdue" as const, subgroups: buildSubgroups(overdueTasks) },
+              { label: "Hoje", tasks: todayTasks, variant: "date" as const, tone: "today" as const, subgroups: buildSubgroups(todayTasks) },
+              { label: "Amanhã", tasks: tomorrowTasks, variant: "date" as const, tone: "default" as const, subgroups: buildSubgroups(tomorrowTasks) },
+            ];
+          })()}
           subtasksMap={subtasksMap}
           remindersMap={remindersMap}
           onToggle={onToggle}
