@@ -683,7 +683,7 @@ export default function Tasks() {
             </>
           )}
         </div>
-      ) : filter === "planner" && viewMode !== "owner" ? (
+      ) : filter === "planner" && plannerView !== "owner" ? (
         <DayPlanner
           tasks={tasks}
           setTasks={setTasks}
@@ -700,8 +700,15 @@ export default function Tasks() {
           onRescheduleSubtask={handleRescheduleSubtask}
           onDuplicate={handleDuplicate}
           onReload={load}
+          externalView={plannerView}
+          onExternalViewChange={setPlannerView}
+          externalAllCompact={allCompact}
+          onExternalToggleAllCompact={handleToggleAllCompact}
+          externalAIScheduleOpen={aiScheduleOpen}
+          onExternalAIScheduleOpenChange={setAiScheduleOpen}
+          hideHeader
         />
-      ) : viewMode === "owner" ? (
+      ) : (filter === "planner" ? plannerView === "owner" : viewMode === "owner") ? (
         <TasksByOwnerView
           tasks={filter === "planner" ? tasks.filter(t => t.status !== "completed" && t.status !== "cancelled") : filtered}
           subtasksMap={subtasksMap}
