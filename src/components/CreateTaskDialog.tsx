@@ -193,20 +193,14 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   }, [open]);
 
   // Inline space creation
-  const [showNewSpace, setShowNewSpace] = useState(false);
-  const [newSpaceName, setNewSpaceName] = useState("");
-  const [newSpaceIcon, setNewSpaceIcon] = useState("folder");
   const [creatingSpace, setCreatingSpace] = useState(false);
 
-  const handleCreateSpace = async () => {
-    if (!newSpaceName.trim()) return;
+  const handleCreateSpace = async (name: string) => {
+    if (!name.trim()) return;
     setCreatingSpace(true);
     try {
-      const space = await createSpace({ name: newSpaceName.trim(), icon: newSpaceIcon });
+      const space = await createSpace({ name: name.trim(), icon: "folder" });
       setSpaceId(space.id);
-      setNewSpaceName("");
-      setNewSpaceIcon("folder");
-      setShowNewSpace(false);
       toast.success("Space criado!");
       onCreated();
     } catch (err: any) {
