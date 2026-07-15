@@ -749,6 +749,30 @@ export function DayPlanner({
         )
       )}
 
+      {/* OWNER VIEW — mim vs outros (hoje) */}
+      {view === "owner" && (
+        <TasksByOwnerView
+          tasks={todayTasks}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onToggleSubtask={onToggleSubtask}
+          onAddSubtask={onAddSubtask}
+          onDeleteSubtask={onDeleteSubtask}
+          onPriorityChange={onPriorityChange}
+          onReschedule={onReschedule}
+          onRescheduleSubtask={onRescheduleSubtask}
+          onDuplicate={onDuplicate}
+          onSelect={onSelect}
+          cardCompact={cardCompact}
+          onToggleCardCompact={toggleCardCompact}
+          allCompact={allCompact}
+          onReload={onReload}
+        />
+      )}
+
+
 
 
       <AISchedulePreviewDialog
