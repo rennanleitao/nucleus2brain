@@ -17,8 +17,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <header className="h-14 flex items-center justify-between border-b border-border/60 px-3 sm:px-4 bg-background/80 backdrop-blur-md sticky top-0 z-10 safe-top safe-x">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground touch-manipulation" />
-            </div>
-            <QuickCapture />
+            <div className="flex-1" />
             <button
               onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
               className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px] justify-center touch-manipulation"
