@@ -131,7 +131,7 @@ export default function Studies() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setAreaDialog({ open: true, edit: a })}><Pencil className="h-3.5 w-3.5 mr-2" /> Editar</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm(`Remover área "${a.name}" e todos os temas?`)) deleteArea.mutate(a.id); }}>
+                            <DropdownMenuItem className="text-destructive" onClick={async () => { if (await confirmDialog({ title: "Remover área", description: `Remover área "${a.name}" e todos os temas?`, destructive: true, confirmLabel: "Remover" })) deleteArea.mutate(a.id); }}>
                               <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
                             </DropdownMenuItem>
                           </DropdownMenuContent>
