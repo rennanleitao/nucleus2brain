@@ -49,6 +49,7 @@ import { Separator } from "@/components/ui/separator";
 import { createNoteMentionSuggestion } from "@/components/editor/NoteMention";
 import { DateHeading } from "@/components/editor/DateHeadingExtension";
 import { buildDateEntryHtml, entryIdForDate, parseFlexibleDate, reorderNoteEntries } from "@/lib/noteEntries";
+import { promptDialog } from "@/components/ui/dialog-service";
 
 interface RichTextEditorProps {
   content: string;
