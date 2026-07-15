@@ -497,6 +497,13 @@ export default function Tasks() {
             >
               <Columns3 className="h-4 w-4" />
             </button>
+            <button
+              onClick={() => setViewMode("owner")}
+              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Por responsável (mim / outros)"
+            >
+              <Users className="h-4 w-4" />
+            </button>
           </div>
           {viewMode === "list" && (
             <>
