@@ -37,9 +37,9 @@
     --sidebar-accent-foreground: 0.208 0.042 265.75; /* slate-900 hover text */
     --sidebar-border: 0.929 0.013 255.5;    /* slate-200 */
     --sidebar-ring: 0.546 0.245 262.88;
-    --font-sans: 'Inter', 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --font-display: 'Inter', 'Figtree', system-ui, sans-serif;
-    --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-serif: 'Inter', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     --radius: 0.75rem;
     --shadow-2xs: 0px 1px 2px 0px hsl(220 13% 10% / 0.04);
