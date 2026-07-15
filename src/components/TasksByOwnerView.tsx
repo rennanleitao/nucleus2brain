@@ -6,6 +6,7 @@ import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DelegateCommDialog } from "@/components/DelegateCommDialog";
+import { promptDialog } from "@/components/ui/dialog-service";
 
 type Subgroup = { label: string; reference?: string; tasks: any[] };
 type Group = {
