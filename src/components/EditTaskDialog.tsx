@@ -596,7 +596,37 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             )}
           </div>
 
+          {/* Delegação */}
+          <div className="border border-border rounded-lg p-3 space-y-2">
+            <button type="button" onClick={() => setShowDelegation(v => !v)}
+              className="w-full flex items-center gap-2 text-left">
+              <UserPlus className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium flex-1">Delegar para outra pessoa</span>
+              {delegatedTo.trim() && !showDelegation && (
+                <span className="text-[10px] text-primary font-medium truncate max-w-[120px]">{delegatedTo}</span>
+              )}
+              <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${showDelegation ? "rotate-180" : ""}`} />
+            </button>
+            {showDelegation && (
+              <div className="space-y-2">
+                <input type="text" placeholder="Nome do responsável" value={delegatedTo}
+                  onChange={e => setDelegatedTo(e.target.value)} className="field-input-sm text-xs py-1.5" />
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="email" placeholder="E-mail" value={delegatedEmail}
+                    onChange={e => setDelegatedEmail(e.target.value)} className="field-input-sm text-xs py-1.5" />
+                  <input type="tel" placeholder="WhatsApp" value={delegatedPhone}
+                    onChange={e => setDelegatedPhone(e.target.value)} className="field-input-sm text-xs py-1.5" />
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() => setCommDialogOpen(true)}
+                  disabled={!delegatedTo.trim()} className="h-7 text-xs w-full">
+                  <Send className="h-3 w-3 mr-1" /> Enviar comunicação
+                </Button>
+              </div>
+            )}
+          </div>
+
           {/* Subtasks */}
+
           <div className="border border-border rounded-lg p-3 space-y-2">
             <label className="text-xs text-muted-foreground font-medium">Subtasks</label>
             {subtasks.length > 0 && (
