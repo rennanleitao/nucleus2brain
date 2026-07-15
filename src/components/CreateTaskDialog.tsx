@@ -594,6 +594,47 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             </div>
           </section>
 
+          {/* Seção: Delegação */}
+          <section className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <button type="button" onClick={() => setShowDelegation(v => !v)}
+              className="w-full flex items-center gap-2 text-left">
+              <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex-1">
+                Delegar para outra pessoa
+              </h3>
+              {delegatedTo.trim() && !showDelegation && (
+                <span className="text-[10px] text-primary font-medium">{delegatedTo}</span>
+              )}
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showDelegation ? "rotate-180" : ""}`} />
+            </button>
+            {showDelegation && (
+              <div className="space-y-2">
+                <div>
+                  <label className="field-label">Responsável</label>
+                  <input type="text" placeholder="Nome de quem vai executar" value={delegatedTo}
+                    onChange={e => setDelegatedTo(e.target.value)} className="field-input" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="field-label">E-mail (opcional)</label>
+                    <input type="email" placeholder="pessoa@exemplo.com" value={delegatedEmail}
+                      onChange={e => setDelegatedEmail(e.target.value)} className="field-input" />
+                  </div>
+                  <div>
+                    <label className="field-label">WhatsApp (opcional)</label>
+                    <input type="tel" placeholder="Ex: 11 91234-5678" value={delegatedPhone}
+                      onChange={e => setDelegatedPhone(e.target.value)} className="field-input" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Send className="h-3 w-3" /> Ao criar a task, você poderá enviar um e-mail ou gerar a mensagem para o WhatsApp.
+                </p>
+              </div>
+            )}
+          </section>
+
+
+
           {/* Seção: Agendamento */}
           <section className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center gap-2">
