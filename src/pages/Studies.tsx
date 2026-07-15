@@ -257,7 +257,7 @@ export default function Studies() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
-                        onClick={() => { if (confirm(`Remover área "${a.name}" e todos os temas?`)) { deleteArea.mutate(a.id); if (areaId === a.id) setSelection({ area: null, topic: null }); } }}
+                        onClick={async () => { if (await confirmDialog({ title: "Remover área", description: `Remover área "${a.name}" e todos os temas?`, destructive: true, confirmLabel: "Remover" })) { deleteArea.mutate(a.id); if (areaId === a.id) setSelection({ area: null, topic: null }); } }}
                       >
                         <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover
                       </DropdownMenuItem>
