@@ -307,6 +307,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         tag: tag || null,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
         recurrence: recurrenceEnabled ? recurrence : null,
+        delegated_to: delegatedTo.trim() || null,
       } as any);
 
       if (executionComplexity !== "medium" && updatedTask && !("execution_complexity" in updatedTask)) {
