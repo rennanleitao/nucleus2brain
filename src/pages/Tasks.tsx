@@ -91,6 +91,12 @@ export default function Tasks() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    const handler = () => { load(); };
+    window.addEventListener("nucleus:task-updated", handler);
+    return () => window.removeEventListener("nucleus:task-updated", handler);
+  }, []);
+
   const loadDeleted = async () => {
     setLoadingDeleted(true);
     try {
