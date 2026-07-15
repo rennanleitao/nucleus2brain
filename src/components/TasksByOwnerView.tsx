@@ -116,10 +116,11 @@ export function TasksByOwnerView(props: Props) {
     tasks, groups, subtasksMap, remindersMap, onToggle, onDelete, onToggleSubtask,
     onAddSubtask, onDeleteSubtask, onPriorityChange, onReschedule,
     onRescheduleSubtask, onDuplicate, onSelect, cardCompact, onToggleCardCompact,
-    allCompact, onReload,
+    allCompact, onReload, onDelegate,
   } = props;
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [commTask, setCommTask] = useState<any | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const splitByOwner = (arr: any[]) => {
