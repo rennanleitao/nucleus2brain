@@ -134,7 +134,7 @@ interface CreateTaskDialogProps {
   startDelegated?: boolean;
 }
 
-export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange, defaultTitle = "", defaultDescription = "", defaultNoteId = null }: CreateTaskDialogProps) {
+export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, externalOpen, onExternalOpenChange, defaultTitle = "", defaultDescription = "", defaultNoteId = null, startDelegated = false }: CreateTaskDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = externalOpen !== undefined;
   const open = isControlled ? externalOpen : internalOpen;
