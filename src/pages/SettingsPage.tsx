@@ -1182,6 +1182,7 @@ export default function SettingsPage() {
 
         {/* SIDEBAR TAB */}
         <TabsContent value="sidebar" className="space-y-4">
+          <DefaultLandingSettings />
           <SidebarItemsSettings />
         </TabsContent>
 

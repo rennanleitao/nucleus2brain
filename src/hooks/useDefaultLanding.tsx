@@ -19,7 +19,7 @@ export const LANDING_OPTIONS = [
   { value: "/pomodoro", label: "Pomodoro" },
 ] as const;
 
-const VALID = new Set(LANDING_OPTIONS.map((o) => o.value));
+const VALID = new Set<string>(LANDING_OPTIONS.map((o) => o.value));
 
 function read(): string {
   try {
