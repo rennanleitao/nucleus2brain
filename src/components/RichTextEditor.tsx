@@ -443,6 +443,86 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     }
   }, [content]);
 
+  // Drag-and-drop reorder of date-entry sections inside the editor.
+  useEffect(() => {
+    if (!editor || !editable) return;
+    const root = editor.view.dom as HTMLElement;
+    let dragDate: string | null = null;
+
+    const markDraggable = () => {
+      root.querySelectorAll<HTMLElement>("h1[data-entry-date], h2[data-entry-date], h3[data-entry-date]")
+        .forEach((el) => {
+          el.setAttribute("draggable", "true");
+          el.classList.add("note-date-draggable");
+        });
+    };
+    markDraggable();
+    const mo = new MutationObserver(() => markDraggable());
+    mo.observe(root, { childList: true, subtree: true });
+
+    const findHeading = (target: EventTarget | null): HTMLElement | null => {
+      if (!(target instanceof HTMLElement)) return null;
+      return target.closest<HTMLElement>("[data-entry-date]");
+    };
+
+    const onDragStart = (e: DragEvent) => {
+      const heading = findHeading(e.target);
+      if (!heading) return;
+      const date = heading.getAttribute("data-entry-date");
+      if (!date) return;
+      dragDate = date;
+      e.dataTransfer?.setData("text/x-nucleus-date", date);
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+      heading.classList.add("opacity-50");
+    };
+    const onDragEnd = (e: DragEvent) => {
+      const heading = findHeading(e.target);
+      heading?.classList.remove("opacity-50");
+      root.querySelectorAll(".note-date-drop-target").forEach((el) => el.classList.remove("note-date-drop-target"));
+      dragDate = null;
+    };
+    const onDragOver = (e: DragEvent) => {
+      const heading = findHeading(e.target);
+      if (!heading || !dragDate) return;
+      const targetDate = heading.getAttribute("data-entry-date");
+      if (!targetDate || targetDate === dragDate) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      root.querySelectorAll(".note-date-drop-target").forEach((el) => el.classList.remove("note-date-drop-target"));
+      heading.classList.add("note-date-drop-target");
+    };
+    const onDrop = (e: DragEvent) => {
+      const heading = findHeading(e.target);
+      const fromDate = dragDate || e.dataTransfer?.getData("text/x-nucleus-date") || null;
+      root.querySelectorAll(".note-date-drop-target").forEach((el) => el.classList.remove("note-date-drop-target"));
+      dragDate = null;
+      if (!heading || !fromDate) return;
+      const toDate = heading.getAttribute("data-entry-date");
+      if (!toDate || toDate === fromDate) return;
+      e.preventDefault();
+      const rect = heading.getBoundingClientRect();
+      const position: "before" | "after" = e.clientY > rect.top + rect.height / 2 ? "after" : "before";
+      const currentHtml = editor.getHTML();
+      const nextHtml = reorderNoteEntries(currentHtml, fromDate, toDate, position);
+      if (nextHtml !== currentHtml) {
+        editor.commands.setContent(nextHtml);
+        onChange(editor.getHTML());
+      }
+    };
+
+    root.addEventListener("dragstart", onDragStart);
+    root.addEventListener("dragend", onDragEnd);
+    root.addEventListener("dragover", onDragOver);
+    root.addEventListener("drop", onDrop);
+    return () => {
+      mo.disconnect();
+      root.removeEventListener("dragstart", onDragStart);
+      root.removeEventListener("dragend", onDragEnd);
+      root.removeEventListener("dragover", onDragOver);
+      root.removeEventListener("drop", onDrop);
+    };
+  }, [editor, editable, onChange]);
+
   if (!editor) return null;
 
   const ToolbarButton = ({ onClick, active, children, title }: {
