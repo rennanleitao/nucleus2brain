@@ -122,8 +122,8 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
     setPickDialog({ open: true, mode: "move", entry });
   const duplicateEntryToTopic = (entry: StudyEntry) =>
     setPickDialog({ open: true, mode: "duplicate", entry });
-  const removeEntry = (id: string) => {
-    if (confirm("Remover registro?")) deleteEntry.mutate(id);
+  const removeEntry = async (id: string) => {
+    if (await confirmDialog({ title: "Remover registro", description: "Remover registro?", destructive: true, confirmLabel: "Remover" })) deleteEntry.mutate(id);
   };
 
   const entryActions = {
@@ -133,8 +133,8 @@ export function TopicDetail({ topic, focusMode = false, onToggleFocus }: Props) 
     onDelete: removeEntry,
   };
 
-  const removeTopic = () => {
-    if (!confirm(`Remover tema "${topic.title}" e todos os registros?`)) return;
+  const removeTopic = async () => {
+    if (!(await confirmDialog({ title: "Remover tema", description: `Remover tema "${topic.title}" e todos os registros?`, destructive: true, confirmLabel: "Remover" }))) return;
     deleteTopic.mutate(topic.id, {
       onSuccess: () => {
         const nextParams = new URLSearchParams(window.location.search);
