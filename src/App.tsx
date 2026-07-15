@@ -65,6 +65,7 @@ function AppRoutes() {
         <Route path="/spaces/:id" element={<SpaceDetail />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/notes" element={<Notes />} />
+        <Route path="/emails" element={<Emails />} />
         <Route path="/tags" element={<Tags />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/pomodoro" element={<Pomodoro />} />
