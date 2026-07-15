@@ -6,7 +6,8 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users } from "lucide-react";
+import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,7 +46,7 @@ export default function Tasks() {
   const [sortBy, setSortBy] = useState("date");
   
   const [groupBy, setGroupBy] = useState("space");
-  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [deletedTasks, setDeletedTasks] = useState<any[]>([]);
@@ -496,6 +497,13 @@ export default function Tasks() {
             >
               <Columns3 className="h-4 w-4" />
             </button>
+            <button
+              onClick={() => setViewMode("owner")}
+              className={`p-2 h-10 sm:h-8 transition-colors ${viewMode === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Por responsável (mim / outros)"
+            >
+              <Users className="h-4 w-4" />
+            </button>
           </div>
           {viewMode === "list" && (
             <>
@@ -625,6 +633,26 @@ export default function Tasks() {
           cardCompact={cardCompact}
           onToggleCardCompact={toggleCardCompact}
           allCompact={allCompact}
+        />
+      ) : viewMode === "owner" ? (
+        <TasksByOwnerView
+          tasks={filtered}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onReschedule={handleReschedule}
+          onRescheduleSubtask={handleRescheduleSubtask}
+          onDuplicate={handleDuplicate}
+          onSelect={setEditingTask}
+          cardCompact={cardCompact}
+          onToggleCardCompact={toggleCardCompact}
+          allCompact={allCompact}
+          onReload={load}
         />
       ) : (
       <>

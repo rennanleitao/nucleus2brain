@@ -1182,6 +1182,7 @@ export type Database = {
           completion_note: string | null
           created_at: string
           day_order: number | null
+          delegated_to: string | null
           deleted_at: string | null
           description: string | null
           due_date: string | null
@@ -1204,6 +1205,7 @@ export type Database = {
           completion_note?: string | null
           created_at?: string
           day_order?: number | null
+          delegated_to?: string | null
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
@@ -1226,6 +1228,7 @@ export type Database = {
           completion_note?: string | null
           created_at?: string
           day_order?: number | null
+          delegated_to?: string | null
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
