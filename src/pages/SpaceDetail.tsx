@@ -204,6 +204,16 @@ export default function SpaceDetail() {
     return `${(bytes / 1048576).toFixed(1)} MB`;
   };
 
+  // Aggregate topics highlighted across every note in this space.
+  const noteTopics = notes.flatMap((n: any) =>
+    parseNoteTopics(n.content || "").map((t) => ({ ...t, noteId: n.id, noteTitle: n.title })),
+  );
+
+  // Aggregate attachments referenced in note bodies (images + links + files).
+  const noteAttachments = notes.flatMap((n: any) =>
+    parseNoteAttachments(n.content || "").map((a) => ({ ...a, noteId: n.id, noteTitle: n.title })),
+  );
+
   if (loading) {
     return <div className="p-6 flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading...</p></div>;
   }
