@@ -170,6 +170,19 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [subtaskDate, setSubtaskDate] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
 
+  // Delegation state
+  const [delegatedTo, setDelegatedTo] = useState("");
+  const [delegatedEmail, setDelegatedEmail] = useState("");
+  const [delegatedPhone, setDelegatedPhone] = useState("");
+  const [showDelegation, setShowDelegation] = useState(!!startDelegated);
+  const [commDialogOpen, setCommDialogOpen] = useState(false);
+  const [createdTaskForComm, setCreatedTaskForComm] = useState<null | { title: string; description: string | null; due_date: string | null; delegated_to: string | null }>(null);
+
+  useEffect(() => {
+    if (open && startDelegated) setShowDelegation(true);
+  }, [open, startDelegated]);
+
+
   // Materials state
   const [pendingMaterials, setPendingMaterials] = useState<{ title: string; url: string; description?: string }[]>([]);
   const [materialTitle, setMaterialTitle] = useState("");
