@@ -19,6 +19,7 @@ import {
   Pause,
   GraduationCap,
   Radio,
+  Mail,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,6 +45,7 @@ const navItemsAll = [
   { key: "spaces", title: "Spaces", url: "/spaces", icon: FolderOpen },
   { key: "notes", title: "Notes", url: "/notes", icon: FileText },
   { key: "tasks", title: "Tasks", url: "/tasks", icon: CheckSquare },
+  { key: "emails", title: "E-mails", url: "/emails", icon: Mail },
   { key: "studies", title: "Conhecimento", url: "/estudos", icon: GraduationCap },
   { key: "meeting-copilot", title: "Meeting Copilot", url: "/reunioes", icon: Radio },
   { key: "materials", title: "Materials", url: "/materials", icon: Paperclip },
