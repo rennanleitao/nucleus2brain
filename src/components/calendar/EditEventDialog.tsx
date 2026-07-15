@@ -105,7 +105,7 @@ export function EditEventDialog({ event, open, onOpenChange, onChanged }: Props)
 
   const handleDelete = async () => {
     if (!event) return;
-    if (!confirm("Excluir este evento do Google Calendar?")) return;
+    if (!(await confirmDialog({ title: "Excluir evento", description: "Excluir este evento do Google Calendar?", destructive: true, confirmLabel: "Excluir" }))) return;
     setDeleting(true);
     try {
       await callApi("delete_event", {
