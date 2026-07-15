@@ -216,6 +216,8 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       await updateTask(task.id, { execution_complexity: level } as any);
       toast.success(`Complexidade: ${taskExecutionComplexityLabels[level]}`);
       setComplexityOpen(false);
+      // Notify pages so grouping by complexity refreshes.
+      window.dispatchEvent(new CustomEvent("nucleus:task-updated", { detail: { id: task.id } }));
     } catch (err: any) {
       setLocalComplexity(prev);
       toast.error(err.message);
