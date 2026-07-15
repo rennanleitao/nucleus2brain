@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   tasks: any[];
+  /** Optional grouping (e.g. Atrasadas / Hoje / Amanhã). If provided, tasks are ignored for rendering but still used to look up drag targets. */
+  groups?: { label: string; tasks: any[]; accent?: string }[];
   subtasksMap: Record<string, any[]>;
   remindersMap: Record<string, any>;
   onToggle: (id: string) => void;
@@ -95,7 +97,7 @@ function DroppableColumn({
 
 export function TasksByOwnerView(props: Props) {
   const {
-    tasks, subtasksMap, remindersMap, onToggle, onDelete, onToggleSubtask,
+    tasks, groups, subtasksMap, remindersMap, onToggle, onDelete, onToggleSubtask,
     onAddSubtask, onDeleteSubtask, onPriorityChange, onReschedule,
     onRescheduleSubtask, onDuplicate, onSelect, cardCompact, onToggleCardCompact,
     allCompact, onReload,
@@ -104,23 +106,45 @@ export function TasksByOwnerView(props: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  const { mine, others } = useMemo(() => {
+  const splitByOwner = (arr: any[]) => {
     const mine: any[] = [];
     const others: any[] = [];
-    for (const t of tasks) {
+    for (const t of arr) {
       if (t.delegated_to && String(t.delegated_to).trim()) others.push(t);
       else mine.push(t);
     }
     return { mine, others };
-  }, [tasks]);
+  };
 
-  const activeTask = activeId ? tasks.find(t => t.id === activeId) : null;
+  const columnData = useMemo(() => {
+    if (groups && groups.length > 0) {
+      const mineGroups = groups.map(g => ({ label: g.label, accent: g.accent, tasks: splitByOwner(g.tasks).mine }));
+      const othersGroups = groups.map(g => ({ label: g.label, accent: g.accent, tasks: splitByOwner(g.tasks).others }));
+      const mineCount = mineGroups.reduce((s, g) => s + g.tasks.length, 0);
+      const othersCount = othersGroups.reduce((s, g) => s + g.tasks.length, 0);
+      return { mineGroups, othersGroups, mineCount, othersCount };
+    }
+    const { mine, others } = splitByOwner(tasks);
+    return {
+      mineGroups: [{ label: "", accent: undefined as string | undefined, tasks: mine }],
+      othersGroups: [{ label: "", accent: undefined as string | undefined, tasks: others }],
+      mineCount: mine.length,
+      othersCount: others.length,
+    };
+  }, [groups, tasks]);
+
+  const allTasks = useMemo(() => {
+    if (groups && groups.length > 0) return groups.flatMap(g => g.tasks);
+    return tasks;
+  }, [groups, tasks]);
+
+  const activeTask = activeId ? allTasks.find(t => t.id === activeId) : null;
 
   const handleDragEnd = async (e: DragEndEvent) => {
     setActiveId(null);
     if (!e.over) return;
     const dropCol = e.over.id as ColumnId;
-    const task = tasks.find(t => t.id === e.active.id);
+    const task = allTasks.find(t => t.id === e.active.id);
     if (!task) return;
     const currentCol: ColumnId = task.delegated_to ? "others" : "mine";
     if (dropCol === currentCol) return;
@@ -166,6 +190,31 @@ export function TasksByOwnerView(props: Props) {
     </div>
   );
 
+  const renderGroups = (grps: { label: string; accent?: string; tasks: any[] }[]) => {
+    const useSections = groups && groups.length > 0;
+    return grps.map((g, idx) => {
+      if (useSections && g.tasks.length === 0) return null;
+      return (
+        <div key={g.label || idx} className={cn(useSections && idx > 0 && "mt-3")}>
+          {useSections && g.label && (
+            <div className="flex items-center gap-2 mb-1.5 px-0.5">
+              <span className={cn("text-[10px] font-semibold uppercase tracking-wider", g.accent || "text-muted-foreground")}>
+                {g.label}
+              </span>
+              <span className="text-[10px] text-muted-foreground">({g.tasks.length})</span>
+              <div className="flex-1 h-px bg-border/60" />
+            </div>
+          )}
+          <div className="space-y-2">
+            {g.tasks.map(t => (
+              <DraggableTask key={t.id} id={t.id}>{renderCard(t)}</DraggableTask>
+            ))}
+          </div>
+        </div>
+      );
+    });
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -178,25 +227,21 @@ export function TasksByOwnerView(props: Props) {
           id="mine"
           title="Executadas por mim"
           icon={User}
-          count={mine.length}
+          count={columnData.mineCount}
           empty="Arraste aqui as tarefas que voltarem para você."
         >
-          {mine.map(t => (
-            <DraggableTask key={t.id} id={t.id}>{renderCard(t)}</DraggableTask>
-          ))}
+          {renderGroups(columnData.mineGroups)}
         </DroppableColumn>
 
         <DroppableColumn
           id="others"
           title="Executadas por outros"
           icon={Users}
-          count={others.length}
+          count={columnData.othersCount}
           empty="Arraste aqui as tarefas delegadas para outra pessoa."
           accent="bg-primary/10"
         >
-          {others.map(t => (
-            <DraggableTask key={t.id} id={t.id}>{renderCard(t)}</DraggableTask>
-          ))}
+          {renderGroups(columnData.othersGroups)}
         </DroppableColumn>
       </div>
 

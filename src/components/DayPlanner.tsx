@@ -752,7 +752,12 @@ export function DayPlanner({
       {/* OWNER VIEW — mim vs outros (hoje) */}
       {view === "owner" && (
         <TasksByOwnerView
-          tasks={todayTasks}
+          tasks={[...overdueTasks, ...todayTasks, ...tomorrowTasks]}
+          groups={[
+            { label: "Atrasadas", tasks: overdueTasks, accent: "text-destructive" },
+            { label: "Hoje", tasks: todayTasks, accent: "text-primary" },
+            { label: "Amanhã", tasks: tomorrowTasks },
+          ]}
           subtasksMap={subtasksMap}
           remindersMap={remindersMap}
           onToggle={onToggle}
