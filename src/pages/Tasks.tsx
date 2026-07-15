@@ -46,7 +46,7 @@ export default function Tasks() {
   const [sortBy, setSortBy] = useState("date");
   
   const [groupBy, setGroupBy] = useState("space");
-  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [deletedTasks, setDeletedTasks] = useState<any[]>([]);
