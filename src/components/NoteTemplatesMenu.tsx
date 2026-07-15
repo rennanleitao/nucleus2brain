@@ -88,7 +88,7 @@ export function NoteTemplatesMenu({ hasSelection, isEmpty, onApply, compact = fa
   };
 
   const deleteUserTemplate = async (id: string) => {
-    if (!confirm("Excluir este template?")) return;
+    if (!(await confirmDialog({ title: "Excluir template", description: "Excluir este template?", destructive: true, confirmLabel: "Excluir" }))) return;
     const { error } = await supabase.from("note_templates").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Template excluído");
