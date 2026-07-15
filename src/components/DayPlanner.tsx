@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2, FolderOpen, Gauge } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2, FolderOpen, Gauge, Users } from "lucide-react";
+import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -49,7 +50,7 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [view, setView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity">("date-complexity");
+  const [view, setView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner">("date-complexity");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
@@ -450,6 +451,13 @@ export function DayPlanner({
             >
               <Gauge className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={() => setView("owner")}
+              className={`p-1.5 transition-colors ${view === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+              title="Por responsável (mim / outros)"
+            >
+              <Users className="h-3.5 w-3.5" />
+            </button>
           </div>
           <button
             onClick={() => setShowAISchedule(true)}
@@ -740,6 +748,30 @@ export function DayPlanner({
           </div>
         )
       )}
+
+      {/* OWNER VIEW — mim vs outros (hoje) */}
+      {view === "owner" && (
+        <TasksByOwnerView
+          tasks={todayTasks}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onToggleSubtask={onToggleSubtask}
+          onAddSubtask={onAddSubtask}
+          onDeleteSubtask={onDeleteSubtask}
+          onPriorityChange={onPriorityChange}
+          onReschedule={onReschedule}
+          onRescheduleSubtask={onRescheduleSubtask}
+          onDuplicate={onDuplicate}
+          onSelect={onSelect}
+          cardCompact={cardCompact}
+          onToggleCardCompact={toggleCardCompact}
+          allCompact={allCompact}
+          onReload={onReload}
+        />
+      )}
+
 
 
 
