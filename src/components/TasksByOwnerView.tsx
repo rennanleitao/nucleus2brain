@@ -303,7 +303,7 @@ export function TasksByOwnerView(props: Props) {
         onToggleCompact={allCompact ? onToggleCardCompact : undefined}
       />
       {t.delegated_to && (
-        <div className="flex items-center gap-1.5 mt-1 pl-1">
+        <div className="flex items-center gap-1.5 mt-1 pl-1" onClick={(e) => e.stopPropagation()}>
           <p className="text-[11px] text-muted-foreground">
             Executada por <span className="font-medium text-foreground">{t.delegated_to}</span>
           </p>
@@ -316,6 +316,20 @@ export function TasksByOwnerView(props: Props) {
           >
             Comunicar
           </button>
+          <QuickCommButton
+            channel="whatsapp"
+            task={t}
+            label="Comunicar por WhatsApp"
+            Icon={MessageCircle}
+            onOpenFull={() => setCommTask(t)}
+          />
+          <QuickCommButton
+            channel="email"
+            task={t}
+            label="Comunicar por e-mail"
+            Icon={Mail}
+            onOpenFull={() => setCommTask(t)}
+          />
         </div>
       )}
     </div>
