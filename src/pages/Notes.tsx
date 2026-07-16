@@ -660,23 +660,23 @@ export default function Notes() {
           </div>
 
           <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden">
-            <div className="w-full min-w-0 max-w-full overflow-x-hidden px-4 py-5">
+            <div className={`w-full min-w-0 max-w-full overflow-x-hidden ${isMobile ? "px-2.5 py-3" : "px-4 py-5"}`}>
               {groupedNotes.map((group, groupIdx) => {
                 const isCollapsed = collapsedSpaces.has(group.key);
                 return (
-                  <section key={group.key} className={`${groupIdx > 0 ? "mt-4" : ""} rounded-xl border border-border/60 bg-card overflow-hidden`}>
+                  <section key={group.key} className={`${groupIdx > 0 ? (isMobile ? "mt-2.5" : "mt-4") : ""} rounded-xl border border-border/60 bg-card overflow-hidden`}>
                     <button
                       type="button"
                       onClick={() => toggleSpaceCollapsed(group.key)}
-                      className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60 group/hdr transition-colors"
+                      className={`w-full flex items-center gap-2 ${isMobile ? "px-2.5 py-1.5" : "px-3 py-2"} bg-muted border-b border-border/60 group/hdr transition-colors`}
                     >
                       {group.icon && group.key !== NO_SPACE_KEY && (
-                        <SpaceIcon iconKey={group.icon} className="h-3.5 w-3.5 text-muted-foreground/70" />
+                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/70" />
                       )}
-                      <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate">
+                      <h3 className={`${isMobile ? "text-[9.5px]" : "text-[10.5px]"} font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate`}>
                         {group.label}
                       </h3>
-                      <span className="text-[10.5px] tabular-nums text-muted-foreground/60 font-medium">
+                      <span className={`${isMobile ? "text-[9.5px]" : "text-[10.5px]"} tabular-nums text-muted-foreground/60 font-medium`}>
                         {group.notes.length}
                       </span>
                       <span className="flex-1" />
@@ -684,7 +684,7 @@ export default function Notes() {
                     </button>
 
                     {!isCollapsed && (
-                      <ul className="p-1.5 space-y-0.5">
+                      <ul className={isMobile ? "p-1 space-y-0.5" : "p-1.5 space-y-0.5"}>
                         {group.notes.map(note => {
                           const isSelected = selectedNote?.id === note.id;
                           const preview = stripHtml(note.content || "").replace(/\n+/g, " ");
@@ -695,7 +695,7 @@ export default function Notes() {
                                 role="button"
                                 tabIndex={0}
                                 onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
-                                className={`relative flex flex-col justify-center min-h-[44px] px-2.5 py-1.5 rounded-md group cursor-pointer touch-manipulation transition-colors overflow-hidden ${
+                                className={`relative flex flex-col justify-center ${isMobile ? "min-h-[40px] px-2 py-1" : "min-h-[44px] px-2.5 py-1.5"} rounded-md group cursor-pointer touch-manipulation transition-colors overflow-hidden ${
                                   isSelected
                                     ? "bg-muted/70"
                                     : "hover:bg-muted/40"
@@ -703,7 +703,7 @@ export default function Notes() {
                               >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span
-                                    className={`text-[13.5px] truncate leading-tight min-w-0 ${
+                                    className={`${isMobile ? "text-[12.5px]" : "text-[13.5px]"} truncate leading-tight min-w-0 ${
                                       isSelected ? "font-semibold text-foreground" : "font-medium text-foreground/90"
                                     }`}
                                   >
@@ -712,17 +712,18 @@ export default function Notes() {
                                   {(note.tags || []).slice(0, 1).map((tag: string) => (
                                     <span
                                       key={tag}
-                                      className="ml-auto text-[9.5px] font-medium uppercase tracking-wider text-muted-foreground/70 shrink-0"
+                                      className="ml-auto text-[9px] font-medium uppercase tracking-wider text-muted-foreground/70 shrink-0"
                                     >
                                       {tag}
                                     </span>
                                   ))}
                                 </div>
                                 {preview && (
-                                  <span className="mt-0.5 text-[11.5px] text-muted-foreground/70 truncate leading-tight font-normal">
+                                  <span className={`mt-0.5 ${isMobile ? "text-[10.5px]" : "text-[11.5px]"} text-muted-foreground/70 truncate leading-tight font-normal`}>
                                     {preview}
                                   </span>
                                 )}
+
 
                                 <button
                                   type="button"
