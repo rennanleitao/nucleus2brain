@@ -785,9 +785,10 @@ export default function Notes() {
                   <input
                     type="text" value={editTitle}
                     onChange={e => { setEditTitle(e.target.value); setDirty(true); }}
-                    className="flex-1 text-[22px] font-semibold leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground/60 min-w-0"
+                    className={`flex-1 ${isMobile ? "text-[16px]" : "text-[22px]"} font-semibold leading-tight tracking-tight bg-transparent outline-none placeholder:text-muted-foreground/60 min-w-0`}
                     placeholder="Título da nota"
                   />
+
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <NoteDatePicker onPick={handleInsertDate} compact />
                     <div className="flex items-center gap-1.5 mr-1">
