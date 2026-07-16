@@ -453,12 +453,17 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     const markDraggable = () => {
       root.querySelectorAll<HTMLElement>("h1[data-entry-date], h2[data-entry-date], h3[data-entry-date]")
         .forEach((el) => {
-          el.setAttribute("draggable", "true");
-          el.classList.add("note-date-draggable");
+          if (el.getAttribute("draggable") !== "true") el.setAttribute("draggable", "true");
+          if (!el.classList.contains("note-date-draggable")) el.classList.add("note-date-draggable");
         });
     };
     markDraggable();
-    const mo = new MutationObserver(() => markDraggable());
+    let scheduled = false;
+    const mo = new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => { scheduled = false; markDraggable(); });
+    });
     mo.observe(root, { childList: true, subtree: true });
 
     const findHeading = (target: EventTarget | null): HTMLElement | null => {
