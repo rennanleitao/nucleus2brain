@@ -577,17 +577,17 @@ export default function Notes() {
       {/* Sidebar - Note list */}
       {showList && (
         <div className={`${isMobile ? "w-full" : "w-[300px]"} border-r border-border/60 flex flex-col bg-background flex-shrink-0 min-w-0 max-w-full overflow-hidden`}>
-          <div className="px-5 pt-5 pb-4 border-b border-border/60 space-y-4 min-w-0">
-            <div className="flex items-end justify-between gap-2">
-              <div className="min-w-0">
-                <h2 className="text-[22px] font-semibold leading-none tracking-tight text-foreground">
+          <div className={`${isMobile ? "px-3 pt-3 pb-2.5 space-y-2.5" : "px-5 pt-5 pb-4 space-y-4"} border-b border-border/60 min-w-0`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex items-baseline gap-2">
+                <h2 className={`${isMobile ? "text-[15px]" : "text-[22px]"} font-semibold leading-none tracking-tight text-foreground`}>
                   Notas
                 </h2>
-                <p className="mt-1.5 text-[11px] tracking-wide uppercase text-muted-foreground/70">
+                <span className={`${isMobile ? "text-[10px]" : "text-[11px] mt-1.5"} tracking-wide uppercase text-muted-foreground/70`}>
                   {notes.length} {notes.length === 1 ? "registro" : "registros"}
-                </p>
+                </span>
               </div>
-              <div className="flex items-center gap-0.5 -mb-0.5">
+              <div className="flex items-center gap-0.5">
                 {!isMobile && (
                   <Button
                     size="icon"
@@ -602,14 +602,15 @@ export default function Notes() {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8 text-foreground hover:bg-muted"
+                  className={`${isMobile ? "h-7 w-7" : "h-8 w-8"} text-foreground hover:bg-muted`}
                   onClick={handleCreateNote}
                   title="Nova nota"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className={isMobile ? "h-3.5 w-3.5" : "h-4 w-4"} />
                 </Button>
               </div>
             </div>
+
 
             <div className="flex items-center gap-1.5">
               <div className="relative flex-1">
