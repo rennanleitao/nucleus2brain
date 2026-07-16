@@ -812,6 +812,20 @@ html, body {
 .notes-editor h3 { font-size: 1.1rem; margin-top: 1.4em; margin-bottom: 0.1em; letter-spacing: -0.02em; }
 .notes-editor h4 { font-size: 1rem; margin-top: 1.2em; margin-bottom: 0.1em; letter-spacing: -0.018em; }
 
+/* Mobile: tighter proportions so the body copy matches the app header scale */
+@media (max-width: 640px) {
+  .notes-editor {
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .notes-editor > * + * { margin-top: 0.7em; }
+  .notes-editor h1 { font-size: 1.4rem; margin-top: 1.3em; }
+  .notes-editor h2 { font-size: 1.15rem; margin-top: 1.25em; }
+  .notes-editor h3 { font-size: 1rem; margin-top: 1.15em; }
+  .notes-editor h4 { font-size: 0.95rem; margin-top: 1em; }
+}
+
+
 .notes-editor > h1:first-child,
 .notes-editor > h2:first-child,
 .notes-editor > h3:first-child { margin-top: 0; }
