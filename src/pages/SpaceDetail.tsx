@@ -69,6 +69,20 @@ export default function SpaceDetail() {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkDesc, setLinkDesc] = useState("");
 
+  // Auto-collapse app sidebar when opening a note for a wider writing surface.
+  useEffect(() => {
+    if (isMobile) return;
+    if (selectedNote) {
+      sidebarWasOpenRef.current = true;
+      setAppSidebarOpen(false);
+    } else if (sidebarWasOpenRef.current) {
+      setAppSidebarOpen(true);
+      sidebarWasOpenRef.current = false;
+    }
+  }, [selectedNote, isMobile, setAppSidebarOpen]);
+
+
+
 
   const load = async () => {
     if (!id) return;
