@@ -6,18 +6,30 @@ export type DelegateTask = {
   description?: string | null;
   due_date?: string | null;
   delegated_to?: string | null;
+  /** Optional context extracted from a linked note. */
+  context?: string | null;
+  note_id?: string | null;
 };
 
 export type DelegateTemplate = {
   id: string;
   name: string;
-  /** Subject line template. Only used for e-mail. Supports {{variables}}. */
+  /** Subject line template. Only used for e-mail. Supports @tokens and {{legacy}}. */
   subject: string;
-  /** Body template. Supports {{firstName}} {{name}} {{title}} {{dueDate}} {{description}}. */
+  /** Body template. Supports @tokens (@atividade, @responsavel, @prazo, @descricao, @contexto). */
   body: string;
   /** Built-in templates cannot be edited or deleted. */
   builtin?: boolean;
 };
+
+/** User-facing tokens shown as chips in the editor. */
+export const TEMPLATE_TOKENS: { token: string; label: string; hint: string }[] = [
+  { token: "@atividade", label: "Atividade", hint: "Título da tarefa" },
+  { token: "@responsavel", label: "Responsável", hint: "Primeiro nome de quem foi delegada" },
+  { token: "@prazo", label: "Prazo", hint: "Data curta (ex.: 13/12) ou vazio" },
+  { token: "@descricao", label: "Descrição", hint: "Descrição da atividade" },
+  { token: "@contexto", label: "Contexto", hint: "Trecho de nota vinculada" },
+];
 
 export function formatDateShort(d?: string | null): string {
   if (!d) return "";
@@ -41,21 +53,48 @@ function firstNameOf(name?: string | null): string {
   return trimmed.split(/\s+/)[0] || trimmed;
 }
 
+/** Trim/clean context text to keep messages readable. */
+function normalizeContext(raw?: string | null, maxLen = 500): string {
+  const text = (raw || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  if (text.length <= maxLen) return text;
+  return text.slice(0, maxLen).trimEnd() + "…";
+}
+
 export function buildTemplateVars(task: DelegateTask): Record<string, string> {
   const name = (task.delegated_to || "").trim();
   const firstName = firstNameOf(name);
   const dueShort = formatDateShort(task.due_date);
+  const description = (task.description || "").trim();
+  const context = normalizeContext(task.context);
   return {
-    firstName: firstName,
-    name: name,
+    // @tokens (canonical PT-BR)
+    atividade: task.title || "",
+    responsavel: firstName,
+    prazo: dueShort,
+    descricao: description,
+    contexto: context,
+    // Legacy {{tokens}} kept for backward compat
+    firstName,
+    name,
     title: task.title || "",
-    description: (task.description || "").trim(),
+    description,
     dueDate: dueShort,
+    context,
   };
 }
 
+/**
+ * Replaces @token and {{token}} placeholders with values.
+ * @tokens are matched greedily against a fixed list (letters, digits, _).
+ */
 export function renderTemplateString(tpl: string, vars: Record<string, string>): string {
-  return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key) => (vars[key] ?? ""));
+  return tpl
+    .replace(/@([a-zA-Z_][a-zA-Z0-9_]*)/g, (match, key) => {
+      if (Object.prototype.hasOwnProperty.call(vars, key)) return vars[key] ?? "";
+      return match; // unknown @token — leave as-is (may be an @mention)
+    })
+    .replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key) => (vars[key] ?? ""));
 }
 
 export const BUILTIN_TEMPLATES: DelegateTemplate[] = [
@@ -63,40 +102,46 @@ export const BUILTIN_TEMPLATES: DelegateTemplate[] = [
     id: "builtin-delegate",
     name: "Delegar",
     builtin: true,
-    subject: "{{title}}",
+    subject: "@atividade",
     body:
-      "{{greetingLine}}, tudo certo? Vc consegue tocar a atividade *{{title}}*{{dueSuffix}}? Se sim, me avisa.{{descriptionLine}}\n\nDepois me conta se rolou, ok? Se precisar de algum apoio me avisa.",
+      "Oi @responsavel, tudo bem? Você consegue tocar a atividade *@atividade*? Se sim, me avisa quando conseguiria concluir.\n\n@descricao\n\n@contexto",
   },
   {
     id: "builtin-followup",
     name: "Follow-up",
     builtin: true,
-    subject: "Follow-up: {{title}}",
+    subject: "Follow-up: @atividade",
     body:
-      "{{greetingLine}}, tranquilo? Consegue me atualizar sobre como está a atividade *{{title}}*? Acha que consegue concluir quando?",
+      "Oi @responsavel, tranquilo? Consegue me atualizar sobre como está a atividade *@atividade*? Quando você acha que consegue concluir?\n\n@contexto",
   },
 ];
 
+/** Collapse the awkward blank lines that appear when optional tokens are empty. */
+function tidy(text: string): string {
+  return text
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/^\s+|\s+$/g, "");
+}
+
 /**
- * Renders a template against a task, expanding both simple variables
- * ({{title}}, {{firstName}}, …) and a couple of convenience helpers
- * used by the built-in templates ({{greetingLine}}, {{dueSuffix}},
- * {{descriptionLine}}).
+ * Renders a template against a task, expanding @tokens and legacy {{helpers}}.
  */
 export function renderTemplate(
   tpl: DelegateTemplate,
   task: DelegateTask,
 ): { subject: string; body: string } {
   const vars = buildTemplateVars(task);
-  const greetingLine = vars.firstName ? `Oi ${vars.firstName}` : "Oi";
-  const dueSuffix = vars.dueDate ? ` até ${vars.dueDate}` : "";
-  const descriptionLine = vars.description
-    ? `\nMe lembro que noutro momento falamos sobre ${vars.description}.`
+  // Legacy helper tokens for old saved templates
+  const greetingLine = vars.responsavel ? `Oi ${vars.responsavel}` : "Oi";
+  const dueSuffix = vars.prazo ? ` até ${vars.prazo}` : "";
+  const descriptionLine = vars.descricao
+    ? `\nMe lembro que noutro momento falamos sobre ${vars.descricao}.`
     : "";
   const full = { ...vars, greetingLine, dueSuffix, descriptionLine };
   return {
-    subject: renderTemplateString(tpl.subject || "", full),
-    body: renderTemplateString(tpl.body || "", full),
+    subject: tidy(renderTemplateString(tpl.subject || "", full)),
+    body: tidy(renderTemplateString(tpl.body || "", full)),
   };
 }
 
