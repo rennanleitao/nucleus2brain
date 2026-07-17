@@ -247,6 +247,12 @@ export default function Notes() {
       handleSave();
     }
     clearAudioCapture();
+    // Auto-collapse the app sidebar on desktop to maximize writing space.
+    if (!isMobile && !selectedNote) {
+      sidebarWasOpenRef.current = true;
+      setAppSidebarOpen(false);
+      setListCollapsed(true);
+    }
     setSelectedNote(note);
     setEditTitle(note.title);
     let content = note.content || "";
