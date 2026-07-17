@@ -51,6 +51,8 @@ export default function Notes() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
+  const { setOpen: setAppSidebarOpen } = useSidebar();
+  const sidebarWasOpenRef = useRef(false);
   const [notes, setNotes] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
