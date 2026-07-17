@@ -243,7 +243,7 @@ export default function SpaceDetail() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className={`p-6 ${selectedNote ? "max-w-5xl" : "max-w-4xl"} mx-auto space-y-6 animate-fade-in transition-[max-width] duration-200`}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/spaces")} className="flex-shrink-0">
