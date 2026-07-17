@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SpaceIcon } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface NoteAudioClip {
   id: string;
@@ -50,6 +51,8 @@ export default function Notes() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
+  const { setOpen: setAppSidebarOpen } = useSidebar();
+  const sidebarWasOpenRef = useRef(false);
   const [notes, setNotes] = useState<any[]>([]);
   const [spaces, setSpaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -244,6 +247,12 @@ export default function Notes() {
       handleSave();
     }
     clearAudioCapture();
+    // Auto-collapse the app sidebar on desktop to maximize writing space.
+    if (!isMobile && !selectedNote) {
+      sidebarWasOpenRef.current = true;
+      setAppSidebarOpen(false);
+      setListCollapsed(true);
+    }
     setSelectedNote(note);
     setEditTitle(note.title);
     let content = note.content || "";
@@ -394,6 +403,13 @@ export default function Notes() {
     if (dirty) handleSave();
     clearAudioCapture();
     setSelectedNote(null);
+    if (!isMobile) {
+      setListCollapsed(false);
+      if (sidebarWasOpenRef.current) {
+        setAppSidebarOpen(true);
+        sidebarWasOpenRef.current = false;
+      }
+    }
   };
 
   const clearAudioCapture = () => {

@@ -27,12 +27,18 @@ import {
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { parseNoteTopics, parseNoteAttachments } from "@/lib/noteEntries";
+import { useSidebar } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function SpaceDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { setOpen: setAppSidebarOpen } = useSidebar();
+  const isMobile = useIsMobile();
+  const sidebarWasOpenRef = useRef(false);
+
 
   const [space, setSpace] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -62,6 +68,20 @@ export default function SpaceDetail() {
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkDesc, setLinkDesc] = useState("");
+
+  // Auto-collapse app sidebar when opening a note for a wider writing surface.
+  useEffect(() => {
+    if (isMobile) return;
+    if (selectedNote) {
+      sidebarWasOpenRef.current = true;
+      setAppSidebarOpen(false);
+    } else if (sidebarWasOpenRef.current) {
+      setAppSidebarOpen(true);
+      sidebarWasOpenRef.current = false;
+    }
+  }, [selectedNote, isMobile, setAppSidebarOpen]);
+
+
 
 
   const load = async () => {
@@ -223,7 +243,7 @@ export default function SpaceDetail() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className={`p-6 ${selectedNote ? "max-w-5xl" : "max-w-4xl"} mx-auto space-y-6 animate-fade-in transition-[max-width] duration-200`}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/spaces")} className="flex-shrink-0">
