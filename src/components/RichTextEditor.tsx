@@ -440,10 +440,13 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   }, [editor]);
 
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
-    }
-  }, [content]);
+    if (!editor) return;
+    // Don't reset content while user is actively editing — it wipes the selection
+    // and prevents clicking/arrow-key cursor placement.
+    if (editor.isFocused) return;
+    if (content === editor.getHTML()) return;
+    editor.commands.setContent(content, { emitUpdate: false });
+  }, [content, editor]);
 
   // Drag-and-drop reorder of date-entry sections inside the editor.
   useEffect(() => {
