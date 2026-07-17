@@ -403,6 +403,13 @@ export default function Notes() {
     if (dirty) handleSave();
     clearAudioCapture();
     setSelectedNote(null);
+    if (!isMobile) {
+      setListCollapsed(false);
+      if (sidebarWasOpenRef.current) {
+        setAppSidebarOpen(true);
+        sidebarWasOpenRef.current = false;
+      }
+    }
   };
 
   const clearAudioCapture = () => {
