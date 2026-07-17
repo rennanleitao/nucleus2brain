@@ -27,6 +27,8 @@ import {
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { parseNoteTopics, parseNoteAttachments } from "@/lib/noteEntries";
+import { useSidebar } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function SpaceDetail() {
   const { id } = useParams<{ id: string }>();
