@@ -35,6 +35,10 @@ export default function SpaceDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { setOpen: setAppSidebarOpen } = useSidebar();
+  const isMobile = useIsMobile();
+  const sidebarWasOpenRef = useRef(false);
+
 
   const [space, setSpace] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
