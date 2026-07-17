@@ -256,6 +256,28 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         if (event.key !== "Enter" || event.shiftKey || event.isComposing) return false;
         const { $from, empty } = view.state.selection;
         if (!empty) return false;
+
+        // Exit ordered/bullet/task list when current item is empty
+        const editorInstance = editorRef.current;
+        if (editorInstance) {
+          const isEmptyItem = $from.parent.content.size === 0;
+          if (isEmptyItem) {
+            for (let d = $from.depth; d > 0; d--) {
+              const nodeName = $from.node(d).type.name;
+              if (nodeName === "listItem") {
+                event.preventDefault();
+                editorInstance.chain().focus().liftListItem("listItem").run();
+                return true;
+              }
+              if (nodeName === "taskItem") {
+                event.preventDefault();
+                editorInstance.chain().focus().liftListItem("taskItem").run();
+                return true;
+              }
+            }
+          }
+        }
+
         const parent = $from.parent;
         if (parent.type.name !== "paragraph") return false;
         const text = parent.textContent.trim();
