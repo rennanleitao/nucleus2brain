@@ -6,13 +6,17 @@ import {
   CheckCircle2,
   CircleHelp,
   Download,
+  FileText,
   Laptop,
   ListChecks,
   Loader2,
   Mic,
   Pause,
   Play,
+  Plus,
   Radio,
+  RefreshCw,
+  Save,
   Send,
   Square,
   Tag,
@@ -41,17 +45,20 @@ import {
 } from "@/hooks/useMeetingCopilot";
 import { cn } from "@/lib/utils";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionErrors";
+import { SaveMeetingToNoteDialog } from "@/components/meeting/SaveMeetingToNoteDialog";
 import { toast } from "sonner";
 
 type MeetingMode = "in_person" | "online";
 type RecStatus = "idle" | "recording" | "paused" | "processing";
 
-interface RecordedAudio {
+interface Take {
   id: string;
   url: string;
   mimeType: string;
   durationSeconds: number;
   createdAt: string;
+  transcript: string;
+  status: "processing" | "ready" | "error";
 }
 
 const MEETING_TYPES = [
@@ -82,31 +89,35 @@ export default function MeetingCopilot() {
   const [manualText, setManualText] = useState("");
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<MeetingCopilotAnalysis>(EMPTY_MEETING_ANALYSIS);
+  const [editableSummary, setEditableSummary] = useState("");
 
   const [recStatus, setRecStatus] = useState<RecStatus>("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [audioClips, setAudioClips] = useState<RecordedAudio[]>([]);
+  const [takes, setTakes] = useState<Take[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [invitingBot, setInvitingBot] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [meetingsFieldsCollapsed, setMeetingsFieldsCollapsed] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const audioClipsRef = useRef<RecordedAudio[]>([]);
+  const takesRef = useRef<Take[]>([]);
   const activeSessionRef = useRef<MeetingCopilotSession | null>(null);
   const sessionCreationRef = useRef<Promise<MeetingCopilotSession> | null>(null);
   const recordingStartedAtRef = useRef<number | null>(null);
   const totalRecordedRef = useRef(0);
   const transcriptRef = useRef("");
   const analysisRef = useRef<MeetingCopilotAnalysis>(EMPTY_MEETING_ANALYSIS);
+  const transcriptDirtyRef = useRef(false);
 
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
   useEffect(() => { analysisRef.current = analysis; }, [analysis]);
   useEffect(() => { activeSessionRef.current = activeSession; }, [activeSession]);
-  useEffect(() => { audioClipsRef.current = audioClips; }, [audioClips]);
+  useEffect(() => { takesRef.current = takes; }, [takes]);
+  useEffect(() => { setEditableSummary(analysis.summary || ""); }, [analysis.summary]);
 
-  // Load routed session
   useEffect(() => {
     if (!routedSession || activeSession?.id === routedSession.id) return;
     activeSessionRef.current = routedSession;
@@ -124,9 +135,9 @@ export default function MeetingCopilot() {
     setBotName(routedSession.bot_name ?? "Helena");
     setTranscript(routedSession.transcript ?? "");
     setAnalysis(normalizeMeetingAnalysis(routedSession.analysis));
+    if ((routedSession.transcript ?? "").trim()) setMeetingsFieldsCollapsed(true);
   }, [routedSession, activeSession?.id]);
 
-  // Elapsed timer
   useEffect(() => {
     if (recStatus !== "recording") return;
     const interval = window.setInterval(() => {
@@ -136,14 +147,13 @@ export default function MeetingCopilot() {
     return () => window.clearInterval(interval);
   }, [recStatus]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       try {
         if (mediaRecorderRef.current?.state !== "inactive") mediaRecorderRef.current?.stop();
       } catch { /* noop */ }
       streamRef.current?.getTracks().forEach((t) => t.stop());
-      audioClipsRef.current.forEach((c) => URL.revokeObjectURL(c.url));
+      takesRef.current.forEach((c) => URL.revokeObjectURL(c.url));
     };
   }, []);
 
@@ -175,7 +185,6 @@ export default function MeetingCopilot() {
     }).then((created) => {
       activeSessionRef.current = created;
       setActiveSession(created);
-      // Navigate to session URL so refresh keeps state and back returns to list.
       navigate(`/reunioes/${created.id}`, { replace: true });
       return created;
     });
@@ -188,7 +197,7 @@ export default function MeetingCopilot() {
     }
   }, [createSession, derivedTitle, meetingType, mode, navigate, theme]);
 
-  const runAnalysis = useCallback(async (fullTranscript: string, sessionId: string, appended: string) => {
+  const runAnalysis = useCallback(async (fullTranscript: string, sid: string, appended: string) => {
     setAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke("meeting-copilot", {
@@ -207,7 +216,7 @@ export default function MeetingCopilot() {
       const next = normalizeMeetingAnalysis(data?.analysis);
       setAnalysis(next);
       await updateSession.mutateAsync({
-        id: sessionId,
+        id: sid,
         title: derivedTitle,
         theme: theme.trim() || next.theme_suggestion || null,
         capture_type: mode === "online" ? "online_meeting" : "in_person_meeting",
@@ -223,16 +232,16 @@ export default function MeetingCopilot() {
     }
   }, [derivedTitle, meetingType, meetingWith, mode, theme, updateSession]);
 
-  const appendToTranscript = useCallback(async (text: string, source: "manual" | "browser" | "recall" = "manual") => {
+  const appendToTranscript = useCallback(async (text: string, source: "manual" | "browser" | "recall" = "manual"): Promise<string | null> => {
     const clean = text.trim();
-    if (!clean) return;
+    if (!clean) return null;
     try {
       const session = await ensureSession();
       const prev = transcriptRef.current.trim();
       const next = prev ? `${prev}\n\n---\n\n${clean}` : clean;
       transcriptRef.current = next;
       setTranscript(next);
-      // Persist immediately so nothing is lost if analysis fails
+      setMeetingsFieldsCollapsed(true);
       await updateSession.mutateAsync({ id: session.id, transcript: next });
       const nextAnalysis = await runAnalysis(next, session.id, clean).catch(() => null);
       await createSegment.mutateAsync({
@@ -241,8 +250,10 @@ export default function MeetingCopilot() {
         analysis_snapshot: nextAnalysis,
         source,
       }).catch(() => null);
+      return clean;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao anexar texto");
+      return null;
     }
   }, [createSegment, ensureSession, runAnalysis, updateSession]);
 
@@ -267,23 +278,27 @@ export default function MeetingCopilot() {
     const blob = new Blob(chunks, { type: mimeType });
     if (blob.size === 0) return;
 
-    const clip: RecordedAudio = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    const takeId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const take: Take = {
+      id: takeId,
       url: URL.createObjectURL(blob),
       mimeType,
       durationSeconds: totalRecordedRef.current,
       createdAt: new Date().toISOString(),
+      transcript: "",
+      status: "processing",
     };
-    setAudioClips((prev) => [...prev, clip]);
+    setTakes((prev) => [...prev, take]);
 
     setRecStatus("processing");
-    const toastId = toast.loading("Transcrevendo áudio...");
     try {
       const text = await transcribeBlob(blob, mimeType);
-      toast.success("Áudio transcrito", { id: toastId });
+      setTakes((prev) => prev.map((t) => t.id === takeId ? { ...t, transcript: text, status: "ready" } : t));
       await appendToTranscript(text, "manual");
+      toast.success("Gravação transcrita");
     } catch (err) {
-      toast.error(getEdgeFunctionErrorMessage(err, "Não foi possível transcrever o áudio"), { id: toastId });
+      setTakes((prev) => prev.map((t) => t.id === takeId ? { ...t, status: "error" } : t));
+      toast.error(getEdgeFunctionErrorMessage(err, "Não foi possível transcrever o áudio"));
     } finally {
       setRecStatus("idle");
       setElapsedSeconds(0);
@@ -318,7 +333,6 @@ export default function MeetingCopilot() {
       recorder.start();
       setRecStatus("recording");
       setElapsedSeconds(0);
-      toast.success("Gravação iniciada");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível iniciar a gravação");
     }
@@ -351,15 +365,7 @@ export default function MeetingCopilot() {
       }
       recorder.stop();
     }
-    const session = activeSessionRef.current;
-    if (session && session.status !== "ended") {
-      updateSession.mutate({
-        id: session.id,
-        status: "ended",
-        ended_at: new Date().toISOString(),
-      });
-    }
-  }, [updateSession]);
+  }, []);
 
   const inviteOnlineAgent = useCallback(async () => {
     const cleanUrl = meetingUrl.trim();
@@ -381,158 +387,180 @@ export default function MeetingCopilot() {
     }
   }, [botName, ensureSession, meetingUrl]);
 
-  const deleteAudioClip = (clipId: string) => {
-    setAudioClips((prev) => {
-      const clip = prev.find((c) => c.id === clipId);
-      if (clip) URL.revokeObjectURL(clip.url);
-      return prev.filter((c) => c.id !== clipId);
+  const deleteTake = (takeId: string) => {
+    setTakes((prev) => {
+      const t = prev.find((x) => x.id === takeId);
+      if (t) URL.revokeObjectURL(t.url);
+      return prev.filter((x) => x.id !== takeId);
     });
   };
+
+  const commitTranscriptEdit = useCallback(async () => {
+    if (!transcriptDirtyRef.current) return;
+    transcriptDirtyRef.current = false;
+    const session = activeSessionRef.current;
+    if (!session) return;
+    try {
+      await updateSession.mutateAsync({ id: session.id, transcript: transcriptRef.current });
+    } catch (err) {
+      toast.error("Não foi possível salvar a transcrição");
+    }
+  }, [updateSession]);
+
+  const commitSummaryEdit = useCallback(async () => {
+    const session = activeSessionRef.current;
+    if (!session) return;
+    const next = { ...analysisRef.current, summary: editableSummary };
+    setAnalysis(next);
+    try {
+      await updateSession.mutateAsync({ id: session.id, analysis: next });
+      toast.success("Resumo atualizado");
+    } catch (err) {
+      toast.error("Erro ao salvar resumo");
+    }
+  }, [editableSummary, updateSession]);
+
+  const reorganize = useCallback(async () => {
+    const session = activeSessionRef.current;
+    if (!session || !transcriptRef.current.trim()) {
+      toast.error("Não há transcrição para reorganizar.");
+      return;
+    }
+    await runAnalysis(transcriptRef.current, session.id, transcriptRef.current.slice(-500)).catch(() => null);
+  }, [runAnalysis]);
+
+  const composedMarkdown = useMemo(
+    () => composeMeetingMarkdown({
+      title: derivedTitle,
+      meetingWith,
+      theme,
+      transcript,
+      analysis: { ...analysis, summary: editableSummary },
+    }),
+    [derivedTitle, meetingWith, theme, transcript, analysis, editableSummary],
+  );
 
   const handleBack = () => navigate("/reunioes");
 
   const isRecording = recStatus === "recording";
   const isPaused = recStatus === "paused";
   const isProcessing = recStatus === "processing";
-  const showModeSelector = isNew && !activeSession;
+  const hasTranscript = Boolean(transcript.trim());
 
   return (
     <div className="flex min-h-[calc(100vh-2rem)] flex-col bg-background">
-      <header className="border-b border-border px-4 py-4 sm:px-6">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <Button variant="ghost" size="icon" onClick={handleBack} className="mt-1 h-9 w-9 shrink-0" title="Voltar">
+          <div className="flex items-center gap-3 min-w-0">
+            <Button variant="ghost" size="icon" onClick={handleBack} className="h-9 w-9 shrink-0" title="Voltar">
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <div className="mb-1.5 flex items-center gap-2">
-                <Badge variant="secondary" className="gap-1">
-                  <Radio className="h-3 w-3" /> Meeting Copilot
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="gap-1 text-[10px]">
+                  {mode === "online" ? <Laptop className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                  {mode === "online" ? "Online" : "Presencial"}
                 </Badge>
-                {activeSession && (
-                  <Badge variant={activeSession.status === "active" ? "default" : "outline"} className="text-[10px]">
-                    {activeSession.status === "active" ? "ativa" : "encerrada"}
-                  </Badge>
-                )}
                 {isRecording && (
                   <Badge variant="destructive" className="animate-pulse gap-1 text-[10px]">
                     <span className="h-1.5 w-1.5 rounded-full bg-white" /> REC
                   </Badge>
                 )}
+                {analyzing && <Badge variant="secondary" className="animate-pulse text-[10px]">Organizando</Badge>}
               </div>
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-                {isNew ? "Nova reunião" : derivedTitle}
-              </h1>
+              <h1 className="mt-0.5 truncate text-lg font-semibold tracking-tight sm:text-xl">{isNew && !activeSession ? "Nova reunião" : derivedTitle}</h1>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {isNew && !activeSession && (
+              <div className="flex rounded-md border p-0.5">
+                <button onClick={() => setMode("in_person")} className={cn("rounded px-2.5 py-1 text-xs font-medium transition", mode === "in_person" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent")}>Presencial</button>
+                <button onClick={() => setMode("online")} className={cn("rounded px-2.5 py-1 text-xs font-medium transition", mode === "online" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent")}>Online</button>
+              </div>
+            )}
+            {hasTranscript && (
+              <Button size="sm" onClick={() => setShowSaveDialog(true)}>
+                <Save className="mr-1.5 h-4 w-4" /> Salvar em nota
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-5xl flex-1 space-y-4 px-4 py-4 sm:px-6">
-        {showModeSelector && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ModeCard
-              active={mode === "in_person"}
-              icon={Mic}
-              title="Reunião Presencial"
-              description="Grave o áudio pelo celular ou computador e organize automaticamente."
-              onClick={() => setMode("in_person")}
-            />
-            <ModeCard
-              active={mode === "online"}
-              icon={Laptop}
-              title="Reunião Online"
-              description="Envie a Helena para o Google Meet, Teams ou Zoom capturar a chamada."
-              onClick={() => setMode("online")}
-            />
-          </div>
-        )}
-
+      <div className="mx-auto w-full max-w-5xl flex-1 space-y-4 px-4 py-5 sm:px-6">
+        {/* Compact meeting fields */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              {mode === "online" ? <Laptop className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              Detalhes da reunião
+          <CardHeader className="cursor-pointer py-3" onClick={() => setMeetingsFieldsCollapsed((v) => !v)}>
+            <CardTitle className="flex items-center justify-between text-sm font-medium text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <FileText className="h-4 w-4" /> Detalhes da reunião
+              </span>
+              <span className="text-xs">{meetingsFieldsCollapsed ? "Expandir" : "Recolher"}</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <MeetingFields
-              title={title}
-              setTitle={setTitle}
-              meetingWith={meetingWith}
-              setMeetingWith={setMeetingWith}
-              theme={theme}
-              setTheme={setTheme}
-              meetingType={meetingType}
-              setMeetingType={setMeetingType}
-            />
-
-            {mode === "online" && (
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
-                <div className="space-y-2">
-                  <Label htmlFor="meeting-url">Link da reunião</Label>
-                  <Input id="meeting-url" value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="Google Meet, Teams ou Zoom" />
+          {!meetingsFieldsCollapsed && (
+            <CardContent className="space-y-4 pt-0">
+              <MeetingFields
+                title={title} setTitle={setTitle}
+                meetingWith={meetingWith} setMeetingWith={setMeetingWith}
+                theme={theme} setTheme={setTheme}
+                meetingType={meetingType} setMeetingType={setMeetingType}
+              />
+              {mode === "online" && (
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
+                  <div className="space-y-2">
+                    <Label htmlFor="meeting-url">Link da reunião</Label>
+                    <Input id="meeting-url" value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="Google Meet, Teams ou Zoom" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-name">Agente</Label>
+                    <Input id="bot-name" value={botName} onChange={(e) => setBotName(e.target.value)} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={inviteOnlineAgent} disabled={invitingBot || !meetingUrl.trim()} className="w-full">
+                      <Send className="mr-1.5 h-4 w-4" />
+                      {invitingBot ? "Enviando..." : "Enviar"}
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bot-name">Agente</Label>
-                  <Input id="bot-name" value={botName} onChange={(e) => setBotName(e.target.value)} />
-                </div>
-                <div className="flex items-end">
-                  <Button onClick={inviteOnlineAgent} disabled={invitingBot || !meetingUrl.trim()} className="w-full">
-                    <Send className="mr-1.5 h-4 w-4" />
-                    {invitingBot ? "Enviando..." : "Enviar"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {mode === "online" && <BotStatus session={activeSession} />}
-          </CardContent>
+              )}
+              {mode === "online" && <BotStatus session={activeSession} />}
+            </CardContent>
+          )}
         </Card>
 
         {mode === "in_person" && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Mic className="h-4 w-4" /> Gravação
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Grave a reunião inteira em um clique. Use pausar para intervalos e parar para finalizar e transcrever. Cada nova gravação nesta reunião é adicionada ao mesmo documento.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-5">
+              {/* Big central recorder */}
               <div className={cn(
-                "flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between",
-                isRecording ? "border-primary/40 bg-primary/5"
-                : isPaused ? "border-amber-500/30 bg-amber-500/5"
-                : "border-border bg-muted/20",
+                "flex flex-col items-center gap-4 rounded-xl border-2 border-dashed p-8 text-center transition",
+                isRecording ? "border-primary/50 bg-primary/5"
+                : isPaused ? "border-amber-500/40 bg-amber-500/5"
+                : "border-border bg-muted/10",
               )}>
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "flex h-14 w-14 items-center justify-center rounded-full",
-                    isRecording ? "bg-primary/15 text-primary"
-                    : isPaused ? "bg-amber-500/15 text-amber-600"
-                    : "bg-muted text-muted-foreground",
-                  )}>
-                    {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Mic className="h-6 w-6" />}
-                  </div>
-                  <div>
-                    <p className="text-2xl font-semibold tabular-nums tracking-tight">
-                      {formatDuration(elapsedSeconds)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {isRecording ? "Gravando..."
-                      : isPaused ? "Pausado"
-                      : isProcessing ? "Transcrevendo..."
-                      : "Pronto para gravar"}
-                    </p>
-                  </div>
+                <div className={cn(
+                  "flex h-20 w-20 items-center justify-center rounded-full transition",
+                  isRecording ? "bg-primary/15 text-primary animate-pulse"
+                  : isPaused ? "bg-amber-500/15 text-amber-600"
+                  : "bg-muted text-muted-foreground",
+                )}>
+                  {isProcessing ? <Loader2 className="h-10 w-10 animate-spin" /> : <Mic className="h-10 w-10" />}
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
+                <div>
+                  <p className="text-4xl font-semibold tabular-nums tracking-tight">{formatDuration(elapsedSeconds)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {isRecording ? "Gravando..."
+                    : isPaused ? "Pausado"
+                    : isProcessing ? "Transcrevendo áudio..."
+                    : takes.length > 0 ? "Grave outro trecho para adicionar à mesma reunião" : "Pronto para gravar"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
                   {recStatus === "idle" && (
-                    <Button size="lg" onClick={startRecording} disabled={isProcessing}>
-                      <Play className="mr-1.5 h-4 w-4" /> Iniciar gravação
+                    <Button size="lg" onClick={startRecording} disabled={isProcessing} className="h-12 px-6">
+                      {takes.length > 0 ? <Plus className="mr-1.5 h-4 w-4" /> : <Play className="mr-1.5 h-4 w-4" />}
+                      {takes.length > 0 ? "Nova gravação" : "Iniciar gravação"}
                     </Button>
                   )}
                   {isRecording && (
@@ -564,102 +592,167 @@ export default function MeetingCopilot() {
                 </p>
               )}
 
-              {audioClips.length > 0 && (
+              {takes.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Áudios desta sessão</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Gravações desta reunião</Label>
+                    <span className="text-xs text-muted-foreground">{takes.length} {takes.length === 1 ? "trecho" : "trechos"}</span>
+                  </div>
                   <div className="space-y-2">
-                    {audioClips.map((clip, i) => (
-                      <div key={clip.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-2">
-                        <span className="min-w-16 text-xs font-medium text-muted-foreground">
-                          #{i + 1} · {formatDuration(clip.durationSeconds)}
-                        </span>
-                        <audio src={clip.url} controls className="h-8 flex-1" />
-                        <Button variant="ghost" size="icon" asChild title="Baixar">
-                          <a href={clip.url} download={`${derivedTitle}-${i + 1}.${getAudioExtension(clip.mimeType)}`}>
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteAudioClip(clip.id)} title="Remover áudio">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                    {takes.map((take, i) => (
+                      <div key={take.id} className="rounded-lg border bg-card p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="text-[10px]">#{i + 1}</Badge>
+                          <span className="text-xs font-medium tabular-nums text-muted-foreground">{formatDuration(take.durationSeconds)}</span>
+                          {take.status === "processing" && <Badge variant="secondary" className="gap-1 text-[10px]"><Loader2 className="h-3 w-3 animate-spin" /> transcrevendo</Badge>}
+                          {take.status === "error" && <Badge variant="destructive" className="text-[10px]">falha</Badge>}
+                          <audio src={take.url} controls className="h-8 flex-1 min-w-40" />
+                          <Button variant="ghost" size="icon" asChild title="Baixar áudio">
+                            <a href={take.url} download={`reuniao-${i + 1}.${getAudioExtension(take.mimeType)}`}>
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteTake(take.id)} title="Remover gravação">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {take.transcript && (
+                          <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{take.transcript}</p>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="manual-notes">Adicionar nota ou texto colado</Label>
-                <Textarea
-                  id="manual-notes"
-                  value={manualText}
-                  onChange={(e) => setManualText(e.target.value)}
-                  placeholder="Cole uma transcrição, observação ou trecho para adicionar ao documento da reunião."
-                  className="min-h-24"
-                />
-                <Button
-                  variant="outline"
-                  onClick={async () => { await appendToTranscript(manualText); setManualText(""); }}
-                  disabled={!manualText.trim() || analyzing}
-                >
-                  <Brain className="mr-1.5 h-4 w-4" /> Adicionar e organizar
-                </Button>
-              </div>
+              <details className="rounded-md border bg-muted/10 p-3">
+                <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Adicionar texto colado</summary>
+                <div className="mt-3 space-y-2">
+                  <Textarea
+                    value={manualText}
+                    onChange={(e) => setManualText(e.target.value)}
+                    placeholder="Cole uma transcrição, observação ou trecho."
+                    className="min-h-20"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => { const r = await appendToTranscript(manualText); if (r) setManualText(""); }}
+                    disabled={!manualText.trim() || analyzing}
+                  >
+                    <Brain className="mr-1.5 h-4 w-4" /> Adicionar
+                  </Button>
+                </div>
+              </details>
             </CardContent>
           </Card>
         )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Brain className="h-4 w-4" /> Organização automática
-              </CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Resumo, decisões e tarefas extraídos pela Helena a partir da transcrição.
-              </p>
-            </div>
-            {analyzing && <Badge variant="secondary" className="shrink-0 animate-pulse">Organizando...</Badge>}
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {!transcript && !analyzing ? (
-              <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-                Comece uma gravação ou cole um texto para gerar o registro organizado.
-              </div>
-            ) : (
-              <>
-                <AnalysisTextBlock icon={Brain} title="Resumo" text={analysis.summary} empty="Aguardando transcrição." featured />
-                <div className="grid gap-3 xl:grid-cols-2">
+        {hasTranscript && (
+          <>
+            {/* Editable transcript */}
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-4 w-4" /> Transcrição
+                  </CardTitle>
+                  <p className="mt-1 text-xs text-muted-foreground">Texto capturado das gravações — edite livremente para corrigir palavras ou nomes.</p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={transcript}
+                  onChange={(e) => { setTranscript(e.target.value); transcriptDirtyRef.current = true; }}
+                  onBlur={commitTranscriptEdit}
+                  className="min-h-64 resize-y font-mono text-sm leading-relaxed"
+                />
+              </CardContent>
+            </Card>
+
+            {/* Editable organized summary */}
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Brain className="h-4 w-4" /> Sugestão organizada
+                  </CardTitle>
+                  <p className="mt-1 text-xs text-muted-foreground">Reorganização feita pela IA. Ajuste livremente antes de exportar.</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={reorganize} disabled={analyzing}>
+                  <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", analyzing && "animate-spin")} />
+                  Reorganizar
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Resumo</Label>
+                  <Textarea
+                    value={editableSummary}
+                    onChange={(e) => setEditableSummary(e.target.value)}
+                    onBlur={commitSummaryEdit}
+                    placeholder="Resumo executivo da reunião..."
+                    className="min-h-32 text-sm leading-relaxed"
+                  />
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
                   <AnalysisListBlock icon={CheckCircle2} title="Decisões" items={analysis.decisions} empty="Sem decisões." />
                   <AnalysisListBlock icon={ListChecks} title="Tarefas" items={analysis.action_items} empty="Sem tarefas." />
+                  <AnalysisListBlock icon={Users} title="Pessoas" items={analysis.people} empty="Não identificadas." />
+                  <AnalysisListBlock icon={CircleHelp} title="Perguntas abertas" items={analysis.open_questions} empty="Nenhuma." />
                   <AnalysisListBlock
                     icon={Tag}
                     title="Temas e tags"
                     items={[analysis.theme_suggestion, ...analysis.key_topics, ...analysis.related_themes, ...analysis.tags].filter(Boolean)}
                     empty="Sem tema."
                   />
-                  <AnalysisListBlock icon={Users} title="Pessoas" items={analysis.people} empty="Sem pessoas identificadas." />
-                  <AnalysisListBlock icon={CircleHelp} title="Perguntas abertas" items={analysis.open_questions} empty="Sem perguntas abertas." />
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        {transcript && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Documento da reunião</CardTitle>
-              <p className="text-xs text-muted-foreground">Todo o conteúdo capturado consolidado em um único documento formatado.</p>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="max-h-[70vh] rounded-lg border bg-muted/10 p-5">
-                <MarkdownView>{transcript}</MarkdownView>
-              </ScrollArea>
+            {/* Preview / final document */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Prévia do documento final</CardTitle>
+                <p className="text-xs text-muted-foreground">Como ficará ao enviar para uma nota.</p>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="max-h-[60vh] rounded-lg border bg-muted/10 p-5">
+                  <MarkdownView>{composedMarkdown}</MarkdownView>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            {/* Sticky bottom action */}
+            <div className="sticky bottom-4 z-10 flex justify-end">
+              <Button size="lg" onClick={() => setShowSaveDialog(true)} className="shadow-lg">
+                <Save className="mr-1.5 h-4 w-4" /> Salvar em nota
+              </Button>
+            </div>
+          </>
+        )}
+
+        {!hasTranscript && mode === "in_person" && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+              <Radio className="h-8 w-8 text-muted-foreground" />
+              <p className="text-sm font-medium">Ainda sem conteúdo</p>
+              <p className="max-w-sm text-xs text-muted-foreground">
+                Grave um trecho ou cole um texto para começar. Você pode adicionar várias gravações à mesma reunião.
+              </p>
             </CardContent>
           </Card>
         )}
       </div>
+
+      <SaveMeetingToNoteDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        defaultTitle={derivedTitle}
+        markdownContent={composedMarkdown}
+        onSaved={(noteId) => navigate(`/notes?id=${noteId}`)}
+      />
     </div>
   );
 }
@@ -671,29 +764,6 @@ function MarkdownView({ children }: { children: string }) {
     <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:font-semibold prose-headings:tracking-tight prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:my-0.5 prose-strong:text-foreground prose-hr:my-6">
       <ReactMarkdown>{children}</ReactMarkdown>
     </div>
-  );
-}
-
-function ModeCard({
-  active, icon: Icon, title, description, onClick,
-}: {
-  active: boolean; icon: typeof Mic; title: string; description: string; onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-lg border p-4 text-left transition-colors hover:bg-accent",
-        active ? "border-primary bg-primary/5" : "border-border bg-card",
-      )}
-    >
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-muted">
-        <Icon className="h-5 w-5" />
-      </div>
-      <p className="font-medium">{title}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-    </button>
   );
 }
 
@@ -743,37 +813,21 @@ function BotStatus({ session }: { session: MeetingCopilotSession | null }) {
   );
 }
 
-function AnalysisTextBlock({
-  icon: Icon, title, text, empty, featured = false,
-}: {
-  icon: typeof Brain; title: string; text: string; empty: string; featured?: boolean;
-}) {
-  return (
-    <section className={cn("rounded-lg border p-4", featured ? "border-primary/20 bg-primary/5" : "bg-card")}>
-      <div className="mb-2 flex items-center gap-2">
-        <Icon className={cn("h-4 w-4", featured ? "text-primary" : "text-muted-foreground")} />
-        <h3 className="text-sm font-medium">{title}</h3>
-      </div>
-      {text ? <MarkdownView>{text}</MarkdownView> : <p className="text-sm text-muted-foreground">{empty}</p>}
-    </section>
-  );
-}
-
 function AnalysisListBlock({
   icon: Icon, title, items, empty,
 }: {
   icon: typeof Brain; title: string; items: string[]; empty: string;
 }) {
   return (
-    <section className="rounded-lg border bg-card p-4">
+    <section className="rounded-lg border bg-card p-3">
       <div className="mb-2 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-medium">{title}</h3>
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</h3>
       </div>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="space-y-1">
           {items.map((item, index) => (
             <li key={`${title}-${index}`} className="text-sm leading-relaxed">
               <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-0 prose-strong:text-foreground">
@@ -788,6 +842,55 @@ function AnalysisListBlock({
 }
 
 /* ---------------------- Utils ---------------------- */
+
+function composeMeetingMarkdown({
+  title, meetingWith, theme, transcript, analysis,
+}: {
+  title: string;
+  meetingWith: string;
+  theme: string;
+  transcript: string;
+  analysis: MeetingCopilotAnalysis;
+}): string {
+  const parts: string[] = [];
+  parts.push(`# ${title}`);
+  const meta: string[] = [];
+  if (meetingWith.trim()) meta.push(`**Com:** ${meetingWith.trim()}`);
+  if (theme.trim()) meta.push(`**Tema:** ${theme.trim()}`);
+  meta.push(`**Data:** ${new Date().toLocaleDateString("pt-BR")}`);
+  if (meta.length) parts.push(meta.join(" · "));
+
+  if (analysis.summary.trim()) {
+    parts.push("## Resumo");
+    parts.push(analysis.summary.trim());
+  }
+  if (analysis.decisions.length) {
+    parts.push("## Decisões");
+    parts.push(analysis.decisions.map((d) => `- ${d}`).join("\n"));
+  }
+  if (analysis.action_items.length) {
+    parts.push("## Tarefas");
+    parts.push(analysis.action_items.map((d) => `- ${d}`).join("\n"));
+  }
+  if (analysis.open_questions.length) {
+    parts.push("## Perguntas abertas");
+    parts.push(analysis.open_questions.map((d) => `- ${d}`).join("\n"));
+  }
+  if (analysis.people.length) {
+    parts.push("## Pessoas");
+    parts.push(analysis.people.map((d) => `- ${d}`).join("\n"));
+  }
+  const tags = [analysis.theme_suggestion, ...analysis.key_topics, ...analysis.related_themes, ...analysis.tags].filter(Boolean);
+  if (tags.length) {
+    parts.push("## Temas");
+    parts.push(tags.map((d) => `- ${d}`).join("\n"));
+  }
+  if (transcript.trim()) {
+    parts.push("## Transcrição");
+    parts.push(transcript.trim());
+  }
+  return parts.join("\n\n");
+}
 
 function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
