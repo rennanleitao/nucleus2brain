@@ -209,8 +209,10 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           }
         });
         if (updates.length > 0) {
-          const { tr } = editor.state;
+          const { tr, selection } = editor.state;
           updates.forEach((u) => tr.setNodeMarkup(u.pos, undefined, u.attrs));
+          tr.setSelection(selection);
+          tr.setMeta("addToHistory", false);
           editor.view.dispatch(tr);
           return; // second onUpdate from dispatch will emit the final HTML
         }
@@ -277,6 +279,21 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         if (event.key !== "Enter" || event.shiftKey || event.isComposing) return false;
         const { $from, empty } = view.state.selection;
         if (!empty) return false;
+
+        // Date headings are section markers. Pressing Enter from one should
+        // create a normal paragraph below it, not another draggable heading
+        // with the same date attribute (which makes caret navigation feel stuck).
+        if ($from.parent.type.name === "heading" && $from.parent.attrs?.dataEntryDate) {
+          event.preventDefault();
+          const insertAt = $from.after($from.depth);
+          editorRef.current
+            ?.chain()
+            .focus()
+            .insertContentAt(insertAt, { type: "paragraph" })
+            .setTextSelection(insertAt + 1)
+            .run();
+          return true;
+        }
 
         // Exit ordered/bullet/task list when current item is empty
         const editorInstance = editorRef.current;
@@ -498,10 +515,14 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     const root = editor.view.dom as HTMLElement;
     let dragDate: string | null = null;
 
+    const clearDraggable = () => {
+      root.querySelectorAll<HTMLElement>("[data-entry-date][draggable='true']")
+        .forEach((el) => el.removeAttribute("draggable"));
+    };
+
     const markDraggable = () => {
       root.querySelectorAll<HTMLElement>("h1[data-entry-date], h2[data-entry-date], h3[data-entry-date]")
         .forEach((el) => {
-          if (el.getAttribute("draggable") !== "true") el.setAttribute("draggable", "true");
           if (!el.classList.contains("note-date-draggable")) el.classList.add("note-date-draggable");
         });
     };
@@ -519,9 +540,19 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       return target.closest<HTMLElement>("[data-entry-date]");
     };
 
+    const onPointerDown = (e: PointerEvent) => {
+      clearDraggable();
+      const heading = findHeading(e.target);
+      if (!heading) return;
+      const rect = heading.getBoundingClientRect();
+      const inDragGutter = e.clientX <= rect.left + 28;
+      if (inDragGutter) heading.setAttribute("draggable", "true");
+    };
+
     const onDragStart = (e: DragEvent) => {
       const heading = findHeading(e.target);
       if (!heading) return;
+      if (heading.getAttribute("draggable") !== "true") return;
       const date = heading.getAttribute("data-entry-date");
       if (!date) return;
       dragDate = date;
@@ -565,12 +596,16 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     };
 
     root.addEventListener("dragstart", onDragStart);
+    root.addEventListener("pointerdown", onPointerDown);
+    root.addEventListener("pointerup", clearDraggable);
     root.addEventListener("dragend", onDragEnd);
     root.addEventListener("dragover", onDragOver);
     root.addEventListener("drop", onDrop);
     return () => {
       mo.disconnect();
       root.removeEventListener("dragstart", onDragStart);
+      root.removeEventListener("pointerdown", onPointerDown);
+      root.removeEventListener("pointerup", clearDraggable);
       root.removeEventListener("dragend", onDragEnd);
       root.removeEventListener("dragover", onDragOver);
       root.removeEventListener("drop", onDrop);
