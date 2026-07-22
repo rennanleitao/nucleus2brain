@@ -311,8 +311,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           }
         }
 
-        // Check if user clicked on a task item text
-        if (onTaskItemClick) {
+        // Only fire task-item link on double-click; single clicks must
+        // remain free to place the caret inside the task text.
+        if (onTaskItemClick && event.detail === 2) {
           const taskItem = target.closest('[data-type="taskItem"]') || target.closest('li[data-checked]');
           if (taskItem) {
             const checkbox = taskItem.querySelector('label') || taskItem.querySelector('input');
