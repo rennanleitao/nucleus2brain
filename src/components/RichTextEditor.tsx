@@ -195,6 +195,27 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     content,
     editable,
     onUpdate: ({ editor }) => {
+      // Sync data-entry-date attribute with the heading's edited text so the
+      // date sidebar reflects manual changes to a date heading.
+      try {
+        const updates: { pos: number; attrs: Record<string, unknown> }[] = [];
+        editor.state.doc.descendants((node, pos) => {
+          if (node.type.name !== "heading") return;
+          const current = node.attrs.dataEntryDate as string | null;
+          if (!current) return;
+          const next = extractDateFromLabel(node.textContent);
+          if (next && next !== current) {
+            updates.push({ pos, attrs: { ...node.attrs, dataEntryDate: next } });
+          }
+        });
+        if (updates.length > 0) {
+          const { tr } = editor.state;
+          updates.forEach((u) => tr.setNodeMarkup(u.pos, undefined, u.attrs));
+          editor.view.dispatch(tr);
+          return; // second onUpdate from dispatch will emit the final HTML
+        }
+      } catch { /* noop */ }
+
       const html = editor.getHTML();
       onChange(html);
 
