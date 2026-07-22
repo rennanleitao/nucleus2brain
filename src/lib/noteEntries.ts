@@ -208,6 +208,37 @@ export function parseFlexibleDate(input: string): string | null {
   return null;
 }
 
+const MONTH_ABBR_MAP: Record<string, number> = {
+  jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
+  jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12,
+};
+
+// Extract a canonical YYYY-MM-DD from a heading label the user may have edited.
+// Accepts numeric formats (DD.MM.AA, DD/MM/AAAA, AAAA) and Portuguese long
+// labels like "06 Jul 2026 · Segunda".
+export function extractDateFromLabel(text: string): string | null {
+  const t = (text || "").trim();
+  if (!t) return null;
+  const numeric = t.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})/);
+  if (numeric) {
+    const parsed = parseFlexibleDate(numeric[0]);
+    if (parsed) return parsed;
+  }
+  const named = t.match(/(\d{1,2})\s+([A-Za-zçÇ]{3,})\.?\s+(\d{4})/);
+  if (named) {
+    const day = parseInt(named[1], 10);
+    const key = named[2].slice(0, 3).toLowerCase();
+    const mon = MONTH_ABBR_MAP[key];
+    const y = parseInt(named[3], 10);
+    if (mon && day >= 1 && day <= 31) {
+      return `${y}-${String(mon).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+  const yearOnly = t.match(/^(\d{4})$/);
+  if (yearOnly) return parseFlexibleDate(yearOnly[1]);
+  return null;
+}
+
 // Move a date-entry section (heading + all content until the next date-entry
 // heading) so it lands before/after the target section. Returns updated HTML,
 // or the original HTML if the move is a no-op.
