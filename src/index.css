@@ -763,9 +763,26 @@ html, body {
 
 /* Draggable date headings (reorder date sections) */
 .ProseMirror [data-entry-date].note-date-draggable {
+  cursor: text;
+  position: relative;
+}
+.ProseMirror [data-entry-date].note-date-draggable::before {
+  content: "";
+  position: absolute;
+  left: -1.15rem;
+  top: 0.8rem;
+  width: 0.45rem;
+  height: 1.1rem;
+  border-left: 1px solid oklch(var(--muted-foreground) / 0.35);
+  border-right: 1px solid oklch(var(--muted-foreground) / 0.35);
+  opacity: 0;
   cursor: grab;
 }
-.ProseMirror [data-entry-date].note-date-draggable:active {
+.ProseMirror [data-entry-date].note-date-draggable:hover::before {
+  opacity: 1;
+}
+.ProseMirror [data-entry-date].note-date-draggable[draggable="true"]::before,
+.ProseMirror [data-entry-date].note-date-draggable[draggable="true"] {
   cursor: grabbing;
 }
 .ProseMirror [data-entry-date].note-date-drop-target {
