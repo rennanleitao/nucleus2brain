@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
+import { TextSelection } from "prosemirror-state";
 
 // Extend the Highlight mark so it can carry a stable topic id. When a user
 // marks a snippet as a "topic", we attach `data-topic="topic-…"` (also
@@ -91,6 +92,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const lastEmittedHtmlRef = useRef(content);
   const [embedPrompt, setEmbedPrompt] = useState<{ embedUrl: string; type: string; originalUrl: string } | null>(null);
 
   // Keep refs for the latest values so the suggestion closure always sees fresh data
@@ -219,6 +221,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       } catch { /* noop */ }
 
       const html = editor.getHTML();
+      lastEmittedHtmlRef.current = html;
       onChange(html);
 
       const text = editor.getText();
@@ -332,7 +335,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           .run();
         return true;
       },
-      handleClick: (_view, _pos, event) => {
+      handleClick: (view, _pos, event) => {
         // Handle note mention clicks
         const target = event.target as HTMLElement;
         const mention = target.closest("[data-mention]") || (target.hasAttribute("data-mention") ? target : null);
@@ -361,6 +364,28 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
               onTaskItemClick(textContent);
               return true;
             }
+          }
+        }
+
+        // Keep normal single-click editing reliable. Some custom overlays/drag
+        // affordances around note blocks can leave Chromium's native contenteditable
+        // caret at the previous/end position, so explicitly place it at the click.
+        if (event.detail === 1 && event.button === 0) {
+          const isInteractive = target.closest(
+            'a, button, input, textarea, select, label, [contenteditable="false"]',
+          );
+          if (!isInteractive) {
+            const { clientX, clientY } = event;
+            requestAnimationFrame(() => {
+              const hit = view.posAtCoords({ left: clientX, top: clientY });
+              if (!hit) return;
+              try {
+                const $pos = view.state.doc.resolve(hit.pos);
+                const tr = view.state.tr.setSelection(TextSelection.near($pos));
+                view.dispatch(tr);
+                view.focus();
+              } catch { /* keep native behavior if ProseMirror cannot resolve */ }
+            });
           }
         }
         return false;
@@ -502,6 +527,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
   useEffect(() => {
     if (!editor) return;
+    if (content === lastEmittedHtmlRef.current) return;
     // Don't reset content while user is actively editing — it wipes the selection
     // and prevents clicking/arrow-key cursor placement.
     if (editor.isFocused) return;
