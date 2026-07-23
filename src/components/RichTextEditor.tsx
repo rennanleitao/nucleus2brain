@@ -279,6 +279,55 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         return true;
       },
       handleKeyDown: (view, event) => {
+        const isPlainArrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)
+          && !event.shiftKey
+          && !event.metaKey
+          && !event.ctrlKey
+          && !event.altKey
+          && !event.isComposing;
+
+        // Chromium can occasionally receive arrow-key events inside this
+        // ProseMirror surface without moving the caret, especially after our
+        // custom date-block interactions. Move the text selection ourselves so
+        // the blinking cursor always follows keyboard navigation.
+        if (isPlainArrow && view.state.selection.empty) {
+          const moveCaret = (pos: number, bias: -1 | 1) => {
+            const boundedPos = Math.max(0, Math.min(pos, view.state.doc.content.size));
+            const selection = TextSelection.near(view.state.doc.resolve(boundedPos), bias);
+            view.dispatch(view.state.tr.setSelection(selection).scrollIntoView());
+            view.focus();
+          };
+
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            moveCaret(view.state.selection.from - 1, -1);
+            return true;
+          }
+
+          if (event.key === "ArrowRight") {
+            event.preventDefault();
+            moveCaret(view.state.selection.from + 1, 1);
+            return true;
+          }
+
+          const currentCoords = view.coordsAtPos(view.state.selection.from);
+          const parent = view.domAtPos(view.state.selection.from).node.parentElement;
+          const lineHeight = parent ? Number.parseFloat(getComputedStyle(parent).lineHeight) : 0;
+          const verticalStep = Number.isFinite(lineHeight) && lineHeight > 0 ? lineHeight : 24;
+          const target = view.posAtCoords({
+            left: (currentCoords.left + currentCoords.right) / 2,
+            top: event.key === "ArrowUp" ? currentCoords.top - verticalStep : currentCoords.bottom + verticalStep,
+          });
+
+          event.preventDefault();
+          if (target) {
+            moveCaret(target.pos, event.key === "ArrowUp" ? -1 : 1);
+          } else {
+            moveCaret(event.key === "ArrowUp" ? 0 : view.state.doc.content.size, event.key === "ArrowUp" ? -1 : 1);
+          }
+          return true;
+        }
+
         if (event.key !== "Enter" || event.shiftKey || event.isComposing) return false;
         const { $from, empty } = view.state.selection;
         if (!empty) return false;
