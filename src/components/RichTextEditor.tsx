@@ -419,13 +419,19 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         // Keep normal single-click editing reliable. Some custom overlays/drag
         // affordances around note blocks can leave Chromium's native contenteditable
         // caret at the previous/end position, so explicitly place it at the click.
-        if (event.detail === 1 && event.button === 0) {
+        // IMPORTANT: never override when the user is extending a selection
+        // (shift+click) or when a drag-selection just produced a non-empty range,
+        // otherwise the selection would collapse to a caret.
+        if (event.detail === 1 && event.button === 0 && !event.shiftKey) {
           const isInteractive = target.closest(
             'a, button, input, textarea, select, label, [contenteditable="false"]',
           );
           if (!isInteractive) {
             const { clientX, clientY } = event;
             requestAnimationFrame(() => {
+              if (!view.state.selection.empty) return;
+              const domSel = window.getSelection();
+              if (domSel && !domSel.isCollapsed && (domSel.toString() ?? "").length > 0) return;
               const hit = view.posAtCoords({ left: clientX, top: clientY });
               if (!hit) return;
               try {
