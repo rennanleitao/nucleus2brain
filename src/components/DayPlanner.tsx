@@ -726,9 +726,9 @@ export function DayPlanner({
         </DndContext>
       )}
 
-      {/* SPACE VIEW — agrupa tasks de hoje + atrasadas por space */}
+      {/* SPACE VIEW — agrupa TODAS as tasks do planejamento por space */}
       {view === "space" && (
-        dayTasks.length > 0 ? (
+        spaceGroups.length > 0 ? (
           <div className="space-y-4">
             {spaceGroups.map((g) => (
               <div key={g.id || "__none__"} className="rounded-xl border border-border bg-card overflow-hidden">
@@ -748,10 +748,11 @@ export function DayPlanner({
         ) : (
           <div className="text-center py-10 rounded-xl border border-dashed border-border">
             <FolderOpen className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-small text-muted-foreground">Nenhuma task para hoje</p>
+            <p className="text-small text-muted-foreground">Nenhuma task no planejamento</p>
           </div>
         )
       )}
+
 
       {/* DATE + COMPLEXITY VIEW */}
       {view === "date-complexity" && (
