@@ -872,7 +872,44 @@ export function DayPlanner({
                             </span>
                           </div>
                           <div className="p-2 space-y-2 min-h-[40px]">
-                            {cg?.tasks.map(t => renderTaskCardInSection(t))}
+                            {(() => {
+                              const list = cg?.tasks ?? [];
+                              const byShift: Record<TaskShift, any[]> = { morning: [], afternoon: [], night: [] };
+                              const noShift: any[] = [];
+                              for (const t of list) {
+                                const s = getTaskShift(t);
+                                if (s) byShift[s].push(t);
+                                else noShift.push(t);
+                              }
+                              const hasAnyShift = TASK_SHIFTS.some(s => byShift[s].length > 0);
+                              if (!hasAnyShift) {
+                                return list.map(t => renderTaskCardInSection(t));
+                              }
+                              return (
+                                <>
+                                  {TASK_SHIFTS.map(s => byShift[s].length > 0 && (
+                                    <div key={s} className="space-y-2">
+                                      <div className="flex items-center gap-1.5 px-1 pt-1">
+                                        <Sunrise className="h-3 w-3 text-muted-foreground/70" />
+                                        <span className="text-micro font-medium text-muted-foreground uppercase tracking-wide">
+                                          {taskShiftLabels[s]}
+                                        </span>
+                                        <span className="text-micro text-muted-foreground/60">· {taskShiftHours[s]}</span>
+                                      </div>
+                                      {byShift[s].map(t => renderTaskCardInSection(t))}
+                                    </div>
+                                  ))}
+                                  {noShift.length > 0 && (
+                                    <div className="space-y-2">
+                                      <div className="px-1 pt-1">
+                                        <span className="text-micro text-muted-foreground/50 italic">sem turno definido</span>
+                                      </div>
+                                      {noShift.map(t => renderTaskCardInSection(t))}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
