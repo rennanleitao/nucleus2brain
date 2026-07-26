@@ -4,6 +4,7 @@ import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type D
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { updateSubtask as apiUpdateSubtask, reorderSubtasks as apiReorderSubtasks } from "@/lib/api";
+import { promptDialog } from "@/components/ui/dialog-service";
 
 
 import { Badge } from "@/components/ui/badge";
