@@ -272,6 +272,57 @@ function SortableSubtaskRow({ sub, onToggle, onDelete, onReschedule, onEdited }:
   );
 }
 
+function SubtaskDndList({
+  subtasks,
+  onToggle,
+  onDelete,
+  onReschedule,
+}: {
+  subtasks: Subtask[];
+  onToggle?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onReschedule?: (id: string, newDate: string) => void;
+}) {
+  const [items, setItems] = useState(subtasks);
+  useEffect(() => { setItems(subtasks); }, [subtasks]);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = items.findIndex(i => i.id === active.id);
+    const newIdx = items.findIndex(i => i.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const next = arrayMove(items, oldIdx, newIdx);
+    setItems(next);
+    try {
+      await apiReorderSubtasks(next.map(i => i.id));
+      window.dispatchEvent(new CustomEvent("nucleus:task-updated"));
+    } catch (err: any) {
+      toast.error(err.message);
+      setItems(subtasks);
+    }
+  };
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+        {items.map(sub => (
+          <SortableSubtaskRow
+            key={sub.id}
+            sub={sub}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            onReschedule={onReschedule}
+            onEdited={() => window.dispatchEvent(new CustomEvent("nucleus:task-updated"))}
+          />
+        ))}
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+
 
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onDuplicate, hideSpace,
