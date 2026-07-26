@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, CalendarClock, ClipboardList, AlertTriangle, ListChecks, BarChart3, RefreshCw, Mic, MicOff, Pause, Play, Send, Square, User, Volume2, VolumeX } from "lucide-react";
+import { Bot, CalendarClock, ClipboardList, AlertTriangle, ListChecks, BarChart3, RefreshCw, Mic, MicOff, Pause, Play, Send, Square, User, Volume2, VolumeX, CheckCircle2, XCircle, ChevronDown, ChevronRight, Code2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchTasks, fetchSpaces, createTask } from "@/lib/api";
+import { fetchTasks, fetchSpaces, createTask, createSpace, createSpaceCategory } from "@/lib/api";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,10 +10,80 @@ import { getFunctionAuthHeaders } from "@/lib/functionAuth";
 import { useHelenaSpeechInput } from "@/hooks/useHelenaSpeechInput";
 import { useHelenaSpeech } from "@/hooks/useHelenaSpeech";
 
+interface ExecutedAction {
+  label: string;
+  success: boolean;
+  detail?: string;
+  payload: any;
+  result?: any;
+  error?: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  actions?: ExecutedAction[];
+}
+
+// Strip fenced code blocks that are action JSON so the raw payload isn't shown in the chat.
+function stripActionBlocks(text: string): string {
+  return text
+    .replace(/```(?:action|json)?\s*\n?([\s\S]*?)```/g, (match, inner) => {
+      try {
+        const parsed = JSON.parse(inner.trim());
+        if (parsed && typeof parsed === "object" && "action" in parsed) return "";
+      } catch {}
+      return match;
+    })
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function extractActions(text: string): any[] {
+  const results: any[] = [];
+  const re = /```(?:action|json)?\s*\n?([\s\S]*?)```/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    try {
+      const parsed = JSON.parse(m[1].trim());
+      if (parsed && typeof parsed === "object" && "action" in parsed) results.push(parsed);
+    } catch {}
+  }
+  return results;
+}
+
+function ActionCard({ action }: { action: ExecutedAction }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`rounded-lg border px-3 py-2 text-[13px] ${action.success ? "border-emerald-200 bg-emerald-50/60" : "border-red-200 bg-red-50/60"}`}>
+      <div className="flex items-start gap-2">
+        {action.success ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+        ) : (
+          <XCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-foreground">{action.label}</div>
+          {action.detail && <div className="text-muted-foreground text-[12.5px] mt-0.5">{action.detail}</div>}
+          {action.error && <div className="text-red-700 text-[12.5px] mt-0.5">{action.error}</div>}
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground"
+        >
+          {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          <Code2 className="h-3 w-3" /> Debug
+        </button>
+      </div>
+      {open && (
+        <pre className="mt-2 rounded-md bg-background/60 border border-border/60 p-2 text-[11.5px] leading-relaxed overflow-auto max-h-64">
+{JSON.stringify({ payload: action.payload, result: action.result ?? null, error: action.error ?? null }, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
@@ -155,40 +225,88 @@ export default function Assistant() {
         }
       }
 
-      // Parse actions from response
-      const actionMatches = assistantContent.matchAll(/```action\s*\n?([\s\S]*?)```/g);
-      for (const actionMatch of actionMatches) {
+      // Parse and execute actions from the response
+      const parsedActions = extractActions(assistantContent);
+      const executed: ExecutedAction[] = [];
+      for (const action of parsedActions) {
         try {
-          const action = JSON.parse(actionMatch[1]);
           if (action.action === "create_task") {
-            await createTask({
+            const payload = {
               title: action.title,
               priority: action.priority || "medium",
               due_date: action.due_date || null,
               description: action.description || null,
+            };
+            const result = await createTask(payload);
+            executed.push({
+              label: `Tarefa criada: ${action.title}`,
+              detail: action.due_date ? `Prazo ${action.due_date} · prioridade ${payload.priority}` : `Prioridade ${payload.priority}`,
+              success: true, payload, result,
             });
-            toast.success(`Task criada: ${action.title}`);
+            toast.success(`Tarefa criada: ${action.title}`);
+          } else if (action.action === "create_space") {
+            const spaces = await fetchSpaces();
+            const existing = spaces.find((s: any) => s.name?.toLowerCase() === String(action.space_name || action.name || "").toLowerCase());
+            if (existing) {
+              executed.push({
+                label: `Space já existia: ${existing.name}`,
+                detail: existing.space_categories?.name ? `Categoria atual: ${existing.space_categories.name}` : undefined,
+                success: true, payload: action, result: existing,
+              });
+            } else {
+              const name = action.space_name || action.name;
+              let categoryId: string | null = null;
+              let categoryName: string | null = null;
+              if (action.category) {
+                const cat = await createSpaceCategory(String(action.category));
+                categoryId = cat?.id ?? null;
+                categoryName = cat?.name ?? String(action.category);
+              }
+              const payload: any = { name, category_id: categoryId };
+              const result = await createSpace(payload);
+              executed.push({
+                label: `Space criado: ${name}`,
+                detail: categoryName ? `Categoria: ${categoryName}` : undefined,
+                success: true, payload: { name, category: categoryName }, result,
+              });
+              toast.success(`Space criado: ${name}`);
+            }
           } else if (action.action === "create_calendar_event") {
             const startDateTime = `${action.date}T${action.start_time}:00`;
             const endDateTime = `${action.date}T${action.end_time}:00`;
-            const { data, error } = await supabase.functions.invoke("google-calendar-api", {
-              body: {
-                action: "create_event",
-                summary: action.summary,
-                start: { dateTime: startDateTime, timeZone: "America/Sao_Paulo" },
-                end: { dateTime: endDateTime, timeZone: "America/Sao_Paulo" },
-                description: action.description || "",
-                location: action.location || "",
-              },
-            });
+            const payload = {
+              action: "create_event",
+              summary: action.summary,
+              start: { dateTime: startDateTime, timeZone: "America/Sao_Paulo" },
+              end: { dateTime: endDateTime, timeZone: "America/Sao_Paulo" },
+              description: action.description || "",
+              location: action.location || "",
+            };
+            const { data, error } = await supabase.functions.invoke("google-calendar-api", { body: payload });
             if (error) {
+              executed.push({ label: `Falha ao agendar: ${action.summary}`, success: false, payload, error: error.message });
               toast.error("Erro ao criar evento no calendário");
             } else {
+              executed.push({
+                label: `Evento agendado: ${action.summary}`,
+                detail: `${action.date} · ${action.start_time}–${action.end_time}`,
+                success: true, payload, result: data,
+              });
               toast.success(`Evento agendado: ${action.summary}`);
             }
+          } else {
+            executed.push({ label: `Ação ignorada: ${action.action}`, success: false, payload: action, error: "Ação desconhecida" });
           }
-        } catch {}
+        } catch (err: any) {
+          executed.push({ label: `Erro ao executar ${action.action}`, success: false, payload: action, error: err?.message || String(err) });
+        }
       }
+
+      // Replace raw assistant content with a clean version (no action code blocks) and attach executed actions.
+      const cleaned = stripActionBlocks(assistantContent) ||
+        (executed.length ? (executed.every(a => a.success) ? "Feito." : "Tentei executar o que você pediu — veja o resultado abaixo.") : assistantContent);
+      setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, content: cleaned, actions: executed.length ? executed : undefined } : m));
+      assistantContent = cleaned;
 
       if ((speech.autoSpeak || options.voiceTurn) && assistantContent.trim()) {
         setSpeakingMessageId(assistantMessageId);
@@ -286,9 +404,16 @@ export default function Assistant() {
               }`}>
                 {msg.role === "assistant" ? (
                   <div>
-                    <div className="ai-prose">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
+                    {msg.content && (
+                      <div className="ai-prose">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    )}
+                    {msg.actions && msg.actions.length > 0 && (
+                      <div className={`space-y-1.5 ${msg.content ? "mt-2" : ""}`}>
+                        {msg.actions.map((a, i) => <ActionCard key={i} action={a} />)}
+                      </div>
+                    )}
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {speech.isSupported ? (
                         <>
