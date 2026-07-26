@@ -890,6 +890,90 @@ export function DayPlanner({
         )
       )}
 
+      {/* DATE + SHIFT VIEW */}
+      {view === "date-shift" && (
+        dateShiftGroups.length > 0 ? (
+          <div className="space-y-4">
+            {dateShiftGroups.map((dg) => {
+              const isToday = dg.date === today;
+              const isOverdue = dg.date < today;
+              return (
+                <div
+                  key={dg.date}
+                  onDragOver={(e) => handleGroupDragOver(e, `dateshift:${dg.date}`)}
+                  onDrop={(e) => handleGroupDrop(e, dg.date)}
+                  className={cn(
+                    "rounded-xl border overflow-hidden transition-colors",
+                    isToday ? "border-primary/30 bg-primary/5" : isOverdue ? "border-destructive/30 bg-destructive/5" : "border-border bg-card",
+                    dragOverGroupKey === `dateshift:${dg.date}` && "ring-2 ring-primary/40",
+                  )}
+                >
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border">
+                    <CalendarDays className={cn("h-3.5 w-3.5", isToday ? "text-primary" : isOverdue ? "text-destructive" : "text-muted-foreground")} />
+                    <h3 className="text-sm font-semibold text-foreground truncate capitalize">{formatDateLabel(dg.date)}</h3>
+                    <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                      {dg.tasks.length}
+                    </span>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {TASK_SHIFTS.map((level) => {
+                      const sg = dg.shiftGroups.find(g => g.level === level)!;
+                      const key = `ds:${dg.date}:${level}`;
+                      const isOver = dragOverGroupKey === key;
+                      const count = sg.tasks.length;
+                      return (
+                        <div
+                          key={level}
+                          onDragOver={(e) => handleGroupDragOver(e, key)}
+                          onDrop={(e) => handleGroupDrop(e, dg.date, { shift: level })}
+                          className={cn(
+                            "rounded-lg border overflow-hidden transition-colors",
+                            isOver ? "border-primary bg-primary/5" : "border-border/60 bg-background/60",
+                          )}
+                        >
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/60">
+                            <Sunrise className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground">{sg.label}</span>
+                            <span className="text-micro text-muted-foreground">· {sg.hours}</span>
+                            <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                              {count}
+                            </span>
+                          </div>
+                          <div className="p-2 space-y-2 min-h-[40px]">
+                            {count === 0 ? (
+                              <p className="text-micro text-muted-foreground/70 italic px-1 py-1.5">Arraste tarefas para este turno</p>
+                            ) : sg.tasks.map(t => renderTaskCardInSection(t))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {dg.unset.length > 0 && (
+                      <div className="rounded-lg border border-dashed border-border/60 bg-background/40 overflow-hidden">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/20 border-b border-border/40">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs font-semibold text-muted-foreground">Sem turno</span>
+                          <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                            {dg.unset.length}
+                          </span>
+                        </div>
+                        <div className="p-2 space-y-2">
+                          {dg.unset.map(t => renderTaskCardInSection(t))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-10 rounded-xl border border-dashed border-border">
+            <Sunrise className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-small text-muted-foreground">Nenhuma task agendada</p>
+          </div>
+        )
+      )}
+
       {/* OWNER VIEW — mim vs outros (hoje) */}
       {view === "owner" && (
         <TasksByOwnerView
