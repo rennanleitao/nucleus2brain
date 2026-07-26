@@ -225,40 +225,80 @@ export default function Assistant() {
         }
       }
 
-      // Parse actions from response
-      const actionMatches = assistantContent.matchAll(/```action\s*\n?([\s\S]*?)```/g);
-      for (const actionMatch of actionMatches) {
+      // Parse and execute actions from the response
+      const parsedActions = extractActions(assistantContent);
+      const executed: ExecutedAction[] = [];
+      for (const action of parsedActions) {
         try {
-          const action = JSON.parse(actionMatch[1]);
           if (action.action === "create_task") {
-            await createTask({
+            const payload = {
               title: action.title,
               priority: action.priority || "medium",
               due_date: action.due_date || null,
               description: action.description || null,
+            };
+            const result = await createTask(payload);
+            executed.push({
+              label: `Tarefa criada: ${action.title}`,
+              detail: action.due_date ? `Prazo ${action.due_date} · prioridade ${payload.priority}` : `Prioridade ${payload.priority}`,
+              success: true, payload, result,
             });
-            toast.success(`Task criada: ${action.title}`);
+            toast.success(`Tarefa criada: ${action.title}`);
+          } else if (action.action === "create_space") {
+            const spaces = await fetchSpaces();
+            const existing = spaces.find((s: any) => s.name?.toLowerCase() === String(action.space_name || action.name || "").toLowerCase());
+            if (existing) {
+              executed.push({
+                label: `Space já existia: ${existing.name}`,
+                detail: `Categoria atual: ${existing.category || "sem categoria"}`,
+                success: true, payload: action, result: existing,
+              });
+            } else {
+              const payload: any = { name: action.space_name || action.name, category: action.category || null };
+              const result = await createSpace(payload);
+              executed.push({
+                label: `Space criado: ${payload.name}`,
+                detail: payload.category ? `Categoria: ${payload.category}` : undefined,
+                success: true, payload, result,
+              });
+              toast.success(`Space criado: ${payload.name}`);
+            }
           } else if (action.action === "create_calendar_event") {
             const startDateTime = `${action.date}T${action.start_time}:00`;
             const endDateTime = `${action.date}T${action.end_time}:00`;
-            const { data, error } = await supabase.functions.invoke("google-calendar-api", {
-              body: {
-                action: "create_event",
-                summary: action.summary,
-                start: { dateTime: startDateTime, timeZone: "America/Sao_Paulo" },
-                end: { dateTime: endDateTime, timeZone: "America/Sao_Paulo" },
-                description: action.description || "",
-                location: action.location || "",
-              },
-            });
+            const payload = {
+              action: "create_event",
+              summary: action.summary,
+              start: { dateTime: startDateTime, timeZone: "America/Sao_Paulo" },
+              end: { dateTime: endDateTime, timeZone: "America/Sao_Paulo" },
+              description: action.description || "",
+              location: action.location || "",
+            };
+            const { data, error } = await supabase.functions.invoke("google-calendar-api", { body: payload });
             if (error) {
+              executed.push({ label: `Falha ao agendar: ${action.summary}`, success: false, payload, error: error.message });
               toast.error("Erro ao criar evento no calendário");
             } else {
+              executed.push({
+                label: `Evento agendado: ${action.summary}`,
+                detail: `${action.date} · ${action.start_time}–${action.end_time}`,
+                success: true, payload, result: data,
+              });
               toast.success(`Evento agendado: ${action.summary}`);
             }
+          } else {
+            executed.push({ label: `Ação ignorada: ${action.action}`, success: false, payload: action, error: "Ação desconhecida" });
           }
-        } catch {}
+        } catch (err: any) {
+          executed.push({ label: `Erro ao executar ${action.action}`, success: false, payload: action, error: err?.message || String(err) });
+        }
       }
+
+      // Replace raw assistant content with a clean version (no action code blocks) and attach executed actions.
+      const cleaned = stripActionBlocks(assistantContent) ||
+        (executed.length ? (executed.every(a => a.success) ? "Feito." : "Tentei executar o que você pediu — veja o resultado abaixo.") : assistantContent);
+      setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, content: cleaned, actions: executed.length ? executed : undefined } : m));
+      assistantContent = cleaned;
 
       if ((speech.autoSpeak || options.voiceTurn) && assistantContent.trim()) {
         setSpeakingMessageId(assistantMessageId);
