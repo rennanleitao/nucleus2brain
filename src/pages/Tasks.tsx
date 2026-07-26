@@ -37,9 +37,35 @@ const dateGroupFilters = [
 ];
 
 const HIDDEN_TABS_KEY = "nucleus.tasks.hiddenTabs";
+const FILTER_KEY = "nucleus.tasks.filter";
+const PLANNER_VIEW_KEY = "nucleus.tasks.plannerView";
+const HIDDEN_PLANNER_VIEWS_KEY = "nucleus.tasks.hiddenPlannerViews";
+
 const loadHiddenTabs = (): string[] => {
   try {
     const raw = localStorage.getItem(HIDDEN_TABS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+const loadFilter = (): string => {
+  try { return localStorage.getItem(FILTER_KEY) || "planner"; } catch { return "planner"; }
+};
+type PlannerView = "list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner";
+const loadPlannerView = (): PlannerView => {
+  try {
+    const v = localStorage.getItem(PLANNER_VIEW_KEY) as PlannerView | null;
+    return v || "list";
+  } catch { return "list"; }
+};
+const OPTIONAL_PLANNER_VIEWS: { value: PlannerView; label: string }[] = [
+  { value: "space", label: "Por Space" },
+  { value: "date-complexity", label: "Por Complexidade" },
+  { value: "date-shift", label: "Por Turno" },
+  { value: "owner", label: "Por Responsável" },
+];
+const loadHiddenPlannerViews = (): PlannerView[] => {
+  try {
+    const raw = localStorage.getItem(HIDDEN_PLANNER_VIEWS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 };
@@ -52,7 +78,11 @@ export default function Tasks() {
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
   const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [delegateOpen, setDelegateOpen] = useState(false);
-  const [filter, setFilter] = useState("planner");
+  const [filter, _setFilter] = useState<string>(loadFilter);
+  const setFilter = (v: string) => {
+    _setFilter(v);
+    try { localStorage.setItem(FILTER_KEY, v); } catch {}
+  };
   const [hiddenTabs, setHiddenTabs] = useState<string[]>(loadHiddenTabs);
   const toggleHiddenTab = (value: string) => {
     setHiddenTabs(prev => {
@@ -69,7 +99,24 @@ export default function Tasks() {
   
   const [groupBy, setGroupBy] = useState("space");
   const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
-  const [plannerView, setPlannerView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner">("date-complexity");
+  const [plannerView, _setPlannerView] = useState<PlannerView>(loadPlannerView);
+  const setPlannerView = (v: PlannerView) => {
+    _setPlannerView(v);
+    try { localStorage.setItem(PLANNER_VIEW_KEY, v); } catch {}
+  };
+  const [hiddenPlannerViews, setHiddenPlannerViews] = useState<PlannerView[]>(loadHiddenPlannerViews);
+  const toggleHiddenPlannerView = (v: PlannerView) => {
+    setHiddenPlannerViews(prev => {
+      const next = prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v];
+      try { localStorage.setItem(HIDDEN_PLANNER_VIEWS_KEY, JSON.stringify(next)); } catch {}
+      if (next.includes(plannerView)) setPlannerView("list");
+      return next;
+    });
+  };
+  const isPlannerViewVisible = (v: PlannerView) => {
+    if (v === "list" || v === "kanban" || v === "timeline") return true;
+    return !hiddenPlannerViews.includes(v);
+  };
   const [aiScheduleOpen, setAiScheduleOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
