@@ -426,6 +426,35 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       setSavingComplexity(false);
     }
   };
+
+  type TaskShift = "morning" | "afternoon" | "night";
+  const shiftMeta: Record<TaskShift, { label: string; hours: string; icon: React.ElementType }> = {
+    morning: { label: "Manhã", hours: "08h — 12h", icon: Sunrise },
+    afternoon: { label: "Tarde", hours: "12h — 17h", icon: Sun },
+    night: { label: "Noite", hours: "18h em diante", icon: Moon },
+  };
+  const [shiftOpen, setShiftOpen] = useState(false);
+  const [savingShift, setSavingShift] = useState(false);
+  const [localShift, setLocalShift] = useState<TaskShift | null | undefined>(task.shift);
+  useEffect(() => { setLocalShift(task.shift); }, [task.shift]);
+  const applyShift = async (level: TaskShift | null) => {
+    if (savingShift) return;
+    const prev = localShift;
+    setLocalShift(level);
+    setSavingShift(true);
+    try {
+      await updateTask(task.id, { shift: level } as any);
+      toast.success(level ? `Turno: ${shiftMeta[level].label}` : "Turno removido");
+      setShiftOpen(false);
+      window.dispatchEvent(new CustomEvent("nucleus:task-updated", { detail: { id: task.id } }));
+    } catch (err: any) {
+      setLocalShift(prev);
+      toast.error(err.message);
+    } finally {
+      setSavingShift(false);
+    }
+  };
+  const ActiveShiftIcon = localShift ? shiftMeta[localShift].icon : Sunrise;
   const [addingMaterial, setAddingMaterial] = useState(false);
   const [newMatTitle, setNewMatTitle] = useState("");
   const [newMatUrl, setNewMatUrl] = useState("");
