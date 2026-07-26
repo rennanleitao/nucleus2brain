@@ -1,10 +1,10 @@
-import { useEffect, useState, useMemo } from "react";
-import { fetchSpaces, updateSpaceCategory, deleteSpaceCategory } from "@/lib/api";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { fetchSpaces, updateSpaceCategory, deleteSpaceCategory, updateSpace } from "@/lib/api";
 import { SpaceCard } from "@/components/SpaceCard";
 import { CreateSpaceDialog } from "@/components/CreateSpaceDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { FolderOpen, Search, ChevronDown, MoreVertical, Pencil, Trash2, Check, X } from "lucide-react";
+import { FolderOpen, Search, ChevronDown, Pencil, Trash2, Check, X, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 
 const NO_CATEGORY_KEY = "__none__";
@@ -16,6 +16,10 @@ export default function Spaces() {
   const [search, setSearch] = useState("");
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [draggingSpaceId, setDraggingSpaceId] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [emptyCategoryPrompt, setEmptyCategoryPrompt] = useState<{ id: string; label: string } | null>(null);
+  const previousSpacesRef = useRef<any[]>([]);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem("spaces.collapsedCategories");
@@ -65,7 +69,9 @@ export default function Spaces() {
 
   const load = async () => {
     try {
-      setSpaces(await fetchSpaces());
+      const data = await fetchSpaces();
+      previousSpacesRef.current = data;
+      setSpaces(data);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -74,6 +80,56 @@ export default function Spaces() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleDropOnCategory = async (targetKey: string) => {
+    const spaceId = draggingSpaceId;
+    setDraggingSpaceId(null);
+    setDragOverKey(null);
+    if (!spaceId) return;
+
+    const moving = spaces.find(s => s.id === spaceId);
+    if (!moving) return;
+
+    const sourceKey = moving.category_id || NO_CATEGORY_KEY;
+    if (sourceKey === targetKey) return;
+
+    const newCategoryId = targetKey === NO_CATEGORY_KEY ? null : targetKey;
+
+    // Optimistic update
+    setSpaces(prev => prev.map(s => s.id === spaceId ? { ...s, category_id: newCategoryId, space_categories: newCategoryId ? prev.find(p => p.category_id === newCategoryId)?.space_categories ?? s.space_categories : null } : s));
+
+    try {
+      await updateSpace(spaceId, { category_id: newCategoryId } as any);
+
+      // Detect if source category became empty
+      if (sourceKey !== NO_CATEGORY_KEY) {
+        const stillHas = spaces.some(s => s.id !== spaceId && s.category_id === sourceKey);
+        if (!stillHas) {
+          const label = moving.space_categories?.name ?? "esta categoria";
+          setEmptyCategoryPrompt({ id: sourceKey, label });
+        }
+      }
+      await load();
+    } catch (err: any) {
+      toast.error(err.message);
+      await load();
+    }
+  };
+
+  const keepEmptyCategory = () => setEmptyCategoryPrompt(null);
+  const deleteEmptyCategory = async () => {
+    if (!emptyCategoryPrompt) return;
+    try {
+      await deleteSpaceCategory(emptyCategoryPrompt.id);
+      toast.success("Categoria excluída");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setEmptyCategoryPrompt(null);
+      load();
+    }
+  };
+
 
   const filteredSpaces = useMemo(() => {
     return spaces
@@ -147,7 +203,13 @@ export default function Spaces() {
           {groupedSpaces.map((group, groupIdx) => {
             const isCollapsed = collapsedCategories.has(group.key);
             return (
-              <section key={group.key} className={`rounded-xl border border-border/60 bg-card overflow-hidden ${groupIdx > 0 ? "mt-4" : ""}`}>
+              <section
+                key={group.key}
+                onDragOver={(e) => { if (draggingSpaceId) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverKey(group.key); } }}
+                onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOverKey(prev => prev === group.key ? null : prev); }}
+                onDrop={(e) => { e.preventDefault(); handleDropOnCategory(group.key); }}
+                className={`rounded-xl border bg-card overflow-hidden transition-all ${groupIdx > 0 ? "mt-4" : ""} ${dragOverKey === group.key ? "border-primary/60 ring-2 ring-primary/30 shadow-lg shadow-primary/10" : "border-border/60"}`}
+              >
                 {renaming?.id === group.key ? (
                   <div className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60">
                     <input
@@ -219,10 +281,28 @@ export default function Spaces() {
                 {!isCollapsed && (
                   <div className="divide-y divide-border/60">
                     {group.spaces.map(s => (
-                      <div key={s.id} onDoubleClick={() => setEditingSpace(s)} title="Duplo clique para editar">
-                        <SpaceCard space={s} variant="list" onCategoryChanged={load} />
+                      <div
+                        key={s.id}
+                        draggable
+                        onDragStart={(e) => { setDraggingSpaceId(s.id); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", s.id); } catch {} }}
+                        onDragEnd={() => { setDraggingSpaceId(null); setDragOverKey(null); }}
+                        onDoubleClick={() => setEditingSpace(s)}
+                        title="Arraste para outra categoria — duplo clique para editar"
+                        className={`group/row relative flex items-stretch transition-opacity ${draggingSpaceId === s.id ? "opacity-40" : ""}`}
+                      >
+                        <span className="flex items-center px-1.5 text-muted-foreground/40 group-hover/row:text-muted-foreground cursor-grab active:cursor-grabbing">
+                          <GripVertical className="h-3.5 w-3.5" />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <SpaceCard space={s} variant="list" onCategoryChanged={load} />
+                        </div>
                       </div>
                     ))}
+                    {group.spaces.length === 0 && (
+                      <div className="px-4 py-6 text-center text-[12px] text-muted-foreground/60">
+                        Solte aqui para mover
+                      </div>
+                    )}
                   </div>
                 )}
               </section>
@@ -260,6 +340,23 @@ export default function Spaces() {
             <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!emptyCategoryPrompt} onOpenChange={(open) => { if (!open) setEmptyCategoryPrompt(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Categoria vazia</AlertDialogTitle>
+            <AlertDialogDescription>
+              A categoria "{emptyCategoryPrompt?.label}" ficou sem spaces. Quer mantê-la ou excluir para não poluir a tela?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={keepEmptyCategory}>Manter</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteEmptyCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir categoria
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
