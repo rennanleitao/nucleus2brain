@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, CalendarClock, ClipboardList, AlertTriangle, ListChecks, BarChart3, RefreshCw, Mic, MicOff, Pause, Play, Send, Square, User, Volume2, VolumeX, CheckCircle2, XCircle, ChevronDown, ChevronRight, Code2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchTasks, fetchSpaces, createTask, createSpace } from "@/lib/api";
+import { fetchTasks, fetchSpaces, createTask, createSpace, createSpaceCategory } from "@/lib/api";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
