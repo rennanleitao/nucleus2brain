@@ -197,6 +197,81 @@ function QuickCommButton({
   );
 }
 
+function DelegatedSubtaskRow({
+  sub,
+  parent,
+  onSelectParent,
+  onToggle,
+  onOpenComm,
+  onReload,
+}: {
+  sub: any;
+  parent: any;
+  onSelectParent: () => void;
+  onToggle: () => void;
+  onOpenComm: () => void;
+  onReload: () => void;
+}) {
+  const handleUndelegate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await updateSubtask(sub.id, { delegated_to: null });
+      toast.success("Trazida de volta para você");
+      onReload();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+  return (
+    <div className="group flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+        title={sub.status === "completed" ? "Reabrir" : "Concluir"}
+      >
+        {sub.status === "completed"
+          ? <CheckCircle2 className="h-3.5 w-3.5" />
+          : <Circle className="h-3.5 w-3.5" />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className={cn("text-xs font-medium truncate", sub.status === "completed" && "line-through text-muted-foreground")}>
+          {sub.title}
+        </p>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onSelectParent(); }}
+          className="text-[10px] text-muted-foreground hover:text-primary transition-colors truncate block max-w-full text-left"
+          title={`Abrir tarefa "${parent.title}"`}
+        >
+          Subtarefa de <span className="underline decoration-dotted">{parent.title}</span>
+          {sub.due_date && <span className="ml-1">· {new Date(sub.due_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>}
+        </button>
+      </div>
+      <span className="hidden sm:inline text-[10px] text-muted-foreground">
+        <span className="font-medium text-foreground">{sub.delegated_to}</span>
+      </span>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onOpenComm(); }}
+        className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-background hover:bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Comunicar responsável"
+        title="Comunicar responsável"
+      >
+        <MessageCircle className="h-3 w-3" /> Comunicar
+      </button>
+      <button
+        type="button"
+        onClick={handleUndelegate}
+        className="text-muted-foreground/60 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+        title="Remover delegação"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 export function TasksByOwnerView(props: Props) {
   const {
     tasks, groups, subtasksMap, remindersMap, onToggle, onDelete, onToggleSubtask,
