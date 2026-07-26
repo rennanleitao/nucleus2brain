@@ -1075,6 +1075,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          delegated_to: string | null
           due_date: string | null
           id: string
           position: number
@@ -1086,6 +1087,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          delegated_to?: string | null
           due_date?: string | null
           id?: string
           position?: number
@@ -1097,6 +1099,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          delegated_to?: string | null
           due_date?: string | null
           id?: string
           position?: number
