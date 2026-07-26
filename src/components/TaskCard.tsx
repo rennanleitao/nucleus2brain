@@ -395,6 +395,9 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   };
 
   const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    if (!compact && subtasks.length > 0) setIsOpen(true);
+  }, [compact, subtasks.length]);
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newSubtaskDate, setNewSubtaskDate] = useState("");
