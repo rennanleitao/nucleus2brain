@@ -1147,117 +1147,15 @@ export default function Tasks() {
         </div>
       )}
 
-      {grouped && grouped.type === "date" ? (
-        <div className="space-y-6">
-          {grouped.dateGroups.map(g => {
-            const isOpen = collapsedGroups[g.key] !== true;
-            return (
-              <section key={g.key}>
-                <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-2 mb-2 text-left">
-                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                  <h2 className={`text-h2 ${g.key === "overdue" ? "text-destructive" : ""}`}>{g.label}</h2>
-                  <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
-                </button>
-                {isOpen && (
-                  <div className="rounded-xl border border-border bg-card p-3">
-                    {renderTaskList(g.tasks)}
-                  </div>
-                )}
-              </section>
-            );
-          })}
-          {grouped.dateGroups.length === 0 && (
-            <div className="text-center py-12">
-              <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-small text-muted-foreground">No tasks match filters</p>
-            </div>
-          )}
+      {filtered.length === 0 ? (
+        <div className="text-center py-12">
+          <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-small text-muted-foreground">No tasks here</p>
         </div>
-      ) : grouped && grouped.type === "complexity" ? (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-h2">Por Complexidade</h2>
-            <p className="text-micro text-muted-foreground">Agrupado pela dificuldade de iniciar a tarefa.</p>
-          </div>
-          {grouped.complexityGroups.map(g => {
-            const isOpen = collapsedGroups[g.key] !== true;
-            return (
-              <section key={g.key}>
-                <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-2 mb-2 text-left">
-                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                  <h2 className="text-h2">{g.label}</h2>
-                  <span className="text-micro text-muted-foreground">{g.description}</span>
-                  <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
-                </button>
-                {isOpen && (
-                  g.tasks.length > 0 ? (
-                    <div className="rounded-xl border border-border bg-card p-3">
-                      {renderTaskList(g.tasks)}
-                    </div>
-                  ) : (
-                    <p className="text-small text-muted-foreground border border-dashed border-border rounded-lg p-4">Nenhuma tarefa neste nível.</p>
-                  )
-                )}
-              </section>
-            );
-          })}
-        </div>
-      ) : grouped && grouped.type === "space" ? (
-        <div className="space-y-6">
-          {grouped.groups.map(g => {
-            const key = g.name;
-            const isOpen = collapsedGroups[key] !== true;
-            return (
-              <section key={g.name}>
-                <div className="flex items-center justify-between mb-2">
-                  <button onClick={() => toggleGroup(key)} className="flex items-center gap-2 text-left">
-                    {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                    <h2 className="text-h2 hover:underline cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/spaces/${g.id}`); }}>{g.name}</h2>
-                    <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
-                  </button>
-                  <CreateTaskDialog
-                    spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
-                    onCreated={load}
-                    defaultSpaceId={spaces.find(s => s.name === g.name)?.id}
-                    trigger={
-                      <button className="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted">
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    }
-                  />
-                </div>
-                {isOpen && (
-                  <div className="rounded-xl border border-border bg-card p-3">
-                    {renderTaskList(g.tasks, true)}
-                  </div>
-                )}
-              </section>
-            );
-          })}
-          {grouped.ungrouped.length > 0 && (
-            <section>
-              <button onClick={() => toggleGroup("__ungrouped")} className="flex items-center gap-2 mb-2 text-left">
-                {collapsedGroups["__ungrouped"] !== true ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                <h2 className="text-h2 text-muted-foreground">No Space</h2>
-                <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{grouped.ungrouped.length}</span>
-              </button>
-              {collapsedGroups["__ungrouped"] !== true && renderTaskList(grouped.ungrouped)}
-            </section>
-          )}
-          {grouped.groups.length === 0 && grouped.ungrouped.length === 0 && (
-            <div className="text-center py-12">
-              <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-small text-muted-foreground">No tasks match filters</p>
-            </div>
-          )}
-        </div>
+      ) : listDimensions.length === 0 ? (
+        renderTaskList(filtered)
       ) : (
-        filtered.length > 0 ? renderTaskList(filtered) : (
-          <div className="text-center py-12">
-            <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-small text-muted-foreground">No tasks here</p>
-          </div>
-        )
+        renderGroupedRecursive(filtered, listDimensions, {}, "root", 0)
       )}
       </>
       )}
