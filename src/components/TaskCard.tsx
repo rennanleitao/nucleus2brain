@@ -170,6 +170,109 @@ function SubtaskReschedulePopover({ subtaskId, currentDate, onReschedule }: { su
   );
 }
 
+interface SubtaskRowProps {
+  sub: Subtask;
+  onToggle?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onReschedule?: (id: string, newDate: string) => void;
+  onEdited?: () => void;
+}
+
+function SortableSubtaskRow({ sub, onToggle, onDelete, onReschedule, onEdited }: SubtaskRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sub.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(sub.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { setValue(sub.title); }, [sub.title]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commit = async () => {
+    const next = value.trim();
+    if (!next || next === sub.title) { setEditing(false); setValue(sub.title); return; }
+    try {
+      await apiUpdateSubtask(sub.id, { title: next });
+      setEditing(false);
+      onEdited?.();
+    } catch (err: any) {
+      toast.error(err.message);
+      setValue(sub.title);
+      setEditing(false);
+    }
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 py-1 group/sub">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        className="flex-shrink-0 text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover/sub:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
+        title="Arrastar para reordenar"
+        aria-label="Arrastar subtask"
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle?.(sub.id); }}
+        className={`flex-shrink-0 transition-colors ${sub.status === "completed" ? "text-muted-foreground" : "text-muted-foreground hover:text-primary"}`}
+      >
+        {sub.status === "completed" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
+      </button>
+      {editing ? (
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") { e.preventDefault(); commit(); }
+            else if (e.key === "Escape") { e.preventDefault(); setValue(sub.title); setEditing(false); }
+          }}
+          className="flex-1 bg-background border border-border rounded px-1.5 py-0.5 text-micro outline-none focus:border-primary"
+        />
+      ) : (
+        <span
+          onClick={(e) => { e.stopPropagation(); if (sub.status !== "completed") setEditing(true); }}
+          className={`text-micro flex-1 cursor-text ${sub.status === "completed" ? "line-through text-muted-foreground" : ""}`}
+          title="Clique para editar"
+        >
+          {sub.title}
+        </span>
+      )}
+      {!editing && sub.due_date && (
+        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+          <CalendarDays className="h-2.5 w-2.5" />
+          {formatDate(sub.due_date)}
+        </span>
+      )}
+      {!editing && sub.status !== "completed" && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+          className="text-muted-foreground/60 hover:text-primary transition-colors opacity-0 group-hover/sub:opacity-100"
+          title="Editar subtask"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+      )}
+      {onReschedule && sub.status !== "completed" && !editing && (
+        <SubtaskReschedulePopover subtaskId={sub.id} currentDate={sub.due_date} onReschedule={onReschedule} />
+      )}
+      {onDelete && !editing && (
+        <button onClick={(e) => { e.stopPropagation(); onDelete(sub.id); }}
+          className="text-muted-foreground hover:text-destructive transition-colors">
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+
 export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
   task, subtasks = [], reminder, onToggle, onDelete, onToggleSubtask, onAddSubtask, onDeleteSubtask, onPriorityChange, onSelect, onReschedule, onRescheduleSubtask, onDuplicate, hideSpace,
   orderNumber, onMoveUp, onMoveDown, isFirst, isLast, compact = false, onToggleCompact
