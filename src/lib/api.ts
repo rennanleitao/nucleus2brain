@@ -287,7 +287,7 @@ export async function createSubtask(subtask: { task_id: string; title: string; d
   return data;
 }
 
-export async function updateSubtask(id: string, updates: { title?: string; status?: string; due_date?: string | null; completed_at?: string | null; position?: number }) {
+export async function updateSubtask(id: string, updates: { title?: string; status?: string; due_date?: string | null; completed_at?: string | null; position?: number; delegated_to?: string | null }) {
   const { data, error } = await supabase
     .from("subtasks")
     .update(updates)
