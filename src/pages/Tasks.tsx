@@ -69,7 +69,7 @@ export default function Tasks() {
   
   const [groupBy, setGroupBy] = useState("space");
   const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
-  const [plannerView, setPlannerView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner">("date-complexity");
+  const [plannerView, setPlannerView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner">("date-complexity");
   const [aiScheduleOpen, setAiScheduleOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);

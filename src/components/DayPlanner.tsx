@@ -64,8 +64,8 @@ interface DayPlannerProps {
   onRescheduleSubtask: (id: string, newDate: string) => void;
   onDuplicate: (id: string) => void;
   onReload: () => void;
-  externalView?: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner";
-  onExternalViewChange?: (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner") => void;
+  externalView?: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner";
+  onExternalViewChange?: (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner") => void;
   externalAllCompact?: boolean;
   onExternalToggleAllCompact?: () => void;
   externalAIScheduleOpen?: boolean;
@@ -84,9 +84,9 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [internalView, setInternalView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner">("date-complexity");
+  const [internalView, setInternalView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner">("date-complexity");
   const view = externalView ?? internalView;
-  const setView = (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner") => {
+  const setView = (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner") => {
     if (onExternalViewChange) onExternalViewChange(v);
     else setInternalView(v);
   };
