@@ -40,6 +40,23 @@ const HIDDEN_TABS_KEY = "nucleus.tasks.hiddenTabs";
 const FILTER_KEY = "nucleus.tasks.filter";
 const PLANNER_VIEW_KEY = "nucleus.tasks.plannerView";
 const HIDDEN_PLANNER_VIEWS_KEY = "nucleus.tasks.hiddenPlannerViews";
+const LIST_DIMENSIONS_KEY = "nucleus.tasks.listDimensions";
+
+type ListDimension = "space" | "complexity" | "shift" | "owner" | "date";
+const LIST_DIMENSIONS: { value: ListDimension; label: string }[] = [
+  { value: "space", label: "Space" },
+  { value: "complexity", label: "Complexidade" },
+  { value: "shift", label: "Turno" },
+  { value: "owner", label: "Responsável" },
+  { value: "date", label: "Data" },
+];
+const loadListDimensions = (): ListDimension[] => {
+  try {
+    const raw = localStorage.getItem(LIST_DIMENSIONS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return ["space"];
+};
 
 const loadHiddenTabs = (): string[] => {
   try {
@@ -98,6 +115,19 @@ export default function Tasks() {
   const [sortBy, setSortBy] = useState("date");
   
   const [groupBy, setGroupBy] = useState("space");
+  const [listDimensions, _setListDimensions] = useState<ListDimension[]>(loadListDimensions);
+  const setListDimensions = (fn: (prev: ListDimension[]) => ListDimension[]) => {
+    _setListDimensions(prev => {
+      const next = fn(prev);
+      try { localStorage.setItem(LIST_DIMENSIONS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const toggleListDimension = (d: ListDimension) => {
+    setListDimensions(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+  };
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverGroupPath, setDragOverGroupPath] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
   const [plannerView, _setPlannerView] = useState<PlannerView>(loadPlannerView);
   const setPlannerView = (v: PlannerView) => {
@@ -511,7 +541,18 @@ export default function Tasks() {
   const renderTaskList = (taskList: any[], hideSpace = false) => (
     <div className="space-y-2">
       {taskList.map((t) => (
-        <div key={t.id} onClick={() => setEditingTask(t)} className="cursor-pointer">
+        <div
+          key={t.id}
+          onClick={() => setEditingTask(t)}
+          className={`cursor-pointer transition-opacity ${draggedTaskId === t.id ? "opacity-40" : ""}`}
+          draggable
+          onDragStart={(e) => {
+            setDraggedTaskId(t.id);
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", t.id);
+          }}
+          onDragEnd={() => { setDraggedTaskId(null); setDragOverGroupPath(null); }}
+        >
           <TaskCard
             task={t}
             subtasks={subtasksMap[t.id] || []}
@@ -533,6 +574,169 @@ export default function Tasks() {
       ))}
     </div>
   );
+
+  // ===== Multi-dimensional cumulative grouping =====
+  type Bucket = { key: string; label: string; sublabel?: string; patch: Partial<Record<string, any>>; sortOrder: number };
+  const bucketsForDimension = (dim: ListDimension, tasksIn: any[]): Bucket[] => {
+    if (dim === "space") {
+      const seen = new Map<string, Bucket>();
+      for (const t of tasksIn) {
+        const id = t.space_id || "__none__";
+        if (seen.has(id)) continue;
+        seen.set(id, {
+          key: id,
+          label: t.spaces?.name || (id === "__none__" ? "Sem Space" : "Space"),
+          patch: { space_id: id === "__none__" ? null : id },
+          sortOrder: id === "__none__" ? 999 : 0,
+        });
+      }
+      return Array.from(seen.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
+    }
+    if (dim === "complexity") {
+      return TASK_EXECUTION_COMPLEXITIES.map((level, idx) => ({
+        key: level,
+        label: taskExecutionComplexityLabels[level],
+        sublabel: taskExecutionComplexityDurationReference[level],
+        patch: { execution_complexity: level },
+        sortOrder: idx,
+      }));
+    }
+    if (dim === "shift") {
+      return [
+        { key: "morning", label: "Manhã", sublabel: "08h–12h", patch: { shift: "morning" }, sortOrder: 0 },
+        { key: "afternoon", label: "Tarde", sublabel: "12h–17h", patch: { shift: "afternoon" }, sortOrder: 1 },
+        { key: "night", label: "Noite", sublabel: "18h+", patch: { shift: "night" }, sortOrder: 2 },
+        { key: "__none__", label: "Sem turno", patch: { shift: null }, sortOrder: 3 },
+      ];
+    }
+    if (dim === "owner") {
+      const seen = new Map<string, Bucket>();
+      seen.set("__me__", { key: "__me__", label: "Mim", patch: { delegated_to: null }, sortOrder: 0 });
+      for (const t of tasksIn) {
+        const d = t.delegated_to?.trim();
+        if (!d) continue;
+        if (seen.has(d)) continue;
+        seen.set(d, { key: d, label: d, patch: { delegated_to: d }, sortOrder: 1 });
+      }
+      return Array.from(seen.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
+    }
+    if (dim === "date") {
+      const now = new Date();
+      const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      const today = brt.toISOString().split("T")[0];
+      const tmr = new Date(brt); tmr.setDate(tmr.getDate() + 1);
+      const tmrStr = tmr.toISOString().split("T")[0];
+      const wk = new Date(brt); wk.setDate(wk.getDate() + 6);
+      const wkStr = wk.toISOString().split("T")[0];
+      return [
+        { key: "overdue", label: "Atrasadas", patch: {}, sortOrder: 0 },
+        { key: "today", label: "Hoje", patch: { due_date: today }, sortOrder: 1 },
+        { key: "tomorrow", label: "Amanhã", patch: { due_date: tmrStr }, sortOrder: 2 },
+        { key: "week", label: "Esta semana", patch: {}, sortOrder: 3 },
+        { key: "later", label: "Mais tarde", patch: {}, sortOrder: 4 },
+        { key: "nodate", label: "Sem data", patch: { due_date: null }, sortOrder: 5 },
+      ];
+    }
+    return [];
+  };
+  const taskMatchesBucket = (t: any, dim: ListDimension, bucket: Bucket): boolean => {
+    if (dim === "space") return (t.space_id || "__none__") === bucket.key;
+    if (dim === "complexity") return (t.execution_complexity || "medium") === bucket.key;
+    if (dim === "shift") return (t.shift || "__none__") === bucket.key;
+    if (dim === "owner") {
+      const d = t.delegated_to?.trim();
+      return bucket.key === "__me__" ? !d : d === bucket.key;
+    }
+    if (dim === "date") {
+      const now = new Date();
+      const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      const today = brt.toISOString().split("T")[0];
+      const tmr = new Date(brt); tmr.setDate(tmr.getDate() + 1);
+      const tmrStr = tmr.toISOString().split("T")[0];
+      const wk = new Date(brt); wk.setDate(wk.getDate() + 6);
+      const wkStr = wk.toISOString().split("T")[0];
+      const d = t.due_date;
+      if (!d) return bucket.key === "nodate";
+      if (bucket.key === "overdue") return d < today && t.status !== "completed";
+      if (bucket.key === "today") return d === today;
+      if (bucket.key === "tomorrow") return d === tmrStr;
+      if (bucket.key === "week") return d > tmrStr && d <= wkStr;
+      if (bucket.key === "later") return d > wkStr;
+      return false;
+    }
+    return false;
+  };
+
+  const handleGroupedDrop = async (taskId: string, mergedPatch: Record<string, any>) => {
+    const t = tasks.find(x => x.id === taskId);
+    if (!t) return;
+    const patch: Record<string, any> = {};
+    for (const [k, v] of Object.entries(mergedPatch)) {
+      const current = k === "execution_complexity" ? (t[k] || "medium") : (t[k] ?? null);
+      const target = v ?? null;
+      if (current !== target) patch[k] = target;
+    }
+    if (Object.keys(patch).length === 0) return;
+    setTasks(prev => prev.map(x => x.id === taskId ? { ...x, ...patch } : x));
+    try {
+      await updateTask(taskId, patch as any);
+      toast.success("Tarefa movida");
+    } catch (err: any) {
+      toast.error(err.message);
+      load();
+    }
+  };
+
+  const renderGroupedRecursive = (tasksIn: any[], dims: ListDimension[], accPatch: Record<string, any>, path: string, depth: number): JSX.Element => {
+    if (dims.length === 0 || tasksIn.length === 0) {
+      const dropActive = dragOverGroupPath === path;
+      return (
+        <div
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move"; if (dragOverGroupPath !== path) setDragOverGroupPath(path); }}
+          onDragLeave={(e) => { e.stopPropagation(); if (dragOverGroupPath === path) setDragOverGroupPath(null); }}
+          onDrop={(e) => {
+            e.preventDefault(); e.stopPropagation();
+            const id = draggedTaskId || e.dataTransfer.getData("text/plain");
+            setDragOverGroupPath(null); setDraggedTaskId(null);
+            if (!id) return;
+            handleGroupedDrop(id, accPatch);
+          }}
+          className={`rounded-xl border ${dropActive ? "border-primary bg-primary/5" : "border-border bg-card"} p-3 transition-colors`}
+        >
+          {tasksIn.length > 0 ? renderTaskList(tasksIn, accPatch.space_id !== undefined) : (
+            <p className="text-micro text-muted-foreground text-center py-2">Solte aqui para mover</p>
+          )}
+        </div>
+      );
+    }
+    const [dim, ...rest] = dims;
+    const buckets = bucketsForDimension(dim, tasksIn).filter(b => tasksIn.some(t => taskMatchesBucket(t, dim, b)));
+    const headingSizes = ["text-h2", "text-h3", "text-small font-semibold", "text-small font-medium"];
+    const HeadingClass = headingSizes[Math.min(depth, headingSizes.length - 1)];
+    return (
+      <div className={depth === 0 ? "space-y-6" : "space-y-4"}>
+        {buckets.map(bucket => {
+          const bucketTasks = tasksIn.filter(t => taskMatchesBucket(t, dim, bucket));
+          const key = `${path}/${dim}:${bucket.key}`;
+          const isOpen = collapsedGroups[key] !== true;
+          const nextPatch = { ...accPatch, ...bucket.patch };
+          return (
+            <section key={key} className={depth > 0 ? "pl-2 border-l border-border/40" : ""}>
+              <button onClick={() => toggleGroup(key)} className="flex items-center gap-2 mb-2 text-left">
+                {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                <h2 className={HeadingClass}>{bucket.label}</h2>
+                {bucket.sublabel && <span className="text-micro text-muted-foreground">{bucket.sublabel}</span>}
+                <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{bucketTasks.length}</span>
+              </button>
+              {isOpen && renderGroupedRecursive(bucketTasks, rest, nextPatch, key, depth + 1)}
+            </section>
+          );
+        })}
+      </div>
+    );
+  };
+
+
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 animate-fade-in">
@@ -752,15 +956,60 @@ export default function Tasks() {
                       <SelectItem value="complexity">Ordenar: complexidade</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={groupBy} onValueChange={setGroupBy}>
-                    <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No grouping</SelectItem>
-                      <SelectItem value="space">By Space</SelectItem>
-                      <SelectItem value="date">By Date</SelectItem>
-                      <SelectItem value="complexity">Por Complexidade</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        title="Agrupar por (múltiplo, cumulativo)"
+                        className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors ${listDimensions.length > 0 ? "bg-primary/10 text-primary border-primary/40" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">
+                          {listDimensions.length === 0 ? "Agrupar" : listDimensions.map(d => LIST_DIMENSIONS.find(x => x.value === d)?.label).join(" › ")}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-64 p-2">
+                      <p className="text-micro text-muted-foreground px-2 pb-1.5">
+                        Agrupar por (na ordem selecionada)
+                      </p>
+                      <div className="space-y-0.5">
+                        {LIST_DIMENSIONS.map(d => {
+                          const idx = listDimensions.indexOf(d.value);
+                          const checked = idx !== -1;
+                          return (
+                            <label
+                              key={d.value}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded-md text-small cursor-pointer hover:bg-muted"
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() => toggleListDimension(d.value)}
+                              />
+                              <span className="flex-1">{d.label}</span>
+                              {checked && (
+                                <span className="text-micro text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                  {idx + 1}º
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {listDimensions.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setListDimensions(() => [])}
+                          className="mt-2 w-full text-micro text-muted-foreground hover:text-foreground py-1 rounded hover:bg-muted"
+                        >
+                          Limpar agrupamentos
+                        </button>
+                      )}
+                      <p className="text-micro text-muted-foreground px-2 pt-2 pb-0.5">
+                        Arraste tasks entre grupos para mover.
+                      </p>
+                    </PopoverContent>
+                  </Popover>
                 </>
               )}
               <button
@@ -898,117 +1147,15 @@ export default function Tasks() {
         </div>
       )}
 
-      {grouped && grouped.type === "date" ? (
-        <div className="space-y-6">
-          {grouped.dateGroups.map(g => {
-            const isOpen = collapsedGroups[g.key] !== true;
-            return (
-              <section key={g.key}>
-                <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-2 mb-2 text-left">
-                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                  <h2 className={`text-h2 ${g.key === "overdue" ? "text-destructive" : ""}`}>{g.label}</h2>
-                  <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
-                </button>
-                {isOpen && (
-                  <div className="rounded-xl border border-border bg-card p-3">
-                    {renderTaskList(g.tasks)}
-                  </div>
-                )}
-              </section>
-            );
-          })}
-          {grouped.dateGroups.length === 0 && (
-            <div className="text-center py-12">
-              <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-small text-muted-foreground">No tasks match filters</p>
-            </div>
-          )}
+      {filtered.length === 0 ? (
+        <div className="text-center py-12">
+          <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-small text-muted-foreground">No tasks here</p>
         </div>
-      ) : grouped && grouped.type === "complexity" ? (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-h2">Por Complexidade</h2>
-            <p className="text-micro text-muted-foreground">Agrupado pela dificuldade de iniciar a tarefa.</p>
-          </div>
-          {grouped.complexityGroups.map(g => {
-            const isOpen = collapsedGroups[g.key] !== true;
-            return (
-              <section key={g.key}>
-                <button onClick={() => toggleGroup(g.key)} className="flex items-center gap-2 mb-2 text-left">
-                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                  <h2 className="text-h2">{g.label}</h2>
-                  <span className="text-micro text-muted-foreground">{g.description}</span>
-                  <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
-                </button>
-                {isOpen && (
-                  g.tasks.length > 0 ? (
-                    <div className="rounded-xl border border-border bg-card p-3">
-                      {renderTaskList(g.tasks)}
-                    </div>
-                  ) : (
-                    <p className="text-small text-muted-foreground border border-dashed border-border rounded-lg p-4">Nenhuma tarefa neste nível.</p>
-                  )
-                )}
-              </section>
-            );
-          })}
-        </div>
-      ) : grouped && grouped.type === "space" ? (
-        <div className="space-y-6">
-          {grouped.groups.map(g => {
-            const key = g.name;
-            const isOpen = collapsedGroups[key] !== true;
-            return (
-              <section key={g.name}>
-                <div className="flex items-center justify-between mb-2">
-                  <button onClick={() => toggleGroup(key)} className="flex items-center gap-2 text-left">
-                    {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                    <h2 className="text-h2 hover:underline cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/spaces/${g.id}`); }}>{g.name}</h2>
-                    <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{g.tasks.length}</span>
-                  </button>
-                  <CreateTaskDialog
-                    spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
-                    onCreated={load}
-                    defaultSpaceId={spaces.find(s => s.name === g.name)?.id}
-                    trigger={
-                      <button className="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted">
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    }
-                  />
-                </div>
-                {isOpen && (
-                  <div className="rounded-xl border border-border bg-card p-3">
-                    {renderTaskList(g.tasks, true)}
-                  </div>
-                )}
-              </section>
-            );
-          })}
-          {grouped.ungrouped.length > 0 && (
-            <section>
-              <button onClick={() => toggleGroup("__ungrouped")} className="flex items-center gap-2 mb-2 text-left">
-                {collapsedGroups["__ungrouped"] !== true ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                <h2 className="text-h2 text-muted-foreground">No Space</h2>
-                <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{grouped.ungrouped.length}</span>
-              </button>
-              {collapsedGroups["__ungrouped"] !== true && renderTaskList(grouped.ungrouped)}
-            </section>
-          )}
-          {grouped.groups.length === 0 && grouped.ungrouped.length === 0 && (
-            <div className="text-center py-12">
-              <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-small text-muted-foreground">No tasks match filters</p>
-            </div>
-          )}
-        </div>
+      ) : listDimensions.length === 0 ? (
+        renderTaskList(filtered)
       ) : (
-        filtered.length > 0 ? renderTaskList(filtered) : (
-          <div className="text-center py-12">
-            <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-small text-muted-foreground">No tasks here</p>
-          </div>
-        )
+        renderGroupedRecursive(filtered, listDimensions, {}, "root", 0)
       )}
       </>
       )}
