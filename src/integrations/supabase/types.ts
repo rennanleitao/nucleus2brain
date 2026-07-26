@@ -1077,6 +1077,7 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          position: number
           status: string
           task_id: string
           title: string
@@ -1087,6 +1088,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          position?: number
           status?: string
           task_id: string
           title: string
@@ -1097,6 +1099,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          position?: number
           status?: string
           task_id?: string
           title?: string
