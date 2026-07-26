@@ -37,9 +37,35 @@ const dateGroupFilters = [
 ];
 
 const HIDDEN_TABS_KEY = "nucleus.tasks.hiddenTabs";
+const FILTER_KEY = "nucleus.tasks.filter";
+const PLANNER_VIEW_KEY = "nucleus.tasks.plannerView";
+const HIDDEN_PLANNER_VIEWS_KEY = "nucleus.tasks.hiddenPlannerViews";
+
 const loadHiddenTabs = (): string[] => {
   try {
     const raw = localStorage.getItem(HIDDEN_TABS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+const loadFilter = (): string => {
+  try { return localStorage.getItem(FILTER_KEY) || "planner"; } catch { return "planner"; }
+};
+type PlannerView = "list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner";
+const loadPlannerView = (): PlannerView => {
+  try {
+    const v = localStorage.getItem(PLANNER_VIEW_KEY) as PlannerView | null;
+    return v || "list";
+  } catch { return "list"; }
+};
+const OPTIONAL_PLANNER_VIEWS: { value: PlannerView; label: string }[] = [
+  { value: "space", label: "Por Space" },
+  { value: "date-complexity", label: "Por Complexidade" },
+  { value: "date-shift", label: "Por Turno" },
+  { value: "owner", label: "Por Responsável" },
+];
+const loadHiddenPlannerViews = (): PlannerView[] => {
+  try {
+    const raw = localStorage.getItem(HIDDEN_PLANNER_VIEWS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 };
@@ -52,7 +78,11 @@ export default function Tasks() {
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
   const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [delegateOpen, setDelegateOpen] = useState(false);
-  const [filter, setFilter] = useState("planner");
+  const [filter, _setFilter] = useState<string>(loadFilter);
+  const setFilter = (v: string) => {
+    _setFilter(v);
+    try { localStorage.setItem(FILTER_KEY, v); } catch {}
+  };
   const [hiddenTabs, setHiddenTabs] = useState<string[]>(loadHiddenTabs);
   const toggleHiddenTab = (value: string) => {
     setHiddenTabs(prev => {
@@ -69,7 +99,24 @@ export default function Tasks() {
   
   const [groupBy, setGroupBy] = useState("space");
   const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
-  const [plannerView, setPlannerView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner">("date-complexity");
+  const [plannerView, _setPlannerView] = useState<PlannerView>(loadPlannerView);
+  const setPlannerView = (v: PlannerView) => {
+    _setPlannerView(v);
+    try { localStorage.setItem(PLANNER_VIEW_KEY, v); } catch {}
+  };
+  const [hiddenPlannerViews, setHiddenPlannerViews] = useState<PlannerView[]>(loadHiddenPlannerViews);
+  const toggleHiddenPlannerView = (v: PlannerView) => {
+    setHiddenPlannerViews(prev => {
+      const next = prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v];
+      try { localStorage.setItem(HIDDEN_PLANNER_VIEWS_KEY, JSON.stringify(next)); } catch {}
+      if (next.includes(plannerView)) setPlannerView("list");
+      return next;
+    });
+  };
+  const isPlannerViewVisible = (v: PlannerView) => {
+    if (v === "list" || v === "kanban" || v === "timeline") return true;
+    return !hiddenPlannerViews.includes(v);
+  };
   const [aiScheduleOpen, setAiScheduleOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -585,23 +632,63 @@ export default function Tasks() {
                   className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "timeline" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
                   <Clock className="h-4 w-4" />
                 </button>
-                <button onClick={() => setPlannerView("space")} title="Por Space"
-                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "space" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
-                  <FolderOpen className="h-4 w-4" />
-                </button>
-                <button onClick={() => setPlannerView("date-complexity")} title="Por Data e Complexidade"
-                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
-                  <Gauge className="h-4 w-4" />
-                </button>
-                <button onClick={() => setPlannerView("date-shift")} title="Por Turno (Manhã/Tarde/Noite)"
-                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-shift" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
-                  <Sunrise className="h-4 w-4" />
-                </button>
-                <button onClick={() => setPlannerView("owner")} title="Por responsável (mim / outros)"
-                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
-                  <Users className="h-4 w-4" />
-                </button>
+                {isPlannerViewVisible("space") && (
+                  <button onClick={() => setPlannerView("space")} title="Por Space"
+                    className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "space" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                    <FolderOpen className="h-4 w-4" />
+                  </button>
+                )}
+                {isPlannerViewVisible("date-complexity") && (
+                  <button onClick={() => setPlannerView("date-complexity")} title="Por Data e Complexidade"
+                    className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                    <Gauge className="h-4 w-4" />
+                  </button>
+                )}
+                {isPlannerViewVisible("date-shift") && (
+                  <button onClick={() => setPlannerView("date-shift")} title="Por Turno (Manhã/Tarde/Noite)"
+                    className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-shift" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                    <Sunrise className="h-4 w-4" />
+                  </button>
+                )}
+                {isPlannerViewVisible("owner") && (
+                  <button onClick={() => setPlannerView("owner")} title="Por responsável (mim / outros)"
+                    className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                    <Users className="h-4 w-4" />
+                  </button>
+                )}
               </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    title="Mostrar/ocultar visões"
+                    className="flex items-center justify-center h-10 sm:h-8 w-9 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-60 p-2">
+                  <p className="text-micro text-muted-foreground px-2 pb-1.5">Visões disponíveis</p>
+                  <div className="space-y-0.5">
+                    {OPTIONAL_PLANNER_VIEWS.map(v => {
+                      const checked = !hiddenPlannerViews.includes(v.value);
+                      return (
+                        <label
+                          key={v.value}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md text-small cursor-pointer hover:bg-muted"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleHiddenPlannerView(v.value)}
+                          />
+                          <span className="flex-1">{v.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-micro text-muted-foreground px-2 pt-2 pb-0.5">Lista, Kanban e Timeline ficam sempre visíveis.</p>
+                </PopoverContent>
+              </Popover>
               <button
                 onClick={handleToggleAllCompact}
                 title={allCompact ? "Expandir todas" : "Recolher todas"}
