@@ -254,14 +254,22 @@ export default function Assistant() {
                 success: true, payload: action, result: existing,
               });
             } else {
-              const payload: any = { name: action.space_name || action.name, category: action.category || null };
+              const name = action.space_name || action.name;
+              let categoryId: string | null = null;
+              let categoryName: string | null = null;
+              if (action.category) {
+                const cat = await createSpaceCategory(String(action.category));
+                categoryId = cat?.id ?? null;
+                categoryName = cat?.name ?? String(action.category);
+              }
+              const payload: any = { name, category_id: categoryId };
               const result = await createSpace(payload);
               executed.push({
-                label: `Space criado: ${payload.name}`,
-                detail: payload.category ? `Categoria: ${payload.category}` : undefined,
-                success: true, payload, result,
+                label: `Space criado: ${name}`,
+                detail: categoryName ? `Categoria: ${categoryName}` : undefined,
+                success: true, payload: { name, category: categoryName }, result,
               });
-              toast.success(`Space criado: ${payload.name}`);
+              toast.success(`Space criado: ${name}`);
             }
           } else if (action.action === "create_calendar_event") {
             const startDateTime = `${action.date}T${action.start_time}:00`;
