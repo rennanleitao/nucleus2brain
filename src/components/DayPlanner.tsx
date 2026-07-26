@@ -277,7 +277,43 @@ export function DayPlanner({
     if (fromIdx === -1 || toIdx === -1) return;
     handleReorder(fromIdx, toIdx);
   };
-  const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); setDragOverStatus(null); };
+  const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); setDragOverStatus(null); setDragOverGroupKey(null); };
+
+  // ===== Drag-and-drop (date + complexity groups) =====
+  const [dragOverGroupKey, setDragOverGroupKey] = useState<string | null>(null);
+  const applyTaskMove = async (taskId: string, changes: { due_date?: string; execution_complexity?: TaskExecutionComplexity }) => {
+    const t = tasks.find(x => x.id === taskId);
+    if (!t) return;
+    const patch: any = {};
+    if (changes.due_date && t.due_date !== changes.due_date) patch.due_date = changes.due_date;
+    if (changes.execution_complexity && (t.execution_complexity || "medium") !== changes.execution_complexity) {
+      patch.execution_complexity = changes.execution_complexity;
+    }
+    if (Object.keys(patch).length === 0) return;
+    setTasks(prev => prev.map(x => x.id === taskId ? { ...x, ...patch } : x));
+    try {
+      await updateTask(taskId, patch);
+      toast.success("Tarefa movida");
+    } catch (err: any) {
+      toast.error(err.message);
+      onReload();
+    }
+  };
+  const handleGroupDrop = (e: React.DragEvent, date: string, complexity?: TaskExecutionComplexity) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const sourceId = draggedId || e.dataTransfer.getData("text/plain");
+    setDraggedId(null);
+    setDragOverGroupKey(null);
+    if (!sourceId) return;
+    applyTaskMove(sourceId, { due_date: date, execution_complexity: complexity });
+  };
+  const handleGroupDragOver = (e: React.DragEvent, key: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverGroupKey !== key) setDragOverGroupKey(key);
+  };
 
   // ===== Drag-and-drop (kanban: change status) =====
   const handleStatusDrop = async (e: React.DragEvent, newStatus: string) => {
