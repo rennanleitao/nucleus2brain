@@ -203,7 +203,13 @@ export default function Spaces() {
           {groupedSpaces.map((group, groupIdx) => {
             const isCollapsed = collapsedCategories.has(group.key);
             return (
-              <section key={group.key} className={`rounded-xl border border-border/60 bg-card overflow-hidden ${groupIdx > 0 ? "mt-4" : ""}`}>
+              <section
+                key={group.key}
+                onDragOver={(e) => { if (draggingSpaceId) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverKey(group.key); } }}
+                onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOverKey(prev => prev === group.key ? null : prev); }}
+                onDrop={(e) => { e.preventDefault(); handleDropOnCategory(group.key); }}
+                className={`rounded-xl border bg-card overflow-hidden transition-all ${groupIdx > 0 ? "mt-4" : ""} ${dragOverKey === group.key ? "border-primary/60 ring-2 ring-primary/30 shadow-lg shadow-primary/10" : "border-border/60"}`}
+              >
                 {renaming?.id === group.key ? (
                   <div className="w-full flex items-center gap-2 px-3 py-2 bg-muted border-b border-border/60">
                     <input
