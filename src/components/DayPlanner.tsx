@@ -823,7 +823,7 @@ export function DayPlanner({
                         <div
                           key={level}
                           onDragOver={(e) => handleGroupDragOver(e, key)}
-                          onDrop={(e) => handleGroupDrop(e, dg.date, level)}
+                          onDrop={(e) => handleGroupDrop(e, dg.date, { complexity: level })}
                           className={cn(
                             "rounded-lg border overflow-hidden transition-colors",
                             isOver ? "border-primary bg-primary/5" : "border-border/60 bg-background/60",
