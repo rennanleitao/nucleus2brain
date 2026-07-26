@@ -49,6 +49,7 @@ interface TaskCardProps {
     execution_complexity?: TaskExecutionComplexity | null;
     estimated_minutes?: number | null;
     recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
+    shift?: "morning" | "afternoon" | "night" | null;
   };
   subtasks?: Subtask[];
   reminder?: { reminder_time: string; sent: boolean } | null;
