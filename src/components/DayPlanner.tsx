@@ -787,6 +787,10 @@ export function DayPlanner({
                       const label = taskExecutionComplexityLabels[level];
                       const reference = taskExecutionComplexityDurationReference[level];
                       const count = cg?.tasks.length ?? 0;
+                      // Only render this complexity band when it has tasks OR is
+                      // an active drop target. Otherwise it stays hidden until
+                      // the user manually sets that complexity on a task.
+                      if (count === 0 && !isOver) return null;
                       return (
                         <div
                           key={level}
@@ -794,7 +798,7 @@ export function DayPlanner({
                           onDrop={(e) => handleGroupDrop(e, dg.date, level)}
                           className={cn(
                             "rounded-lg border overflow-hidden transition-colors",
-                            isOver ? "border-primary bg-primary/5" : count === 0 ? "border-dashed border-border/50 bg-background/30" : "border-border/60 bg-background/60",
+                            isOver ? "border-primary bg-primary/5" : "border-border/60 bg-background/60",
                           )}
                         >
                           <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/60">
@@ -806,13 +810,7 @@ export function DayPlanner({
                             </span>
                           </div>
                           <div className="p-2 space-y-2 min-h-[40px]">
-                            {count === 0 ? (
-                              <p className="text-[11px] text-muted-foreground/60 text-center py-2">
-                                Solte aqui para {label.toLowerCase()}
-                              </p>
-                            ) : (
-                              cg!.tasks.map(t => renderTaskCardInSection(t))
-                            )}
+                            {cg?.tasks.map(t => renderTaskCardInSection(t))}
                           </div>
                         </div>
                       );
