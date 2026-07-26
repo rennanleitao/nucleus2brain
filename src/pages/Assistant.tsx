@@ -404,9 +404,16 @@ export default function Assistant() {
               }`}>
                 {msg.role === "assistant" ? (
                   <div>
-                    <div className="ai-prose">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
+                    {msg.content && (
+                      <div className="ai-prose">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    )}
+                    {msg.actions && msg.actions.length > 0 && (
+                      <div className={`space-y-1.5 ${msg.content ? "mt-2" : ""}`}>
+                        {msg.actions.map((a, i) => <ActionCard key={i} action={a} />)}
+                      </div>
+                    )}
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {speech.isSupported ? (
                         <>
