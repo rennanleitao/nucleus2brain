@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send, Mail, MessageCircle, Copy } from "lucide-react";
+import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send, Mail, MessageCircle, Copy, CheckCircle2, Circle, UserPlus, X } from "lucide-react";
+import { updateSubtask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
