@@ -751,9 +751,12 @@ export function DayPlanner({
               return (
                 <div
                   key={dg.date}
+                  onDragOver={(e) => handleGroupDragOver(e, `date:${dg.date}`)}
+                  onDrop={(e) => handleGroupDrop(e, dg.date)}
                   className={cn(
-                    "rounded-xl border overflow-hidden",
+                    "rounded-xl border overflow-hidden transition-colors",
                     isToday ? "border-primary/30 bg-primary/5" : isOverdue ? "border-destructive/30 bg-destructive/5" : "border-border bg-card",
+                    dragOverGroupKey === `date:${dg.date}` && "ring-2 ring-primary/40",
                   )}
                 >
                   <div className="flex items-center gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border">
@@ -764,21 +767,43 @@ export function DayPlanner({
                     </span>
                   </div>
                   <div className="p-3 space-y-3">
-                    {dg.complexityGroups.map((cg) => (
-                      <div key={cg.level} className="rounded-lg border border-border/60 bg-background/60 overflow-hidden">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/60">
-                          <Gauge className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs font-semibold text-foreground">{cg.label}</span>
-                          <span className="text-micro text-muted-foreground">· {cg.reference}</span>
-                          <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
-                            {cg.tasks.length}
-                          </span>
+                    {TASK_EXECUTION_COMPLEXITIES.map((level) => {
+                      const cg = dg.complexityGroups.find(g => g.level === level);
+                      const key = `dc:${dg.date}:${level}`;
+                      const isOver = dragOverGroupKey === key;
+                      const label = taskExecutionComplexityLabels[level];
+                      const reference = taskExecutionComplexityDurationReference[level];
+                      const count = cg?.tasks.length ?? 0;
+                      return (
+                        <div
+                          key={level}
+                          onDragOver={(e) => handleGroupDragOver(e, key)}
+                          onDrop={(e) => handleGroupDrop(e, dg.date, level)}
+                          className={cn(
+                            "rounded-lg border overflow-hidden transition-colors",
+                            isOver ? "border-primary bg-primary/5" : count === 0 ? "border-dashed border-border/50 bg-background/30" : "border-border/60 bg-background/60",
+                          )}
+                        >
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/60">
+                            <Gauge className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground">{label}</span>
+                            <span className="text-micro text-muted-foreground">· {reference}</span>
+                            <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                              {count}
+                            </span>
+                          </div>
+                          <div className="p-2 space-y-2 min-h-[40px]">
+                            {count === 0 ? (
+                              <p className="text-[11px] text-muted-foreground/60 text-center py-2">
+                                Solte aqui para {label.toLowerCase()}
+                              </p>
+                            ) : (
+                              cg!.tasks.map(t => renderTaskCardInSection(t))
+                            )}
+                          </div>
                         </div>
-                        <div className="p-2 space-y-2">
-                          {cg.tasks.map(t => renderTaskCardInSection(t))}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
