@@ -250,6 +250,7 @@ export async function fetchSubtasks(taskId: string) {
     .from("subtasks")
     .select("*")
     .eq("task_id", taskId)
+    .order("position", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data;
@@ -259,6 +260,7 @@ export async function fetchAllSubtasks() {
   const { data, error } = await supabase
     .from("subtasks")
     .select("*")
+    .order("position", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data;
@@ -267,16 +269,25 @@ export async function fetchAllSubtasks() {
 export async function createSubtask(subtask: { task_id: string; title: string; due_date?: string | null }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+  // Append to the end of the current list.
+  const { data: last } = await supabase
+    .from("subtasks")
+    .select("position")
+    .eq("task_id", subtask.task_id)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextPos = ((last?.position as number | undefined) ?? 0) + 1;
   const { data, error } = await supabase
     .from("subtasks")
-    .insert({ ...subtask, user_id: user.id })
+    .insert({ ...subtask, user_id: user.id, position: nextPos })
     .select()
     .single();
   if (error) throw error;
   return data;
 }
 
-export async function updateSubtask(id: string, updates: { title?: string; status?: string; due_date?: string | null; completed_at?: string | null }) {
+export async function updateSubtask(id: string, updates: { title?: string; status?: string; due_date?: string | null; completed_at?: string | null; position?: number }) {
   const { data, error } = await supabase
     .from("subtasks")
     .update(updates)
@@ -287,10 +298,22 @@ export async function updateSubtask(id: string, updates: { title?: string; statu
   return data;
 }
 
+export async function reorderSubtasks(orderedIds: string[]) {
+  // Bulk position update. Runs sequentially to avoid RLS batching issues.
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error } = await supabase
+      .from("subtasks")
+      .update({ position: i + 1 })
+      .eq("id", orderedIds[i]);
+    if (error) throw error;
+  }
+}
+
 export async function deleteSubtask(id: string) {
   const { error } = await supabase.from("subtasks").delete().eq("id", id);
   if (error) throw error;
 }
+
 
 // ---- SPACES ----
 export async function fetchSpaces() {
