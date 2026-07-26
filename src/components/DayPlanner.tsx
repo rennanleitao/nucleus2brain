@@ -499,6 +499,36 @@ export function DayPlanner({
     });
   }, [overdueTasks, todayTasks, tomorrowTasks, next7Tasks, futureTasks]);
 
+  // Group all planning tasks by date, then by shift (Manhã/Tarde/Noite)
+  const dateShiftGroups = useMemo(() => {
+    const all = [...overdueTasks, ...todayTasks, ...tomorrowTasks, ...next7Tasks, ...futureTasks];
+    const byDate = new Map<string, any[]>();
+    for (const t of all) {
+      const d = t.due_date as string;
+      if (!byDate.has(d)) byDate.set(d, []);
+      byDate.get(d)!.push(t);
+    }
+    const sortedDates = [...byDate.keys()].sort();
+    return sortedDates.map(date => {
+      const tasksForDate = byDate.get(date)!;
+      const shiftGroups = TASK_SHIFTS.map(level => ({
+        level,
+        label: taskShiftLabels[level],
+        hours: taskShiftHours[level],
+        tasks: tasksForDate
+          .filter(t => getTaskShift(t) === level)
+          .sort((a, b) => {
+            const at = a.scheduled_time || "99:99";
+            const bt = b.scheduled_time || "99:99";
+            if (at !== bt) return at.localeCompare(bt);
+            return a.created_at.localeCompare(b.created_at);
+          }),
+      }));
+      const unset = tasksForDate.filter(t => getTaskShift(t) === null);
+      return { date, tasks: tasksForDate, shiftGroups, unset };
+    });
+  }, [overdueTasks, todayTasks, tomorrowTasks, next7Tasks, futureTasks]);
+
   const formatDateLabel = (dateStr: string) => {
     if (dateStr === today) return "Hoje";
     if (dateStr === tomorrow) return "Amanhã";
