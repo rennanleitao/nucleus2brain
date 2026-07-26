@@ -178,9 +178,11 @@ export default function Tasks() {
     const brt30 = new Date(brt); brt30.setDate(brt30.getDate() + 29);
     const in30 = brt30.toISOString().split("T")[0];
 
-    if (filter === "all") {
+    if (filter === "all" || filter === "planner") {
+      // "all" legado cai aqui; Day Planner renderiza sua própria visão
       result = result.filter(t => t.status !== "completed" && t.status !== "cancelled");
     } else if (filter === "todo") {
+
       result = result.filter(t => !t.due_date && t.status !== "completed" && t.status !== "cancelled");
     } else if (filter === "today") {
       result = result.filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date <= today);
