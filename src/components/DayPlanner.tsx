@@ -413,22 +413,34 @@ export function DayPlanner({
     { key: "waiting", label: "Aguardando", icon: PauseCircle, color: "text-amber-600", border: "border-amber-500/30", bg: "bg-amber-500/5" },
   ];
 
-  // Group today + overdue tasks by space (for "space" view)
+  // Group ALL planning tasks (overdue → future) by space
   const spaceGroups = useMemo(() => {
+    const all = [...overdueTasks, ...todayTasks, ...tomorrowTasks, ...next7Tasks, ...futureTasks];
     const groups = new Map<string, { id: string | null; name: string; tasks: any[] }>();
-    for (const t of dayTasks) {
+    for (const t of all) {
       const sid = t.space_id || "__none__";
       const sname = t.spaces?.name || "Sem space";
       if (!groups.has(sid)) groups.set(sid, { id: t.space_id || null, name: sname, tasks: [] });
       groups.get(sid)!.tasks.push(t);
     }
+    // Sort tasks within each space by due_date then scheduled_time
+    for (const g of groups.values()) {
+      g.tasks.sort((a, b) => {
+        const ad = a.due_date || "9999-99-99";
+        const bd = b.due_date || "9999-99-99";
+        if (ad !== bd) return ad.localeCompare(bd);
+        const at = a.scheduled_time || "99:99";
+        const bt = b.scheduled_time || "99:99";
+        return at.localeCompare(bt);
+      });
+    }
     return Array.from(groups.values()).sort((a, b) => {
-      // "Sem space" sempre por último
       if (!a.id && b.id) return 1;
       if (a.id && !b.id) return -1;
       return a.name.localeCompare(b.name);
     });
-  }, [dayTasks]);
+  }, [overdueTasks, todayTasks, tomorrowTasks, next7Tasks, futureTasks]);
+
 
   // Group all planning tasks (overdue → future) by date, then by complexity
   const dateComplexityGroups = useMemo(() => {
