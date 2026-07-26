@@ -706,56 +706,49 @@ export default function Notes() {
                           const preview = stripHtml(note.content || "").replace(/\n+/g, " ");
                           return (
                             <li key={note.id}>
-                              <div
-                                onClick={() => selectNote(note)}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
-                                className={`relative flex flex-col justify-center ${isMobile ? "min-h-[40px] px-2 py-1" : "min-h-[44px] px-2.5 py-1.5"} rounded-md group cursor-pointer touch-manipulation transition-colors overflow-hidden ${
-                                  isSelected
-                                    ? "bg-muted/70"
-                                    : "hover:bg-muted/40"
-                                }`}
+                              <SwipeToDeleteRow
+                                ariaLabel={`Excluir nota ${note.title}`}
+                                onDelete={async () => {
+                                  if (await confirmDialog({ title: "Excluir nota", description: `Excluir a nota "${note.title}"?`, destructive: true, confirmLabel: "Excluir" })) {
+                                    handleDelete(note.id);
+                                  }
+                                }}
                               >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span
-                                    className={`${isMobile ? "text-[12.5px]" : "text-[13.5px]"} truncate leading-tight min-w-0 ${
-                                      isSelected ? "font-semibold text-foreground" : "font-medium text-foreground/90"
-                                    }`}
-                                  >
-                                    {note.title}
-                                  </span>
-                                  {(note.tags || []).slice(0, 1).map((tag: string) => (
-                                    <span
-                                      key={tag}
-                                      className="ml-auto text-[9px] font-medium uppercase tracking-wider text-muted-foreground/70 shrink-0"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                                {preview && (
-                                  <span className={`mt-0.5 ${isMobile ? "text-[10.5px]" : "text-[11.5px]"} text-muted-foreground/70 truncate leading-tight font-normal`}>
-                                    {preview}
-                                  </span>
-                                )}
-
-
-                                <button
-                                  type="button"
-                                  aria-label={`Excluir nota ${note.title}`}
-                                  title="Excluir nota"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (await confirmDialog({ title: "Excluir nota", description: `Excluir a nota "${note.title}"?`, destructive: true, confirmLabel: "Excluir" })) {
-                                      handleDelete(note.id);
-                                    }
-                                  }}
-                                  className="absolute top-1/2 -translate-y-1/2 right-1.5 h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-background/80"
+                                <div
+                                  onClick={() => selectNote(note)}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => { if (e.key === "Enter") selectNote(note); }}
+                                  className={`relative flex flex-col justify-center ${isMobile ? "min-h-[40px] px-2 py-1" : "min-h-[44px] px-2.5 py-1.5"} rounded-md cursor-pointer touch-manipulation transition-colors ${
+                                    isSelected
+                                      ? "bg-muted/70"
+                                      : "hover:bg-muted/40 bg-card"
+                                  }`}
                                 >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
+                                  <div className="flex items-center gap-2 min-w-0 pr-6">
+                                    <span
+                                      className={`${isMobile ? "text-[12.5px]" : "text-[13.5px]"} truncate leading-tight min-w-0 ${
+                                        isSelected ? "font-semibold text-foreground" : "font-medium text-foreground/90"
+                                      }`}
+                                    >
+                                      {note.title}
+                                    </span>
+                                    {(note.tags || []).slice(0, 1).map((tag: string) => (
+                                      <span
+                                        key={tag}
+                                        className="ml-auto text-[9px] font-medium uppercase tracking-wider text-muted-foreground/70 shrink-0"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  {preview && (
+                                    <span className={`mt-0.5 ${isMobile ? "text-[10.5px]" : "text-[11.5px]"} text-muted-foreground/70 truncate leading-tight font-normal pr-6`}>
+                                      {preview}
+                                    </span>
+                                  )}
+                                </div>
+                              </SwipeToDeleteRow>
                             </li>
                           );
                         })}
