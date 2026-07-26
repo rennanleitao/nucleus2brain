@@ -574,6 +574,10 @@ export function DayPlanner({
                 className={`p-1.5 transition-colors ${view === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
                 <Gauge className="h-3.5 w-3.5" />
               </button>
+              <button onClick={() => setView("date-shift")} title="Por Turno (Manhã/Tarde/Noite)"
+                className={`p-1.5 transition-colors ${view === "date-shift" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                <Sunrise className="h-3.5 w-3.5" />
+              </button>
               <button onClick={() => setView("owner")} title="Por responsável (mim / outros)"
                 className={`p-1.5 transition-colors ${view === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
                 <Users className="h-3.5 w-3.5" />
