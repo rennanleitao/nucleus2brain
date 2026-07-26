@@ -40,6 +40,23 @@ const HIDDEN_TABS_KEY = "nucleus.tasks.hiddenTabs";
 const FILTER_KEY = "nucleus.tasks.filter";
 const PLANNER_VIEW_KEY = "nucleus.tasks.plannerView";
 const HIDDEN_PLANNER_VIEWS_KEY = "nucleus.tasks.hiddenPlannerViews";
+const LIST_DIMENSIONS_KEY = "nucleus.tasks.listDimensions";
+
+type ListDimension = "space" | "complexity" | "shift" | "owner" | "date";
+const LIST_DIMENSIONS: { value: ListDimension; label: string }[] = [
+  { value: "space", label: "Space" },
+  { value: "complexity", label: "Complexidade" },
+  { value: "shift", label: "Turno" },
+  { value: "owner", label: "Responsável" },
+  { value: "date", label: "Data" },
+];
+const loadListDimensions = (): ListDimension[] => {
+  try {
+    const raw = localStorage.getItem(LIST_DIMENSIONS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return ["space"];
+};
 
 const loadHiddenTabs = (): string[] => {
   try {
