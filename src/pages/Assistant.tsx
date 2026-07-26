@@ -250,7 +250,7 @@ export default function Assistant() {
             if (existing) {
               executed.push({
                 label: `Space já existia: ${existing.name}`,
-                detail: `Categoria atual: ${existing.category || "sem categoria"}`,
+                detail: existing.space_categories?.name ? `Categoria atual: ${existing.space_categories.name}` : undefined,
                 success: true, payload: action, result: existing,
               });
             } else {
