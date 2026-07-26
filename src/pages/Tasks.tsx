@@ -685,7 +685,7 @@ export default function Tasks() {
         </div>
       ) : filter === "planner" && plannerView !== "owner" ? (
         <DayPlanner
-          tasks={tasks}
+          tasks={search.trim() ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase())) : tasks}
           setTasks={setTasks}
           subtasksMap={subtasksMap}
           remindersMap={remindersMap}
@@ -710,7 +710,12 @@ export default function Tasks() {
         />
       ) : (filter === "planner" ? plannerView === "owner" : viewMode === "owner") ? (
         <TasksByOwnerView
-          tasks={filter === "planner" ? tasks.filter(t => t.status !== "completed" && t.status !== "cancelled") : filtered}
+          tasks={filter === "planner"
+            ? (search.trim()
+                ? tasks.filter(t => t.status !== "completed" && t.status !== "cancelled" && t.title.toLowerCase().includes(search.toLowerCase()))
+                : tasks.filter(t => t.status !== "completed" && t.status !== "cancelled"))
+            : filtered}
+
           subtasksMap={subtasksMap}
           remindersMap={remindersMap}
           onToggle={toggleTask}
