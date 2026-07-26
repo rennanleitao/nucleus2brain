@@ -277,7 +277,43 @@ export function DayPlanner({
     if (fromIdx === -1 || toIdx === -1) return;
     handleReorder(fromIdx, toIdx);
   };
-  const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); setDragOverStatus(null); };
+  const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); setDragOverStatus(null); setDragOverGroupKey(null); };
+
+  // ===== Drag-and-drop (date + complexity groups) =====
+  const [dragOverGroupKey, setDragOverGroupKey] = useState<string | null>(null);
+  const applyTaskMove = async (taskId: string, changes: { due_date?: string; execution_complexity?: TaskExecutionComplexity }) => {
+    const t = tasks.find(x => x.id === taskId);
+    if (!t) return;
+    const patch: any = {};
+    if (changes.due_date && t.due_date !== changes.due_date) patch.due_date = changes.due_date;
+    if (changes.execution_complexity && (t.execution_complexity || "medium") !== changes.execution_complexity) {
+      patch.execution_complexity = changes.execution_complexity;
+    }
+    if (Object.keys(patch).length === 0) return;
+    setTasks(prev => prev.map(x => x.id === taskId ? { ...x, ...patch } : x));
+    try {
+      await updateTask(taskId, patch);
+      toast.success("Tarefa movida");
+    } catch (err: any) {
+      toast.error(err.message);
+      onReload();
+    }
+  };
+  const handleGroupDrop = (e: React.DragEvent, date: string, complexity?: TaskExecutionComplexity) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const sourceId = draggedId || e.dataTransfer.getData("text/plain");
+    setDraggedId(null);
+    setDragOverGroupKey(null);
+    if (!sourceId) return;
+    applyTaskMove(sourceId, { due_date: date, execution_complexity: complexity });
+  };
+  const handleGroupDragOver = (e: React.DragEvent, key: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverGroupKey !== key) setDragOverGroupKey(key);
+  };
 
   // ===== Drag-and-drop (kanban: change status) =====
   const handleStatusDrop = async (e: React.DragEvent, newStatus: string) => {
@@ -299,7 +335,14 @@ export function DayPlanner({
   };
 
   const renderTaskCardInSection = (t: any) => (
-    <div key={t.id} className="cursor-pointer" onClick={() => onSelect(t)}>
+    <div
+      key={t.id}
+      className={cn("cursor-pointer transition-opacity", draggedId === t.id && "opacity-40")}
+      draggable
+      onDragStart={(e) => { setDraggedId(t.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", t.id); }}
+      onDragEnd={handleDragEnd}
+      onClick={() => onSelect(t)}
+    >
       <TaskCard
         task={t}
         subtasks={subtasksMap[t.id] || []}
@@ -708,9 +751,12 @@ export function DayPlanner({
               return (
                 <div
                   key={dg.date}
+                  onDragOver={(e) => handleGroupDragOver(e, `date:${dg.date}`)}
+                  onDrop={(e) => handleGroupDrop(e, dg.date)}
                   className={cn(
-                    "rounded-xl border overflow-hidden",
+                    "rounded-xl border overflow-hidden transition-colors",
                     isToday ? "border-primary/30 bg-primary/5" : isOverdue ? "border-destructive/30 bg-destructive/5" : "border-border bg-card",
+                    dragOverGroupKey === `date:${dg.date}` && "ring-2 ring-primary/40",
                   )}
                 >
                   <div className="flex items-center gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border">
@@ -721,21 +767,43 @@ export function DayPlanner({
                     </span>
                   </div>
                   <div className="p-3 space-y-3">
-                    {dg.complexityGroups.map((cg) => (
-                      <div key={cg.level} className="rounded-lg border border-border/60 bg-background/60 overflow-hidden">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/60">
-                          <Gauge className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs font-semibold text-foreground">{cg.label}</span>
-                          <span className="text-micro text-muted-foreground">· {cg.reference}</span>
-                          <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
-                            {cg.tasks.length}
-                          </span>
+                    {TASK_EXECUTION_COMPLEXITIES.map((level) => {
+                      const cg = dg.complexityGroups.find(g => g.level === level);
+                      const key = `dc:${dg.date}:${level}`;
+                      const isOver = dragOverGroupKey === key;
+                      const label = taskExecutionComplexityLabels[level];
+                      const reference = taskExecutionComplexityDurationReference[level];
+                      const count = cg?.tasks.length ?? 0;
+                      return (
+                        <div
+                          key={level}
+                          onDragOver={(e) => handleGroupDragOver(e, key)}
+                          onDrop={(e) => handleGroupDrop(e, dg.date, level)}
+                          className={cn(
+                            "rounded-lg border overflow-hidden transition-colors",
+                            isOver ? "border-primary bg-primary/5" : count === 0 ? "border-dashed border-border/50 bg-background/30" : "border-border/60 bg-background/60",
+                          )}
+                        >
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/60">
+                            <Gauge className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground">{label}</span>
+                            <span className="text-micro text-muted-foreground">· {reference}</span>
+                            <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                              {count}
+                            </span>
+                          </div>
+                          <div className="p-2 space-y-2 min-h-[40px]">
+                            {count === 0 ? (
+                              <p className="text-[11px] text-muted-foreground/60 text-center py-2">
+                                Solte aqui para {label.toLowerCase()}
+                              </p>
+                            ) : (
+                              cg!.tasks.map(t => renderTaskCardInSection(t))
+                            )}
+                          </div>
                         </div>
-                        <div className="p-2 space-y-2">
-                          {cg.tasks.map(t => renderTaskCardInSection(t))}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
