@@ -69,7 +69,9 @@ export default function Spaces() {
 
   const load = async () => {
     try {
-      setSpaces(await fetchSpaces());
+      const data = await fetchSpaces();
+      previousSpacesRef.current = data;
+      setSpaces(data);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -78,6 +80,56 @@ export default function Spaces() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleDropOnCategory = async (targetKey: string) => {
+    const spaceId = draggingSpaceId;
+    setDraggingSpaceId(null);
+    setDragOverKey(null);
+    if (!spaceId) return;
+
+    const moving = spaces.find(s => s.id === spaceId);
+    if (!moving) return;
+
+    const sourceKey = moving.category_id || NO_CATEGORY_KEY;
+    if (sourceKey === targetKey) return;
+
+    const newCategoryId = targetKey === NO_CATEGORY_KEY ? null : targetKey;
+
+    // Optimistic update
+    setSpaces(prev => prev.map(s => s.id === spaceId ? { ...s, category_id: newCategoryId, space_categories: newCategoryId ? prev.find(p => p.category_id === newCategoryId)?.space_categories ?? s.space_categories : null } : s));
+
+    try {
+      await updateSpace(spaceId, { category_id: newCategoryId } as any);
+
+      // Detect if source category became empty
+      if (sourceKey !== NO_CATEGORY_KEY) {
+        const stillHas = spaces.some(s => s.id !== spaceId && s.category_id === sourceKey);
+        if (!stillHas) {
+          const label = moving.space_categories?.name ?? "esta categoria";
+          setEmptyCategoryPrompt({ id: sourceKey, label });
+        }
+      }
+      await load();
+    } catch (err: any) {
+      toast.error(err.message);
+      await load();
+    }
+  };
+
+  const keepEmptyCategory = () => setEmptyCategoryPrompt(null);
+  const deleteEmptyCategory = async () => {
+    if (!emptyCategoryPrompt) return;
+    try {
+      await deleteSpaceCategory(emptyCategoryPrompt.id);
+      toast.success("Categoria excluída");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setEmptyCategoryPrompt(null);
+      load();
+    }
+  };
+
 
   const filteredSpaces = useMemo(() => {
     return spaces
