@@ -6,7 +6,10 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users, UserPlus, Clock, FolderOpen, Gauge, Sparkles, Timer } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users, UserPlus, Clock, FolderOpen, Gauge, Sparkles, Timer, Eye } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
@@ -24,8 +27,7 @@ import {
 } from "@/lib/taskComplexity";
 
 const dateGroupFilters = [
-  { value: "all", label: "All" },
-  { value: "planner", label: "Day Planner", icon: CalendarCheck },
+  { value: "planner", label: "Day Planner", icon: CalendarCheck, mandatory: true },
   { value: "todo", label: "To-do" },
   { value: "today", label: "Today" },
   { value: "week", label: "This Week" },
@@ -33,6 +35,15 @@ const dateGroupFilters = [
   { value: "done", label: "Done" },
   { value: "deleted", label: "Deleted" },
 ];
+
+const HIDDEN_TABS_KEY = "nucleus.tasks.hiddenTabs";
+const loadHiddenTabs = (): string[] => {
+  try {
+    const raw = localStorage.getItem(HIDDEN_TABS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+
 
 export default function Tasks() {
   const navigate = useNavigate();
@@ -42,6 +53,16 @@ export default function Tasks() {
   const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [delegateOpen, setDelegateOpen] = useState(false);
   const [filter, setFilter] = useState("planner");
+  const [hiddenTabs, setHiddenTabs] = useState<string[]>(loadHiddenTabs);
+  const toggleHiddenTab = (value: string) => {
+    setHiddenTabs(prev => {
+      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
+      try { localStorage.setItem(HIDDEN_TABS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const visibleTabs = dateGroupFilters.filter(f => f.mandatory || !hiddenTabs.includes(f.value));
+
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [complexityFilter, setComplexityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("date");
@@ -157,9 +178,11 @@ export default function Tasks() {
     const brt30 = new Date(brt); brt30.setDate(brt30.getDate() + 29);
     const in30 = brt30.toISOString().split("T")[0];
 
-    if (filter === "all") {
+    if (filter === "all" || filter === "planner") {
+      // "all" legado cai aqui; Day Planner renderiza sua própria visão
       result = result.filter(t => t.status !== "completed" && t.status !== "cancelled");
     } else if (filter === "todo") {
+
       result = result.filter(t => !t.due_date && t.status !== "completed" && t.status !== "cancelled");
     } else if (filter === "today") {
       result = result.filter(t => t.status !== "completed" && t.status !== "cancelled" && t.due_date && t.due_date <= today);
@@ -500,12 +523,49 @@ export default function Tasks() {
 
 
       <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList className="bg-muted overflow-x-auto w-full sm:w-auto flex-nowrap">
-          {dateGroupFilters.map(f => (
-            <TabsTrigger key={f.value} value={f.value} className="text-small flex-shrink-0 min-h-[40px] touch-manipulation">{f.label}</TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <TabsList className="bg-muted overflow-x-auto flex-nowrap">
+            {visibleTabs.map(f => (
+              <TabsTrigger key={f.value} value={f.value} className="text-small flex-shrink-0 min-h-[40px] touch-manipulation">{f.label}</TabsTrigger>
+            ))}
+          </TabsList>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                title="Mostrar/ocultar abas"
+                className="flex items-center justify-center h-10 sm:h-9 w-9 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-2">
+              <p className="text-micro text-muted-foreground px-2 pb-1.5">Abas visíveis</p>
+              <div className="space-y-0.5">
+                {dateGroupFilters.map(f => {
+                  const isMandatory = !!f.mandatory;
+                  const checked = isMandatory || !hiddenTabs.includes(f.value);
+                  return (
+                    <label
+                      key={f.value}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-small ${isMandatory ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted"}`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        disabled={isMandatory}
+                        onCheckedChange={() => !isMandatory && toggleHiddenTab(f.value)}
+                      />
+                      <span className="flex-1">{f.label}</span>
+                      {isMandatory && <span className="text-micro text-muted-foreground">fixa</span>}
+                    </label>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </Tabs>
+
 
       {filter !== "deleted" && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -539,13 +599,6 @@ export default function Tasks() {
                 </button>
               </div>
               <button
-                onClick={() => setAiScheduleOpen(true)}
-                title="Sugerir ordem com IA"
-                className="flex items-center gap-1 h-10 sm:h-8 px-2 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                <Sparkles className="h-4 w-4" />
-              </button>
-              <button
                 onClick={handleToggleAllCompact}
                 title={allCompact ? "Expandir todas" : "Recolher todas"}
                 className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors ${allCompact ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
@@ -553,13 +606,7 @@ export default function Tasks() {
                 {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
                 <span className="hidden sm:inline">{allCompact ? "Expandir" : "Recolher"}</span>
               </button>
-              <button
-                onClick={() => navigate("/pomodoro")}
-                title="Abrir Pomodoro"
-                className="flex items-center gap-1 h-10 sm:h-8 px-2 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                <Timer className="h-4 w-4" />
-              </button>
+
             </>
           ) : (
             <>
