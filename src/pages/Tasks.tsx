@@ -599,13 +599,6 @@ export default function Tasks() {
                 </button>
               </div>
               <button
-                onClick={() => setAiScheduleOpen(true)}
-                title="Sugerir ordem com IA"
-                className="flex items-center gap-1 h-10 sm:h-8 px-2 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                <Sparkles className="h-4 w-4" />
-              </button>
-              <button
                 onClick={handleToggleAllCompact}
                 title={allCompact ? "Expandir todas" : "Recolher todas"}
                 className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors ${allCompact ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
@@ -613,13 +606,7 @@ export default function Tasks() {
                 {allCompact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
                 <span className="hidden sm:inline">{allCompact ? "Expandir" : "Recolher"}</span>
               </button>
-              <button
-                onClick={() => navigate("/pomodoro")}
-                title="Abrir Pomodoro"
-                className="flex items-center gap-1 h-10 sm:h-8 px-2 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                <Timer className="h-4 w-4" />
-              </button>
+
             </>
           ) : (
             <>
