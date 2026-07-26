@@ -252,6 +252,19 @@ export function TasksByOwnerView(props: Props) {
     return tasks;
   }, [groups, tasks]);
 
+  const delegatedSubtasks = useMemo(() => {
+    const out: { sub: any; parent: any }[] = [];
+    for (const t of allTasks) {
+      const subs = subtasksMap[t.id] || [];
+      for (const s of subs) {
+        if (s.delegated_to && String(s.delegated_to).trim() && s.status !== "completed") {
+          out.push({ sub: s, parent: t });
+        }
+      }
+    }
+    return out;
+  }, [allTasks, subtasksMap]);
+
   const activeTask = activeId ? allTasks.find(t => t.id === activeId) : null;
 
   const handleDragEnd = async (e: DragEndEvent) => {
