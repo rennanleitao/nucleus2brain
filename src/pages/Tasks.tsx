@@ -53,6 +53,16 @@ export default function Tasks() {
   const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [delegateOpen, setDelegateOpen] = useState(false);
   const [filter, setFilter] = useState("planner");
+  const [hiddenTabs, setHiddenTabs] = useState<string[]>(loadHiddenTabs);
+  const toggleHiddenTab = (value: string) => {
+    setHiddenTabs(prev => {
+      const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value];
+      try { localStorage.setItem(HIDDEN_TABS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const visibleTabs = dateGroupFilters.filter(f => f.mandatory || !hiddenTabs.includes(f.value));
+
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [complexityFilter, setComplexityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("date");
