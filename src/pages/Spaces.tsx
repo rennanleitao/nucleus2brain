@@ -281,10 +281,28 @@ export default function Spaces() {
                 {!isCollapsed && (
                   <div className="divide-y divide-border/60">
                     {group.spaces.map(s => (
-                      <div key={s.id} onDoubleClick={() => setEditingSpace(s)} title="Duplo clique para editar">
-                        <SpaceCard space={s} variant="list" onCategoryChanged={load} />
+                      <div
+                        key={s.id}
+                        draggable
+                        onDragStart={(e) => { setDraggingSpaceId(s.id); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", s.id); } catch {} }}
+                        onDragEnd={() => { setDraggingSpaceId(null); setDragOverKey(null); }}
+                        onDoubleClick={() => setEditingSpace(s)}
+                        title="Arraste para outra categoria — duplo clique para editar"
+                        className={`group/row relative flex items-stretch transition-opacity ${draggingSpaceId === s.id ? "opacity-40" : ""}`}
+                      >
+                        <span className="flex items-center px-1.5 text-muted-foreground/40 group-hover/row:text-muted-foreground cursor-grab active:cursor-grabbing">
+                          <GripVertical className="h-3.5 w-3.5" />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <SpaceCard space={s} variant="list" onCategoryChanged={load} />
+                        </div>
                       </div>
                     ))}
+                    {group.spaces.length === 0 && (
+                      <div className="px-4 py-6 text-center text-[12px] text-muted-foreground/60">
+                        Solte aqui para mover
+                      </div>
+                    )}
                   </div>
                 )}
               </section>
