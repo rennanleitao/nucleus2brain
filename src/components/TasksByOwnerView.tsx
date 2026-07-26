@@ -449,7 +449,7 @@ export function TasksByOwnerView(props: Props) {
           id="others"
           title="Executadas por outros"
           icon={Users}
-          count={columnData.othersCount}
+          count={columnData.othersCount + delegatedSubtasks.length}
           empty="Arraste aqui as tarefas delegadas para outra pessoa."
           accent="bg-primary/10"
           action={onDelegate ? (
@@ -465,6 +465,35 @@ export function TasksByOwnerView(props: Props) {
           ) : undefined}
         >
           {renderGroups(columnData.othersGroups)}
+          {delegatedSubtasks.length > 0 && (
+            <div className={cn(columnData.othersCount > 0 && "mt-3")}>
+              <div className="flex items-center gap-2 mb-1.5 px-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Subtarefas delegadas
+                </span>
+                <span className="text-[10px] text-muted-foreground">({delegatedSubtasks.length})</span>
+                <div className="flex-1 h-px bg-border/60" />
+              </div>
+              <div className="space-y-1.5">
+                {delegatedSubtasks.map(({ sub, parent }) => (
+                  <DelegatedSubtaskRow
+                    key={sub.id}
+                    sub={sub}
+                    parent={parent}
+                    onSelectParent={() => onSelect(parent)}
+                    onToggle={() => onToggleSubtask(sub.id)}
+                    onOpenComm={() => setCommTask({
+                      title: sub.title,
+                      description: `Subtarefa da atividade "${parent.title}".${parent.description ? `\n\n${parent.description}` : ""}`,
+                      due_date: sub.due_date || parent.due_date,
+                      delegated_to: sub.delegated_to,
+                    })}
+                    onReload={onReload}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </DroppableColumn>
       </div>
 
