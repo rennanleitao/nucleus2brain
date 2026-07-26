@@ -40,9 +40,10 @@ export const SpaceCard = forwardRef<HTMLButtonElement, SpaceCardProps>(({ space,
         <SpaceIcon iconKey={space.icon} className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <h3 className="text-[14px] font-semibold leading-tight tracking-[-0.005em] truncate text-foreground">{space.name}</h3>
-          {!hideCategory && (
+          {!hideCategory && !category && (
             <SpaceCategoryQuickEdit spaceId={space.id} category={category} onChanged={onCategoryChanged} />
           )}
+
         </div>
         <div className="flex items-center gap-4 text-[11px] text-muted-foreground tabular-nums flex-shrink-0">
           <span>{taskCount} tasks</span>
