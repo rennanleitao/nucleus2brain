@@ -1,5 +1,5 @@
 import { forwardRef, useState, useEffect, useRef } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy, Repeat, Gauge, GripVertical, Pencil, Check, UserPlus } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy, Repeat, Gauge, GripVertical, Pencil, Check, UserPlus, Sunrise, Sun, Moon } from "lucide-react";
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -49,6 +49,7 @@ interface TaskCardProps {
     execution_complexity?: TaskExecutionComplexity | null;
     estimated_minutes?: number | null;
     recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
+    shift?: "morning" | "afternoon" | "night" | null;
   };
   subtasks?: Subtask[];
   reminder?: { reminder_time: string; sent: boolean } | null;
@@ -425,6 +426,35 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
       setSavingComplexity(false);
     }
   };
+
+  type TaskShift = "morning" | "afternoon" | "night";
+  const shiftMeta: Record<TaskShift, { label: string; hours: string; icon: React.ElementType }> = {
+    morning: { label: "Manhã", hours: "08h — 12h", icon: Sunrise },
+    afternoon: { label: "Tarde", hours: "12h — 17h", icon: Sun },
+    night: { label: "Noite", hours: "18h em diante", icon: Moon },
+  };
+  const [shiftOpen, setShiftOpen] = useState(false);
+  const [savingShift, setSavingShift] = useState(false);
+  const [localShift, setLocalShift] = useState<TaskShift | null | undefined>(task.shift);
+  useEffect(() => { setLocalShift(task.shift); }, [task.shift]);
+  const applyShift = async (level: TaskShift | null) => {
+    if (savingShift) return;
+    const prev = localShift;
+    setLocalShift(level);
+    setSavingShift(true);
+    try {
+      await updateTask(task.id, { shift: level } as any);
+      toast.success(level ? `Turno: ${shiftMeta[level].label}` : "Turno removido");
+      setShiftOpen(false);
+      window.dispatchEvent(new CustomEvent("nucleus:task-updated", { detail: { id: task.id } }));
+    } catch (err: any) {
+      setLocalShift(prev);
+      toast.error(err.message);
+    } finally {
+      setSavingShift(false);
+    }
+  };
+  const ActiveShiftIcon = localShift ? shiftMeta[localShift].icon : Sunrise;
   const [addingMaterial, setAddingMaterial] = useState(false);
   const [newMatTitle, setNewMatTitle] = useState("");
   const [newMatUrl, setNewMatUrl] = useState("");
@@ -692,6 +722,64 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
               </PopoverContent>
             </Popover>
           </div>
+
+          <div onClick={e => e.stopPropagation()}>
+            <Popover open={shiftOpen} onOpenChange={setShiftOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  disabled={savingShift}
+                  className={cn(
+                    "transition-colors p-1",
+                    localShift ? "text-primary" : "text-muted-foreground hover:text-primary"
+                  )}
+                  title={localShift ? `Turno: ${shiftMeta[localShift].label} (${shiftMeta[localShift].hours})` : "Definir turno"}
+                >
+                  <ActiveShiftIcon className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-1" align="end" side="bottom" onClick={(e) => e.stopPropagation()}>
+                <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Turno
+                </div>
+                {(["morning", "afternoon", "night"] as TaskShift[]).map((level) => {
+                  const active = localShift === level;
+                  const Icon = shiftMeta[level].icon;
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      disabled={savingShift}
+                      onClick={() => applyShift(level)}
+                      className={cn(
+                        "w-full flex items-center gap-2 text-left px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors",
+                        active && "bg-muted",
+                      )}
+                    >
+                      <Icon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <span className="flex-1">
+                        <span className="font-medium">{shiftMeta[level].label}</span>
+                        <span className="block text-[10px] text-muted-foreground">{shiftMeta[level].hours}</span>
+                      </span>
+                      {active && <span className="text-[10px] text-primary font-semibold">✓</span>}
+                    </button>
+                  );
+                })}
+                {localShift && (
+                  <button
+                    type="button"
+                    disabled={savingShift}
+                    onClick={() => applyShift(null)}
+                    className="w-full flex items-center gap-2 text-left px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors text-muted-foreground border-t border-border mt-1 pt-1.5"
+                  >
+                    <X className="h-3 w-3 flex-shrink-0" />
+                    <span className="flex-1">Sem turno</span>
+                  </button>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+
 
           {!isCompleted && onDuplicate && (
             <button
