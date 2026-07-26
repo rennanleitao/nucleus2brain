@@ -956,15 +956,60 @@ export default function Tasks() {
                       <SelectItem value="complexity">Ordenar: complexidade</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={groupBy} onValueChange={setGroupBy}>
-                    <SelectTrigger className="w-[110px] sm:w-[140px] h-10 sm:h-8 text-small touch-manipulation"><SelectValue placeholder="Group by" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No grouping</SelectItem>
-                      <SelectItem value="space">By Space</SelectItem>
-                      <SelectItem value="date">By Date</SelectItem>
-                      <SelectItem value="complexity">Por Complexidade</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        title="Agrupar por (múltiplo, cumulativo)"
+                        className={`flex items-center gap-1.5 px-2.5 h-10 sm:h-8 text-small rounded-md border transition-colors ${listDimensions.length > 0 ? "bg-primary/10 text-primary border-primary/40" : "bg-background text-muted-foreground border-border hover:bg-muted"}`}
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">
+                          {listDimensions.length === 0 ? "Agrupar" : listDimensions.map(d => LIST_DIMENSIONS.find(x => x.value === d)?.label).join(" › ")}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-64 p-2">
+                      <p className="text-micro text-muted-foreground px-2 pb-1.5">
+                        Agrupar por (na ordem selecionada)
+                      </p>
+                      <div className="space-y-0.5">
+                        {LIST_DIMENSIONS.map(d => {
+                          const idx = listDimensions.indexOf(d.value);
+                          const checked = idx !== -1;
+                          return (
+                            <label
+                              key={d.value}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded-md text-small cursor-pointer hover:bg-muted"
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() => toggleListDimension(d.value)}
+                              />
+                              <span className="flex-1">{d.label}</span>
+                              {checked && (
+                                <span className="text-micro text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                  {idx + 1}º
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {listDimensions.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setListDimensions(() => [])}
+                          className="mt-2 w-full text-micro text-muted-foreground hover:text-foreground py-1 rounded hover:bg-muted"
+                        >
+                          Limpar agrupamentos
+                        </button>
+                      )}
+                      <p className="text-micro text-muted-foreground px-2 pt-2 pb-0.5">
+                        Arraste tasks entre grupos para mover.
+                      </p>
+                    </PopoverContent>
+                  </Popover>
                 </>
               )}
               <button
