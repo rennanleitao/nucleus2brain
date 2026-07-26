@@ -24,8 +24,7 @@ import {
 } from "@/lib/taskComplexity";
 
 const dateGroupFilters = [
-  { value: "all", label: "All" },
-  { value: "planner", label: "Day Planner", icon: CalendarCheck },
+  { value: "planner", label: "Day Planner", icon: CalendarCheck, mandatory: true },
   { value: "todo", label: "To-do" },
   { value: "today", label: "Today" },
   { value: "week", label: "This Week" },
@@ -33,6 +32,15 @@ const dateGroupFilters = [
   { value: "done", label: "Done" },
   { value: "deleted", label: "Deleted" },
 ];
+
+const HIDDEN_TABS_KEY = "nucleus.tasks.hiddenTabs";
+const loadHiddenTabs = (): string[] => {
+  try {
+    const raw = localStorage.getItem(HIDDEN_TABS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+
 
 export default function Tasks() {
   const navigate = useNavigate();
