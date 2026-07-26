@@ -1,0 +1,1 @@
+ALTER TABLE public.subtasks ADD COLUMN IF NOT EXISTS delegated_to TEXT;

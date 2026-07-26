@@ -1,9 +1,10 @@
 import { forwardRef, useState, useEffect, useRef } from "react";
-import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy, Repeat, Gauge, GripVertical, Pencil, Check } from "lucide-react";
+import { CheckCircle2, Circle, Clock, AlertCircle, XCircle, Trash2, CalendarDays, ChevronRight, ChevronDown, ChevronUp, Plus, X, FileText, Tag, Bell, Timer, CalendarClock, LinkIcon, ExternalLink, Copy, Repeat, Gauge, GripVertical, Pencil, Check, UserPlus } from "lucide-react";
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { updateSubtask as apiUpdateSubtask, reorderSubtasks as apiReorderSubtasks } from "@/lib/api";
+import { promptDialog } from "@/components/ui/dialog-service";
 
 
 import { Badge } from "@/components/ui/badge";
@@ -241,6 +242,11 @@ function SortableSubtaskRow({ sub, onToggle, onDelete, onReschedule, onEdited }:
           title="Clique para editar"
         >
           {sub.title}
+          {(sub as any).delegated_to && (
+            <span className="ml-1.5 text-[10px] text-muted-foreground">
+              · Delegada a <span className="font-medium text-foreground">{(sub as any).delegated_to}</span>
+            </span>
+          )}
         </span>
       )}
       {!editing && sub.due_date && (
@@ -257,6 +263,38 @@ function SortableSubtaskRow({ sub, onToggle, onDelete, onReschedule, onEdited }:
           title="Editar subtask"
         >
           <Pencil className="h-3 w-3" />
+        </button>
+      )}
+      {!editing && sub.status !== "completed" && (
+        <button
+          type="button"
+          onClick={async (e) => {
+            e.stopPropagation();
+            const current = (sub as any).delegated_to || "";
+            const name = await promptDialog({
+              title: current ? "Alterar responsável" : "Delegar subtarefa",
+              description: `Quem está executando "${sub.title}"? Deixe em branco para trazer de volta para você.`,
+              defaultValue: current,
+              placeholder: "Nome da pessoa",
+              confirmLabel: current ? "Atualizar" : "Delegar",
+            });
+            if (name === null) return;
+            const trimmed = name.trim();
+            try {
+              await apiUpdateSubtask(sub.id, { delegated_to: trimmed || null });
+              toast.success(trimmed ? `Delegada para ${trimmed}` : "Trazida de volta para você");
+              onEdited?.();
+            } catch (err: any) {
+              toast.error(err.message);
+            }
+          }}
+          className={cn(
+            "transition-colors opacity-0 group-hover/sub:opacity-100",
+            (sub as any).delegated_to ? "text-primary" : "text-muted-foreground/60 hover:text-primary"
+          )}
+          title={(sub as any).delegated_to ? "Alterar responsável" : "Delegar subtarefa"}
+        >
+          <UserPlus className="h-3 w-3" />
         </button>
       )}
       {onReschedule && sub.status !== "completed" && !editing && (

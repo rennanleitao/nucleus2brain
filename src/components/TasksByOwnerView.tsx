@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { DndContext, useDraggable, useDroppable, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send, Mail, MessageCircle, Copy } from "lucide-react";
+import { User, Users, GripVertical, CalendarDays, Gauge, Plus, Send, Mail, MessageCircle, Copy, CheckCircle2, Circle, UserPlus, X } from "lucide-react";
+import { updateSubtask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 import { updateTask } from "@/lib/api";
 import { toast } from "sonner";
@@ -196,6 +197,81 @@ function QuickCommButton({
   );
 }
 
+function DelegatedSubtaskRow({
+  sub,
+  parent,
+  onSelectParent,
+  onToggle,
+  onOpenComm,
+  onReload,
+}: {
+  sub: any;
+  parent: any;
+  onSelectParent: () => void;
+  onToggle: () => void;
+  onOpenComm: () => void;
+  onReload: () => void;
+}) {
+  const handleUndelegate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await updateSubtask(sub.id, { delegated_to: null });
+      toast.success("Trazida de volta para você");
+      onReload();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+  return (
+    <div className="group flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+        title={sub.status === "completed" ? "Reabrir" : "Concluir"}
+      >
+        {sub.status === "completed"
+          ? <CheckCircle2 className="h-3.5 w-3.5" />
+          : <Circle className="h-3.5 w-3.5" />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className={cn("text-xs font-medium truncate", sub.status === "completed" && "line-through text-muted-foreground")}>
+          {sub.title}
+        </p>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onSelectParent(); }}
+          className="text-[10px] text-muted-foreground hover:text-primary transition-colors truncate block max-w-full text-left"
+          title={`Abrir tarefa "${parent.title}"`}
+        >
+          Subtarefa de <span className="underline decoration-dotted">{parent.title}</span>
+          {sub.due_date && <span className="ml-1">· {new Date(sub.due_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>}
+        </button>
+      </div>
+      <span className="hidden sm:inline text-[10px] text-muted-foreground">
+        <span className="font-medium text-foreground">{sub.delegated_to}</span>
+      </span>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onOpenComm(); }}
+        className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-background hover:bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Comunicar responsável"
+        title="Comunicar responsável"
+      >
+        <MessageCircle className="h-3 w-3" /> Comunicar
+      </button>
+      <button
+        type="button"
+        onClick={handleUndelegate}
+        className="text-muted-foreground/60 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+        title="Remover delegação"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 export function TasksByOwnerView(props: Props) {
   const {
     tasks, groups, subtasksMap, remindersMap, onToggle, onDelete, onToggleSubtask,
@@ -250,6 +326,19 @@ export function TasksByOwnerView(props: Props) {
     if (groups && groups.length > 0) return groups.flatMap(g => g.tasks);
     return tasks;
   }, [groups, tasks]);
+
+  const delegatedSubtasks = useMemo(() => {
+    const out: { sub: any; parent: any }[] = [];
+    for (const t of allTasks) {
+      const subs = subtasksMap[t.id] || [];
+      for (const s of subs) {
+        if (s.delegated_to && String(s.delegated_to).trim() && s.status !== "completed") {
+          out.push({ sub: s, parent: t });
+        }
+      }
+    }
+    return out;
+  }, [allTasks, subtasksMap]);
 
   const activeTask = activeId ? allTasks.find(t => t.id === activeId) : null;
 
@@ -435,7 +524,7 @@ export function TasksByOwnerView(props: Props) {
           id="others"
           title="Executadas por outros"
           icon={Users}
-          count={columnData.othersCount}
+          count={columnData.othersCount + delegatedSubtasks.length}
           empty="Arraste aqui as tarefas delegadas para outra pessoa."
           accent="bg-primary/10"
           action={onDelegate ? (
@@ -451,6 +540,35 @@ export function TasksByOwnerView(props: Props) {
           ) : undefined}
         >
           {renderGroups(columnData.othersGroups)}
+          {delegatedSubtasks.length > 0 && (
+            <div className={cn(columnData.othersCount > 0 && "mt-3")}>
+              <div className="flex items-center gap-2 mb-1.5 px-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Subtarefas delegadas
+                </span>
+                <span className="text-[10px] text-muted-foreground">({delegatedSubtasks.length})</span>
+                <div className="flex-1 h-px bg-border/60" />
+              </div>
+              <div className="space-y-1.5">
+                {delegatedSubtasks.map(({ sub, parent }) => (
+                  <DelegatedSubtaskRow
+                    key={sub.id}
+                    sub={sub}
+                    parent={parent}
+                    onSelectParent={() => onSelect(parent)}
+                    onToggle={() => onToggleSubtask(sub.id)}
+                    onOpenComm={() => setCommTask({
+                      title: sub.title,
+                      description: `Subtarefa da atividade "${parent.title}".${parent.description ? `\n\n${parent.description}` : ""}`,
+                      due_date: sub.due_date || parent.due_date,
+                      delegated_to: sub.delegated_to,
+                    })}
+                    onReload={onReload}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </DroppableColumn>
       </div>
 
