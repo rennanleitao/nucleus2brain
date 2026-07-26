@@ -659,34 +659,13 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
           </div>
           <CollapsibleContent onClick={(e) => e.stopPropagation()} className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
             <div className="px-3 pb-3 pt-1 space-y-1 ml-4 border-l border-border/60">
-              {subtasks.map(sub => (
-                <div key={sub.id} className="flex items-center gap-2 py-1">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onToggleSubtask?.(sub.id); }}
-                    className={`flex-shrink-0 transition-colors ${sub.status === "completed" ? "text-muted-foreground" : "text-muted-foreground hover:text-primary"}`}
-                  >
-                    {sub.status === "completed" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
-                  </button>
-                  <span className={`text-micro flex-1 ${sub.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
-                    {sub.title}
-                  </span>
-                  {sub.due_date && (
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                      <CalendarDays className="h-2.5 w-2.5" />
-                      {formatDate(sub.due_date)}
-                    </span>
-                  )}
-                  {onRescheduleSubtask && sub.status !== "completed" && (
-                    <SubtaskReschedulePopover subtaskId={sub.id} currentDate={sub.due_date} onReschedule={onRescheduleSubtask} />
-                  )}
-                  {onDeleteSubtask && (
-                    <button onClick={(e) => { e.stopPropagation(); onDeleteSubtask(sub.id); }}
-                      className="text-muted-foreground hover:text-destructive transition-colors">
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
+              <SubtaskDndList
+                subtasks={subtasks}
+                onToggle={onToggleSubtask}
+                onDelete={onDeleteSubtask}
+                onReschedule={onRescheduleSubtask}
+              />
+
               {addingSubtask && (
                 <form onSubmit={handleAddSubtask} className="flex items-center gap-2 pt-1">
                   <input
