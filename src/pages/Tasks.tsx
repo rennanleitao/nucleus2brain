@@ -6,7 +6,7 @@ import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users, UserPlus, Clock, FolderOpen, Gauge, Sparkles, Timer, Eye } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, Trash2, Plus, ChevronDown, ChevronRight, LayoutList, Columns3, CalendarCheck, Minimize2, Maximize2, RotateCcw, Trash, Users, UserPlus, Clock, FolderOpen, Gauge, Sparkles, Timer, Eye, Sunrise } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -69,7 +69,7 @@ export default function Tasks() {
   
   const [groupBy, setGroupBy] = useState("space");
   const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
-  const [plannerView, setPlannerView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner">("date-complexity");
+  const [plannerView, setPlannerView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner">("date-complexity");
   const [aiScheduleOpen, setAiScheduleOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -592,6 +592,10 @@ export default function Tasks() {
                 <button onClick={() => setPlannerView("date-complexity")} title="Por Data e Complexidade"
                   className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
                   <Gauge className="h-4 w-4" />
+                </button>
+                <button onClick={() => setPlannerView("date-shift")} title="Por Turno (Manhã/Tarde/Noite)"
+                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-shift" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <Sunrise className="h-4 w-4" />
                 </button>
                 <button onClick={() => setPlannerView("owner")} title="Por responsável (mim / outros)"
                   className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>

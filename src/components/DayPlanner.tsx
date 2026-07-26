@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TaskCard } from "@/components/TaskCard";
-import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2, FolderOpen, Gauge, Users } from "lucide-react";
+import { CalendarCheck, ChevronDown, ChevronRight, CalendarClock, AlertTriangle, CalendarPlus, CalendarDays, Link2, Timer, GripVertical, LayoutList, Columns3, Circle, PlayCircle, PauseCircle, Clock, Sparkles, Minimize2, Maximize2, FolderOpen, Gauge, Users, Sunrise } from "lucide-react";
 import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,6 +23,31 @@ import {
   type TaskExecutionComplexity,
 } from "@/lib/taskComplexity";
 
+type TaskShift = "morning" | "afternoon" | "night";
+const TASK_SHIFTS: TaskShift[] = ["morning", "afternoon", "night"];
+const taskShiftLabels: Record<TaskShift, string> = {
+  morning: "Manhã",
+  afternoon: "Tarde",
+  night: "Noite",
+};
+const taskShiftHours: Record<TaskShift, string> = {
+  morning: "08h — 12h",
+  afternoon: "12h — 17h",
+  night: "18h em diante",
+};
+function inferShiftFromTime(time?: string | null): TaskShift | null {
+  if (!time) return null;
+  const h = parseInt(String(time).slice(0, 2), 10);
+  if (Number.isNaN(h)) return null;
+  if (h >= 8 && h < 12) return "morning";
+  if (h >= 12 && h < 17) return "afternoon";
+  if (h >= 17) return "night";
+  return null;
+}
+function getTaskShift(t: any): TaskShift | null {
+  return (t.shift as TaskShift | null) ?? inferShiftFromTime(t.scheduled_time);
+}
+
 interface DayPlannerProps {
   tasks: any[];
   setTasks: React.Dispatch<React.SetStateAction<any[]>>;
@@ -39,8 +64,8 @@ interface DayPlannerProps {
   onRescheduleSubtask: (id: string, newDate: string) => void;
   onDuplicate: (id: string) => void;
   onReload: () => void;
-  externalView?: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner";
-  onExternalViewChange?: (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner") => void;
+  externalView?: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner";
+  onExternalViewChange?: (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner") => void;
   externalAllCompact?: boolean;
   onExternalToggleAllCompact?: () => void;
   externalAIScheduleOpen?: boolean;
@@ -59,9 +84,9 @@ export function DayPlanner({
   const [showTomorrow, setShowTomorrow] = useState(false);
   const [showNext7, setShowNext7] = useState(false);
   const [showFuture, setShowFuture] = useState(false);
-  const [internalView, setInternalView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner">("date-complexity");
+  const [internalView, setInternalView] = useState<"list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner">("date-complexity");
   const view = externalView ?? internalView;
-  const setView = (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "owner") => {
+  const setView = (v: "list" | "kanban" | "timeline" | "space" | "date-complexity" | "date-shift" | "owner") => {
     if (onExternalViewChange) onExternalViewChange(v);
     else setInternalView(v);
   };
@@ -281,13 +306,16 @@ export function DayPlanner({
 
   // ===== Drag-and-drop (date + complexity groups) =====
   const [dragOverGroupKey, setDragOverGroupKey] = useState<string | null>(null);
-  const applyTaskMove = async (taskId: string, changes: { due_date?: string; execution_complexity?: TaskExecutionComplexity }) => {
+  const applyTaskMove = async (taskId: string, changes: { due_date?: string; execution_complexity?: TaskExecutionComplexity; shift?: TaskShift | null }) => {
     const t = tasks.find(x => x.id === taskId);
     if (!t) return;
     const patch: any = {};
     if (changes.due_date && t.due_date !== changes.due_date) patch.due_date = changes.due_date;
     if (changes.execution_complexity && (t.execution_complexity || "medium") !== changes.execution_complexity) {
       patch.execution_complexity = changes.execution_complexity;
+    }
+    if (changes.shift !== undefined && (t.shift ?? null) !== changes.shift) {
+      patch.shift = changes.shift;
     }
     if (Object.keys(patch).length === 0) return;
     setTasks(prev => prev.map(x => x.id === taskId ? { ...x, ...patch } : x));
@@ -299,14 +327,14 @@ export function DayPlanner({
       onReload();
     }
   };
-  const handleGroupDrop = (e: React.DragEvent, date: string, complexity?: TaskExecutionComplexity) => {
+  const handleGroupDrop = (e: React.DragEvent, date: string, extra?: { complexity?: TaskExecutionComplexity; shift?: TaskShift }) => {
     e.preventDefault();
     e.stopPropagation();
     const sourceId = draggedId || e.dataTransfer.getData("text/plain");
     setDraggedId(null);
     setDragOverGroupKey(null);
     if (!sourceId) return;
-    applyTaskMove(sourceId, { due_date: date, execution_complexity: complexity });
+    applyTaskMove(sourceId, { due_date: date, execution_complexity: extra?.complexity, shift: extra?.shift });
   };
   const handleGroupDragOver = (e: React.DragEvent, key: string) => {
     e.preventDefault();
@@ -471,6 +499,36 @@ export function DayPlanner({
     });
   }, [overdueTasks, todayTasks, tomorrowTasks, next7Tasks, futureTasks]);
 
+  // Group all planning tasks by date, then by shift (Manhã/Tarde/Noite)
+  const dateShiftGroups = useMemo(() => {
+    const all = [...overdueTasks, ...todayTasks, ...tomorrowTasks, ...next7Tasks, ...futureTasks];
+    const byDate = new Map<string, any[]>();
+    for (const t of all) {
+      const d = t.due_date as string;
+      if (!byDate.has(d)) byDate.set(d, []);
+      byDate.get(d)!.push(t);
+    }
+    const sortedDates = [...byDate.keys()].sort();
+    return sortedDates.map(date => {
+      const tasksForDate = byDate.get(date)!;
+      const shiftGroups = TASK_SHIFTS.map(level => ({
+        level,
+        label: taskShiftLabels[level],
+        hours: taskShiftHours[level],
+        tasks: tasksForDate
+          .filter(t => getTaskShift(t) === level)
+          .sort((a, b) => {
+            const at = a.scheduled_time || "99:99";
+            const bt = b.scheduled_time || "99:99";
+            if (at !== bt) return at.localeCompare(bt);
+            return a.created_at.localeCompare(b.created_at);
+          }),
+      }));
+      const unset = tasksForDate.filter(t => getTaskShift(t) === null);
+      return { date, tasks: tasksForDate, shiftGroups, unset };
+    });
+  }, [overdueTasks, todayTasks, tomorrowTasks, next7Tasks, futureTasks]);
+
   const formatDateLabel = (dateStr: string) => {
     if (dateStr === today) return "Hoje";
     if (dateStr === tomorrow) return "Amanhã";
@@ -515,6 +573,10 @@ export function DayPlanner({
               <button onClick={() => setView("date-complexity")} title="Por Data e Complexidade"
                 className={`p-1.5 transition-colors ${view === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
                 <Gauge className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setView("date-shift")} title="Por Turno (Manhã/Tarde/Noite)"
+                className={`p-1.5 transition-colors ${view === "date-shift" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                <Sunrise className="h-3.5 w-3.5" />
               </button>
               <button onClick={() => setView("owner")} title="Por responsável (mim / outros)"
                 className={`p-1.5 transition-colors ${view === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
@@ -795,7 +857,7 @@ export function DayPlanner({
                         <div
                           key={level}
                           onDragOver={(e) => handleGroupDragOver(e, key)}
-                          onDrop={(e) => handleGroupDrop(e, dg.date, level)}
+                          onDrop={(e) => handleGroupDrop(e, dg.date, { complexity: level })}
                           className={cn(
                             "rounded-lg border overflow-hidden transition-colors",
                             isOver ? "border-primary bg-primary/5" : "border-border/60 bg-background/60",
@@ -823,6 +885,90 @@ export function DayPlanner({
         ) : (
           <div className="text-center py-10 rounded-xl border border-dashed border-border">
             <Gauge className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-small text-muted-foreground">Nenhuma task agendada</p>
+          </div>
+        )
+      )}
+
+      {/* DATE + SHIFT VIEW */}
+      {view === "date-shift" && (
+        dateShiftGroups.length > 0 ? (
+          <div className="space-y-4">
+            {dateShiftGroups.map((dg) => {
+              const isToday = dg.date === today;
+              const isOverdue = dg.date < today;
+              return (
+                <div
+                  key={dg.date}
+                  onDragOver={(e) => handleGroupDragOver(e, `dateshift:${dg.date}`)}
+                  onDrop={(e) => handleGroupDrop(e, dg.date)}
+                  className={cn(
+                    "rounded-xl border overflow-hidden transition-colors",
+                    isToday ? "border-primary/30 bg-primary/5" : isOverdue ? "border-destructive/30 bg-destructive/5" : "border-border bg-card",
+                    dragOverGroupKey === `dateshift:${dg.date}` && "ring-2 ring-primary/40",
+                  )}
+                >
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border">
+                    <CalendarDays className={cn("h-3.5 w-3.5", isToday ? "text-primary" : isOverdue ? "text-destructive" : "text-muted-foreground")} />
+                    <h3 className="text-sm font-semibold text-foreground truncate capitalize">{formatDateLabel(dg.date)}</h3>
+                    <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                      {dg.tasks.length}
+                    </span>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    {TASK_SHIFTS.map((level) => {
+                      const sg = dg.shiftGroups.find(g => g.level === level)!;
+                      const key = `ds:${dg.date}:${level}`;
+                      const isOver = dragOverGroupKey === key;
+                      const count = sg.tasks.length;
+                      return (
+                        <div
+                          key={level}
+                          onDragOver={(e) => handleGroupDragOver(e, key)}
+                          onDrop={(e) => handleGroupDrop(e, dg.date, { shift: level })}
+                          className={cn(
+                            "rounded-lg border overflow-hidden transition-colors",
+                            isOver ? "border-primary bg-primary/5" : "border-border/60 bg-background/60",
+                          )}
+                        >
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-border/60">
+                            <Sunrise className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground">{sg.label}</span>
+                            <span className="text-micro text-muted-foreground">· {sg.hours}</span>
+                            <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                              {count}
+                            </span>
+                          </div>
+                          <div className="p-2 space-y-2 min-h-[40px]">
+                            {count === 0 ? (
+                              <p className="text-micro text-muted-foreground/70 italic px-1 py-1.5">Arraste tarefas para este turno</p>
+                            ) : sg.tasks.map(t => renderTaskCardInSection(t))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {dg.unset.length > 0 && (
+                      <div className="rounded-lg border border-dashed border-border/60 bg-background/40 overflow-hidden">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/20 border-b border-border/40">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs font-semibold text-muted-foreground">Sem turno</span>
+                          <span className="text-micro text-muted-foreground bg-background px-1.5 py-0.5 rounded-md ml-auto">
+                            {dg.unset.length}
+                          </span>
+                        </div>
+                        <div className="p-2 space-y-2">
+                          {dg.unset.map(t => renderTaskCardInSection(t))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-10 rounded-xl border border-dashed border-border">
+            <Sunrise className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-small text-muted-foreground">Nenhuma task agendada</p>
           </div>
         )

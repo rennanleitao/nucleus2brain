@@ -1299,6 +1299,7 @@ export type Database = {
           recurrence: string | null
           recurrence_parent_id: string | null
           scheduled_time: string | null
+          shift: string | null
           space_id: string | null
           status: Database["public"]["Enums"]["task_status"]
           tag: string | null
@@ -1322,6 +1323,7 @@ export type Database = {
           recurrence?: string | null
           recurrence_parent_id?: string | null
           scheduled_time?: string | null
+          shift?: string | null
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tag?: string | null
@@ -1345,6 +1347,7 @@ export type Database = {
           recurrence?: string | null
           recurrence_parent_id?: string | null
           scheduled_time?: string | null
+          shift?: string | null
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tag?: string | null
