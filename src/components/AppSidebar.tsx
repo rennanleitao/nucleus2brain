@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItemsAll = [
-  { key: "assistant", title: "Helena", url: "/", icon: Bot },
+  { key: "assistant", title: "Helena", url: "/assistant", icon: Bot },
   { key: "dashboard", title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { key: "spaces", title: "Spaces", url: "/spaces", icon: FolderOpen },
   { key: "notes", title: "Notes", url: "/notes", icon: FileText },
@@ -153,7 +153,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/"}
+                      end
                       className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
