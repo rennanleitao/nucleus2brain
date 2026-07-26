@@ -23,6 +23,31 @@ import {
   type TaskExecutionComplexity,
 } from "@/lib/taskComplexity";
 
+type TaskShift = "morning" | "afternoon" | "night";
+const TASK_SHIFTS: TaskShift[] = ["morning", "afternoon", "night"];
+const taskShiftLabels: Record<TaskShift, string> = {
+  morning: "Manhã",
+  afternoon: "Tarde",
+  night: "Noite",
+};
+const taskShiftHours: Record<TaskShift, string> = {
+  morning: "08h — 12h",
+  afternoon: "12h — 17h",
+  night: "18h em diante",
+};
+function inferShiftFromTime(time?: string | null): TaskShift | null {
+  if (!time) return null;
+  const h = parseInt(String(time).slice(0, 2), 10);
+  if (Number.isNaN(h)) return null;
+  if (h >= 8 && h < 12) return "morning";
+  if (h >= 12 && h < 17) return "afternoon";
+  if (h >= 17) return "night";
+  return null;
+}
+function getTaskShift(t: any): TaskShift | null {
+  return (t.shift as TaskShift | null) ?? inferShiftFromTime(t.scheduled_time);
+}
+
 interface DayPlannerProps {
   tasks: any[];
   setTasks: React.Dispatch<React.SetStateAction<any[]>>;
