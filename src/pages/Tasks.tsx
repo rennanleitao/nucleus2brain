@@ -115,6 +115,19 @@ export default function Tasks() {
   const [sortBy, setSortBy] = useState("date");
   
   const [groupBy, setGroupBy] = useState("space");
+  const [listDimensions, _setListDimensions] = useState<ListDimension[]>(loadListDimensions);
+  const setListDimensions = (fn: (prev: ListDimension[]) => ListDimension[]) => {
+    _setListDimensions(prev => {
+      const next = fn(prev);
+      try { localStorage.setItem(LIST_DIMENSIONS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const toggleListDimension = (d: ListDimension) => {
+    setListDimensions(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+  };
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverGroupPath, setDragOverGroupPath] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "kanban" | "owner">("list");
   const [plannerView, _setPlannerView] = useState<PlannerView>(loadPlannerView);
   const setPlannerView = (v: PlannerView) => {
