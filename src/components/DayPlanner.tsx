@@ -335,7 +335,14 @@ export function DayPlanner({
   };
 
   const renderTaskCardInSection = (t: any) => (
-    <div key={t.id} className="cursor-pointer" onClick={() => onSelect(t)}>
+    <div
+      key={t.id}
+      className={cn("cursor-pointer transition-opacity", draggedId === t.id && "opacity-40")}
+      draggable
+      onDragStart={(e) => { setDraggedId(t.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", t.id); }}
+      onDragEnd={handleDragEnd}
+      onClick={() => onSelect(t)}
+    >
       <TaskCard
         task={t}
         subtasks={subtasksMap[t.id] || []}
