@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, CalendarClock, ClipboardList, AlertTriangle, ListChecks, BarChart3, RefreshCw, Mic, MicOff, Pause, Play, Send, Square, User, Volume2, VolumeX } from "lucide-react";
+import { Bot, CalendarClock, ClipboardList, AlertTriangle, ListChecks, BarChart3, RefreshCw, Mic, MicOff, Pause, Play, Send, Square, User, Volume2, VolumeX, CheckCircle2, XCircle, ChevronDown, ChevronRight, Code2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchTasks, fetchSpaces, createTask } from "@/lib/api";
+import { fetchTasks, fetchSpaces, createTask, createSpace } from "@/lib/api";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,10 +10,80 @@ import { getFunctionAuthHeaders } from "@/lib/functionAuth";
 import { useHelenaSpeechInput } from "@/hooks/useHelenaSpeechInput";
 import { useHelenaSpeech } from "@/hooks/useHelenaSpeech";
 
+interface ExecutedAction {
+  label: string;
+  success: boolean;
+  detail?: string;
+  payload: any;
+  result?: any;
+  error?: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  actions?: ExecutedAction[];
+}
+
+// Strip fenced code blocks that are action JSON so the raw payload isn't shown in the chat.
+function stripActionBlocks(text: string): string {
+  return text
+    .replace(/```(?:action|json)?\s*\n?([\s\S]*?)```/g, (match, inner) => {
+      try {
+        const parsed = JSON.parse(inner.trim());
+        if (parsed && typeof parsed === "object" && "action" in parsed) return "";
+      } catch {}
+      return match;
+    })
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function extractActions(text: string): any[] {
+  const results: any[] = [];
+  const re = /```(?:action|json)?\s*\n?([\s\S]*?)```/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    try {
+      const parsed = JSON.parse(m[1].trim());
+      if (parsed && typeof parsed === "object" && "action" in parsed) results.push(parsed);
+    } catch {}
+  }
+  return results;
+}
+
+function ActionCard({ action }: { action: ExecutedAction }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`rounded-lg border px-3 py-2 text-[13px] ${action.success ? "border-emerald-200 bg-emerald-50/60" : "border-red-200 bg-red-50/60"}`}>
+      <div className="flex items-start gap-2">
+        {action.success ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+        ) : (
+          <XCircle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-foreground">{action.label}</div>
+          {action.detail && <div className="text-muted-foreground text-[12.5px] mt-0.5">{action.detail}</div>}
+          {action.error && <div className="text-red-700 text-[12.5px] mt-0.5">{action.error}</div>}
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground"
+        >
+          {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          <Code2 className="h-3 w-3" /> Debug
+        </button>
+      </div>
+      {open && (
+        <pre className="mt-2 rounded-md bg-background/60 border border-border/60 p-2 text-[11.5px] leading-relaxed overflow-auto max-h-64">
+{JSON.stringify({ payload: action.payload, result: action.result ?? null, error: action.error ?? null }, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
