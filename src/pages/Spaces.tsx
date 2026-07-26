@@ -16,6 +16,10 @@ export default function Spaces() {
   const [search, setSearch] = useState("");
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [draggingSpaceId, setDraggingSpaceId] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [emptyCategoryPrompt, setEmptyCategoryPrompt] = useState<{ id: string; label: string } | null>(null);
+  const previousSpacesRef = useRef<any[]>([]);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem("spaces.collapsedCategories");
