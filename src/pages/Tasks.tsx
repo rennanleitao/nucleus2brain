@@ -593,6 +593,10 @@ export default function Tasks() {
                   className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-complexity" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
                   <Gauge className="h-4 w-4" />
                 </button>
+                <button onClick={() => setPlannerView("date-shift")} title="Por Turno (Manhã/Tarde/Noite)"
+                  className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "date-shift" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <Sunrise className="h-4 w-4" />
+                </button>
                 <button onClick={() => setPlannerView("owner")} title="Por responsável (mim / outros)"
                   className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
                   <Users className="h-4 w-4" />
