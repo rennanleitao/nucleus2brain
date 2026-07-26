@@ -306,13 +306,16 @@ export function DayPlanner({
 
   // ===== Drag-and-drop (date + complexity groups) =====
   const [dragOverGroupKey, setDragOverGroupKey] = useState<string | null>(null);
-  const applyTaskMove = async (taskId: string, changes: { due_date?: string; execution_complexity?: TaskExecutionComplexity }) => {
+  const applyTaskMove = async (taskId: string, changes: { due_date?: string; execution_complexity?: TaskExecutionComplexity; shift?: TaskShift | null }) => {
     const t = tasks.find(x => x.id === taskId);
     if (!t) return;
     const patch: any = {};
     if (changes.due_date && t.due_date !== changes.due_date) patch.due_date = changes.due_date;
     if (changes.execution_complexity && (t.execution_complexity || "medium") !== changes.execution_complexity) {
       patch.execution_complexity = changes.execution_complexity;
+    }
+    if (changes.shift !== undefined && (t.shift ?? null) !== changes.shift) {
+      patch.shift = changes.shift;
     }
     if (Object.keys(patch).length === 0) return;
     setTasks(prev => prev.map(x => x.id === taskId ? { ...x, ...patch } : x));
@@ -324,14 +327,14 @@ export function DayPlanner({
       onReload();
     }
   };
-  const handleGroupDrop = (e: React.DragEvent, date: string, complexity?: TaskExecutionComplexity) => {
+  const handleGroupDrop = (e: React.DragEvent, date: string, extra?: { complexity?: TaskExecutionComplexity; shift?: TaskShift }) => {
     e.preventDefault();
     e.stopPropagation();
     const sourceId = draggedId || e.dataTransfer.getData("text/plain");
     setDraggedId(null);
     setDragOverGroupKey(null);
     if (!sourceId) return;
-    applyTaskMove(sourceId, { due_date: date, execution_complexity: complexity });
+    applyTaskMove(sourceId, { due_date: date, execution_complexity: extra?.complexity, shift: extra?.shift });
   };
   const handleGroupDragOver = (e: React.DragEvent, key: string) => {
     e.preventDefault();
