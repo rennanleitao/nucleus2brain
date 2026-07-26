@@ -344,6 +344,23 @@ export default function Spaces() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!emptyCategoryPrompt} onOpenChange={(open) => { if (!open) setEmptyCategoryPrompt(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Categoria vazia</AlertDialogTitle>
+            <AlertDialogDescription>
+              A categoria "{emptyCategoryPrompt?.label}" ficou sem spaces. Quer mantê-la ou excluir para não poluir a tela?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={keepEmptyCategory}>Manter</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteEmptyCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir categoria
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
