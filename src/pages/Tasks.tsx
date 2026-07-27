@@ -1134,30 +1134,46 @@ export default function Tasks() {
           )}
         </div>
       ) : filter === "planner" && plannerView !== "owner" ? (
-        <DayPlanner
-          tasks={search.trim() ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase())) : tasks}
-          setTasks={setTasks}
-          subtasksMap={subtasksMap}
-          remindersMap={remindersMap}
-          onToggle={toggleTask}
-          onDelete={handleDelete}
-          onToggleSubtask={toggleSubtask}
-          onAddSubtask={handleAddSubtask}
-          onDeleteSubtask={handleDeleteSubtask}
-          onPriorityChange={handlePriorityChange}
-          onSelect={setEditingTask}
-          onReschedule={handleReschedule}
-          onRescheduleSubtask={handleRescheduleSubtask}
-          onDuplicate={handleDuplicate}
-          onReload={load}
-          externalView={plannerView}
-          onExternalViewChange={setPlannerView}
-          externalAllCompact={allCompact}
-          onExternalToggleAllCompact={handleToggleAllCompact}
-          externalAIScheduleOpen={aiScheduleOpen}
-          onExternalAIScheduleOpenChange={setAiScheduleOpen}
-          hideHeader
-        />
+        (plannerView === "list" && listDimensions.length > 0) ? (
+          (() => {
+            const plannerTasks = (search.trim() ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase())) : tasks)
+              .filter(t => t.status !== "completed" && t.status !== "cancelled");
+            return plannerTasks.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-small text-muted-foreground">Nenhuma tarefa</p>
+              </div>
+            ) : (
+              renderGroupedRecursive(plannerTasks, listDimensions, {}, "root", 0)
+            );
+          })()
+        ) : (
+          <DayPlanner
+            tasks={search.trim() ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase())) : tasks}
+            setTasks={setTasks}
+            subtasksMap={subtasksMap}
+            remindersMap={remindersMap}
+            onToggle={toggleTask}
+            onDelete={handleDelete}
+            onToggleSubtask={toggleSubtask}
+            onAddSubtask={handleAddSubtask}
+            onDeleteSubtask={handleDeleteSubtask}
+            onPriorityChange={handlePriorityChange}
+            onSelect={setEditingTask}
+            onReschedule={handleReschedule}
+            onRescheduleSubtask={handleRescheduleSubtask}
+            onDuplicate={handleDuplicate}
+            onReload={load}
+            externalView={plannerView}
+            onExternalViewChange={setPlannerView}
+            externalAllCompact={allCompact}
+            onExternalToggleAllCompact={handleToggleAllCompact}
+            externalAIScheduleOpen={aiScheduleOpen}
+            onExternalAIScheduleOpenChange={setAiScheduleOpen}
+            hideHeader
+          />
+        )
+
       ) : (filter === "planner" ? plannerView === "owner" : viewMode === "owner") ? (
         <TasksByOwnerView
           tasks={filter === "planner"
