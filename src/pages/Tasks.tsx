@@ -125,6 +125,8 @@ export default function Tasks() {
   };
   const toggleListDimension = (d: ListDimension) => {
     setListDimensions(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+    setPlannerView("list");
+    setViewMode("list");
   };
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverGroupPath, setDragOverGroupPath] = useState<string | null>(null);
@@ -1133,21 +1135,157 @@ export default function Tasks() {
             </>
           )}
         </div>
-      ) : filter === "planner" && plannerView !== "owner" ? (
-        (plannerView === "list" && listDimensions.length > 0) ? (
+      ) : listDimensions.length > 0 ? (
+        filter === "planner" ? (
           (() => {
-            const plannerTasks = (search.trim() ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase())) : tasks)
-              .filter(t => t.status !== "completed" && t.status !== "cancelled");
-            return plannerTasks.length === 0 ? (
+            return filtered.length === 0 ? (
               <div className="text-center py-12">
                 <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-small text-muted-foreground">Nenhuma tarefa</p>
               </div>
             ) : (
-              renderGroupedRecursive(plannerTasks, listDimensions, {}, "root", 0)
+              renderGroupedRecursive(filtered, listDimensions, {}, "root", 0)
             );
           })()
         ) : (
+          <>
+            {filter === "done" && filtered.length > 0 && (
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={handleClearHistory}>
+                  <Trash2 className="h-4 w-4 mr-1" /> Limpar histórico
+                </Button>
+              </div>
+            )}
+            {filtered.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-small text-muted-foreground">No tasks here</p>
+              </div>
+            ) : (
+              renderGroupedRecursive(filtered, listDimensions, {}, "root", 0)
+            )}
+          </>
+        )
+      ) : filter === "planner" && plannerView !== "owner" ? (
+        <DayPlanner
+          tasks={search.trim() ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase())) : tasks}
+          setTasks={setTasks}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onSelect={setEditingTask}
+          onReschedule={handleReschedule}
+          onRescheduleSubtask={handleRescheduleSubtask}
+          onDuplicate={handleDuplicate}
+          onReload={load}
+          externalView={plannerView}
+          onExternalViewChange={setPlannerView}
+          externalAllCompact={allCompact}
+          onExternalToggleAllCompact={handleToggleAllCompact}
+          externalAIScheduleOpen={aiScheduleOpen}
+          onExternalAIScheduleOpenChange={setAiScheduleOpen}
+          hideHeader
+        />
+
+      ) : (filter === "planner" ? plannerView === "owner" : viewMode === "owner") ? (
+        <TasksByOwnerView
+          tasks={filter === "planner"
+            ? (search.trim()
+                ? tasks.filter(t => t.status !== "completed" && t.status !== "cancelled" && t.title.toLowerCase().includes(search.toLowerCase()))
+                : tasks.filter(t => t.status !== "completed" && t.status !== "cancelled"))
+            : filtered}
+
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onReschedule={handleReschedule}
+          onRescheduleSubtask={handleRescheduleSubtask}
+          onDuplicate={handleDuplicate}
+          onSelect={setEditingTask}
+          cardCompact={cardCompact}
+          onToggleCardCompact={toggleCardCompact}
+          allCompact={allCompact}
+          onReload={load}
+          onDelegate={() => setDelegateOpen(true)}
+        />
+      ) : viewMode === "kanban" ? (
+        <KanbanView
+          tasks={filtered}
+          subtasksMap={subtasksMap}
+          remindersMap={remindersMap}
+          onToggle={toggleTask}
+          onDelete={handleDelete}
+          onToggleSubtask={toggleSubtask}
+          onAddSubtask={handleAddSubtask}
+          onDeleteSubtask={handleDeleteSubtask}
+          onPriorityChange={handlePriorityChange}
+          onSelect={setEditingTask}
+          cardCompact={cardCompact}
+          onToggleCardCompact={toggleCardCompact}
+          allCompact={allCompact}
+        />
+      ) : (
+      <>
+      {filter === "done" && filtered.length > 0 && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={handleClearHistory}>
+            <Trash2 className="h-4 w-4 mr-1" /> Limpar histórico
+          </Button>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12">
+          <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-small text-muted-foreground">No tasks here</p>
+        </div>
+      ) : (
+        renderTaskList(filtered)
+      )}
+      </>
+      )}
+
+      {editingTask && (
+        <EditTaskDialog
+          task={editingTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!editingTask}
+          onOpenChange={(open) => !open && setEditingTask(null)}
+          onUpdated={load}
+        />
+      )}
+
+      {completionTask && (
+        <CompletionCommentDialog
+          task={completionTask}
+          open={!!completionTask}
+          onOpenChange={(open) => !open && setCompletionTask(null)}
+          onDone={() => { setCompletionTask(null); setFollowUpTask(completionTask); load(); }}
+        />
+      )}
+
+      {followUpTask && (
+        <FollowUpDialog
+          completedTask={followUpTask}
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          open={!!followUpTask}
+          onOpenChange={(open) => !open && setFollowUpTask(null)}
+          onCreated={load}
+        />
+      )}
+    </div>
+  );
+}
           <DayPlanner
             tasks={search.trim() ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase())) : tasks}
             setTasks={setTasks}
