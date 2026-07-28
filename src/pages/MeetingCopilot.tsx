@@ -258,10 +258,13 @@ export default function MeetingCopilot() {
     }
   }, [createSegment, ensureSession, runAnalysis, updateSession]);
 
-  const transcribeBlob = useCallback(async (blob: Blob, mimeType: string) => {
-    const audioBase64 = await blobToBase64(blob);
+  const transcribeBlob = useCallback(async (blob: Blob, mimeType: string, filename?: string) => {
+    const base64 = await blobToBase64(blob);
+    const isPdf = mimeType.toLowerCase().includes("pdf");
     const { data, error } = await supabase.functions.invoke("transcribe-meeting-audio", {
-      body: { audio_base64: audioBase64, mime_type: mimeType },
+      body: isPdf
+        ? { file_base64: base64, mime_type: mimeType, filename }
+        : { audio_base64: base64, mime_type: mimeType },
     });
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
@@ -269,6 +272,36 @@ export default function MeetingCopilot() {
     if (!text) throw new Error("A transcrição voltou vazia.");
     return text;
   }, []);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    const isAudio = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|webm|ogg|aac|flac|mp4)$/i.test(file.name);
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isAudio && !isPdf) {
+      toast.error("Envie um arquivo de áudio ou PDF.");
+      return;
+    }
+    const MAX_BYTES = 24 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      toast.error("Arquivo muito grande (máx. 24MB).");
+      return;
+    }
+    setUploadingFile(true);
+    try {
+      await ensureSession();
+      const mimeType = isPdf ? "application/pdf" : (file.type || "audio/webm");
+      const text = await transcribeBlob(file, mimeType, file.name);
+      await appendToTranscript(text, "manual");
+      toast.success(isPdf ? "PDF processado e adicionado à reunião" : "Áudio transcrito e adicionado");
+    } catch (err) {
+      toast.error(getEdgeFunctionErrorMessage(err, "Não foi possível processar o arquivo"));
+    } finally {
+      setUploadingFile(false);
+    }
+  }, [appendToTranscript, ensureSession, transcribeBlob]);
+
 
   const finalizeRecording = useCallback(async () => {
     const chunks = audioChunksRef.current;
