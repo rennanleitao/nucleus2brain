@@ -8,7 +8,9 @@ const corsHeaders = {
 
 type TranscribeRequest = {
   audio_base64?: string;
+  file_base64?: string;
   mime_type?: string;
+  filename?: string;
 };
 
 function getAudioFormat(mimeType?: string): string {
@@ -18,6 +20,10 @@ function getAudioFormat(mimeType?: string): string {
   if (normalized.includes("wav")) return "wav";
   if (normalized.includes("webm")) return "webm";
   return "webm";
+}
+
+function isPdfMime(mimeType?: string): boolean {
+  return (mimeType || "").toLowerCase().includes("pdf");
 }
 
 serve(async (req) => {
