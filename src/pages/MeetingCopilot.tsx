@@ -14,6 +14,7 @@ import {
   Pause,
   Play,
   Plus,
+  Upload,
   Radio,
   RefreshCw,
   Save,
