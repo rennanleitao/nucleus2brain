@@ -659,6 +659,32 @@ export default function MeetingCopilot() {
                 </div>
               )}
 
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*,application/pdf,.mp3,.wav,.m4a,.webm,.ogg,.aac,.flac,.mp4,.pdf"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await handleFileUpload(file);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFile || analyzing}
+                  className="justify-start"
+                >
+                  {uploadingFile ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
+                  {uploadingFile ? "Processando arquivo..." : "Enviar áudio ou PDF"}
+                </Button>
+                <p className="self-center text-xs text-muted-foreground">
+                  Aceita gravações prontas (mp3, wav, m4a, webm) ou PDF de ata/documento para resumir a reunião.
+                </p>
+              </div>
+
               <details className="rounded-md border bg-muted/10 p-3">
                 <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Adicionar texto colado</summary>
                 <div className="mt-3 space-y-2">
