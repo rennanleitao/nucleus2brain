@@ -8,7 +8,9 @@ const corsHeaders = {
 
 type TranscribeRequest = {
   audio_base64?: string;
+  file_base64?: string;
   mime_type?: string;
+  filename?: string;
 };
 
 function getAudioFormat(mimeType?: string): string {
@@ -18,6 +20,10 @@ function getAudioFormat(mimeType?: string): string {
   if (normalized.includes("wav")) return "wav";
   if (normalized.includes("webm")) return "webm";
   return "webm";
+}
+
+function isPdfMime(mimeType?: string): boolean {
+  return (mimeType || "").toLowerCase().includes("pdf");
 }
 
 serve(async (req) => {
@@ -44,10 +50,10 @@ serve(async (req) => {
       });
     }
 
-    const { audio_base64, mime_type }: TranscribeRequest = await req.json();
-    const audioData = audio_base64?.replace(/^data:audio\/[^;]+;base64,/, "").trim();
-    if (!audioData) {
-      return new Response(JSON.stringify({ error: "Missing audio_base64" }), {
+    const { audio_base64, file_base64, mime_type, filename }: TranscribeRequest = await req.json();
+    const rawBase64 = (file_base64 || audio_base64 || "").replace(/^data:[^;]+;base64,/, "").trim();
+    if (!rawBase64) {
+      return new Response(JSON.stringify({ error: "Missing audio_base64 or file_base64" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -55,6 +61,61 @@ serve(async (req) => {
 
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) throw new Error("LOVABLE_API_KEY not configured");
+
+    const promptText = [
+      "Você é um assistente que produz ATAS EXAUSTIVAS de reuniões presenciais em português do Brasil.",
+      "NÃO resuma. NÃO condense. NÃO omita conteúdo relevante. O objetivo é capturar TUDO o que foi dito/registrado, com riqueza de detalhes, mas organizado de forma legível.",
+      "",
+      "Estruture a saída em Markdown, EXATAMENTE nesta ordem (omita uma seção somente se realmente não houver conteúdo para ela):",
+      "",
+      "## Contexto",
+      "Breve enquadramento (1–3 linhas) sobre o tema da reunião, se inferível.",
+      "",
+      "## Participantes",
+      "Lista de nomes/papéis mencionados (quando identificáveis).",
+      "",
+      "## Transcrição detalhada",
+      "Transcrição COMPLETA e organizada por blocos temáticos com subtítulos (### Tópico). Dentro de cada bloco, use parágrafos e bullets para registrar TUDO o que foi discutido: argumentos, exemplos, números, datas, nomes de empresas/produtos/clientes, valores, prazos, contexto, dúvidas levantadas, respostas dadas. Preserve nuances e posições divergentes. Pode indicar falantes quando distinguíveis (ex: **Falante A:**). Limpe apenas vícios de linguagem, repetições involuntárias e hesitações ('éé', 'tipo assim'), SEM cortar conteúdo.",
+      "",
+      "## Principais pontos",
+      "Bullets com os pontos-chave discutidos.",
+      "",
+      "## Decisões",
+      "Bullets com decisões tomadas (o que foi decidido, por quem, com que condição).",
+      "",
+      "## Encaminhamentos / Próximos passos",
+      "Bullets no formato: **Ação** — responsável — prazo (se mencionado).",
+      "",
+      "## Definições e conceitos",
+      "Termos, definições, políticas, critérios ou regras estabelecidas durante a conversa.",
+      "",
+      "## Pendências e questões em aberto",
+      "Dúvidas não resolvidas, riscos, bloqueios, itens que precisam de follow-up.",
+      "",
+      "## Números, datas e referências citadas",
+      "Lista objetiva de todos os dados quantitativos, datas, links, documentos e nomes próprios citados.",
+      "",
+      "Regras:",
+      "- Priorize COMPLETUDE sobre concisão. É melhor ficar longo do que perder informação.",
+      "- Nunca invente. Se algo estiver inaudível ou incerto, marque com '[inaudível]' ou 'possivelmente ...'.",
+      "- Não adicione comentários sobre o arquivo nem introduções tipo 'Aqui está a ata'. Retorne DIRETAMENTE o Markdown da ata.",
+    ].join("\n");
+
+    const mediaBlock = isPdfMime(mime_type)
+      ? {
+          type: "file",
+          file: {
+            filename: filename || "documento.pdf",
+            file_data: `data:application/pdf;base64,${rawBase64}`,
+          },
+        }
+      : {
+          type: "input_audio",
+          input_audio: {
+            data: rawBase64,
+            format: getAudioFormat(mime_type),
+          },
+        };
 
     const transcribeResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -68,54 +129,8 @@ serve(async (req) => {
         messages: [{
           role: "user",
           content: [
-            {
-              type: "text",
-              text: [
-                "Você é um assistente que produz ATAS EXAUSTIVAS de reuniões presenciais em português do Brasil.",
-                "NÃO resuma. NÃO condense. NÃO omita conteúdo relevante. O objetivo é capturar TUDO o que foi dito, com riqueza de detalhes, mas organizado de forma legível.",
-                "",
-                "Estruture a saída em Markdown, EXATAMENTE nesta ordem (omita uma seção somente se realmente não houver conteúdo para ela):",
-                "",
-                "## Contexto",
-                "Breve enquadramento (1–3 linhas) sobre o tema da reunião, se inferível.",
-                "",
-                "## Participantes",
-                "Lista de nomes/papéis mencionados (quando identificáveis).",
-                "",
-                "## Transcrição detalhada",
-                "Transcrição COMPLETA e organizada por blocos temáticos com subtítulos (### Tópico). Dentro de cada bloco, use parágrafos e bullets para registrar TUDO o que foi discutido: argumentos, exemplos, números, datas, nomes de empresas/produtos/clientes, valores, prazos, contexto, dúvidas levantadas, respostas dadas. Preserve nuances e posições divergentes. Pode indicar falantes quando distinguíveis (ex: **Falante A:**). Limpe apenas vícios de linguagem, repetições involuntárias e hesitações ('éé', 'tipo assim'), SEM cortar conteúdo.",
-                "",
-                "## Principais pontos",
-                "Bullets com os pontos-chave discutidos.",
-                "",
-                "## Decisões",
-                "Bullets com decisões tomadas (o que foi decidido, por quem, com que condição).",
-                "",
-                "## Encaminhamentos / Próximos passos",
-                "Bullets no formato: **Ação** — responsável — prazo (se mencionado).",
-                "",
-                "## Definições e conceitos",
-                "Termos, definições, políticas, critérios ou regras estabelecidas durante a conversa.",
-                "",
-                "## Pendências e questões em aberto",
-                "Dúvidas não resolvidas, riscos, bloqueios, itens que precisam de follow-up.",
-                "",
-                "## Números, datas e referências citadas",
-                "Lista objetiva de todos os dados quantitativos, datas, links, documentos e nomes próprios citados.",
-                "",
-                "Regras:",
-                "- Priorize COMPLETUDE sobre concisão. É melhor ficar longo do que perder informação.",
-                "- Nunca invente. Se algo estiver inaudível ou incerto, marque com '[inaudível]' ou 'possivelmente ...'.",
-                "- Não adicione comentários sobre o áudio nem introduções tipo 'Aqui está a ata'. Retorne DIRETAMENTE o Markdown da ata.",
-              ].join("\n"),
-            },
-            {
-              type: "input_audio",
-              input_audio: {
-                data: audioData,
-                format: getAudioFormat(mime_type),
-              },
-            },
+            { type: "text", text: promptText },
+            mediaBlock,
           ],
         }],
       }),
@@ -123,8 +138,8 @@ serve(async (req) => {
 
     if (!transcribeResponse.ok) {
       const errorText = await transcribeResponse.text();
-      console.error("Meeting audio transcription failed:", transcribeResponse.status, errorText);
-      throw new Error("Audio transcription failed");
+      console.error("Meeting transcription failed:", transcribeResponse.status, errorText);
+      throw new Error("Transcription failed");
     }
 
     const transcribeData = await transcribeResponse.json();
