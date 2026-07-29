@@ -807,6 +807,33 @@ html, body {
 
 .notes-editor:focus { outline: none; }
 
+/* Google-Docs-like selection: always visible, works with click-drag,
+   shift+arrows, double-click (word) and triple-click (paragraph). */
+.notes-editor {
+  -webkit-user-select: text;
+  user-select: text;
+  caret-color: oklch(var(--foreground));
+  cursor: text;
+}
+
+.notes-editor ::selection,
+.notes-editor::selection {
+  background: oklch(var(--primary) / 0.22);
+}
+
+.notes-editor .ProseMirror-selectednode {
+  outline: 2px solid oklch(var(--primary) / 0.5);
+  border-radius: 4px;
+}
+
+.notes-editor a.note-link {
+  color: oklch(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+
 .notes-editor > * + * { margin-top: 0.9em; }
 
 .notes-editor p {
