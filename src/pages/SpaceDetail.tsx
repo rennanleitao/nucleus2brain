@@ -12,7 +12,8 @@ import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
-import { RichTextEditor } from "@/components/RichTextEditor";
+import { NoteMeetingCapture } from "@/components/notes/NoteMeetingCapture";
+import { RichTextEditor, type RichTextEditorHandle } from "@/components/RichTextEditor";
 import { ShareSpaceDialog } from "@/components/ShareSpaceDialog";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
 import { NoteAIChat } from "@/components/NoteAIChat";
@@ -35,6 +36,7 @@ export default function SpaceDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const noteEditorRef = useRef<RichTextEditorHandle>(null);
   const { setOpen: setAppSidebarOpen } = useSidebar();
   const isMobile = useIsMobile();
   const sidebarWasOpenRef = useRef(false);
@@ -366,7 +368,14 @@ export default function SpaceDetail() {
                   <span className="text-[11px] text-muted-foreground">Use #tag no texto para criar tags</span>
                 )}
               </div>
+              <div className="flex items-center justify-end">
+                <NoteMeetingCapture
+                  noteTitle={editNoteTitle}
+                  onAppend={(html) => { noteEditorRef.current?.appendHtmlAtEnd(html); setNoteDirty(true); }}
+                />
+              </div>
               <RichTextEditor
+                ref={noteEditorRef}
                 content={editNoteContent}
                 onChange={(html) => { setEditNoteContent(html); setNoteDirty(true); }}
                 onTagsDetected={(tags) => {

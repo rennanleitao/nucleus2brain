@@ -79,6 +79,8 @@ export interface RichTextEditorHandle {
   getSelectionText: () => string;
   getDocText: () => string;
   insertHtml: (html: string) => void;
+  appendHtmlAtEnd: (html: string) => void;
+
   replaceSelectionWithHtml: (html: string) => void;
   setHtml: (html: string) => void;
   insertDateEntry: (date: string) => void;
@@ -524,6 +526,15 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       editor.chain().focus("end").insertContent(html).run();
       onChange(editor.getHTML());
     },
+    appendHtmlAtEnd: (html: string) => {
+      if (!editor) return;
+      const endPos = editor.state.doc.content.size;
+      // Preserve the user's cursor/selection so they can keep typing while audio is captured.
+      const { from, to } = editor.state.selection;
+      editor.chain().insertContentAt(endPos, html).setTextSelection({ from, to }).run();
+      onChange(editor.getHTML());
+    },
+
     replaceSelectionWithHtml: (html: string) => {
       if (!editor) return;
       const { from, to } = editor.state.selection;

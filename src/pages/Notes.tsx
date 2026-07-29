@@ -7,6 +7,7 @@ import { getBrtToday } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { getEdgeFunctionErrorMessage } from "@/lib/edgeFunctionErrors";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/RichTextEditor";
+import { NoteMeetingCapture } from "@/components/notes/NoteMeetingCapture";
 import { NoteAIChat } from "@/components/NoteAIChat";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
@@ -913,6 +914,10 @@ export default function Notes() {
                     >
                       {recordingAudio ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
+                    <NoteMeetingCapture
+                      noteTitle={editTitle}
+                      onAppend={(html) => { editorRef.current?.appendHtmlAtEnd(html); setDirty(true); }}
+                    />
                   </div>
                 </div>
 
