@@ -62,7 +62,8 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
   // Keep the bubble menu visible/positioned while any sub-menu (dropdown/popover)
   // is open — otherwise Tiptap's default shouldShow hides the menu when the
   // editor loses focus, and Radix's portal ends up anchored at (0,0).
-  const menuLocked = tagOpen || aiOpen;
+  const [formatMenuOpen, setFormatMenuOpen] = useState(false);
+  const menuLocked = tagOpen || aiOpen || formatMenuOpen;
 
   // Fetch all user tags when tag popover opens
   useEffect(() => {
@@ -251,9 +252,9 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
                 editor.chain().focus().unsetLink().run();
                 return;
               }
-              setMenuLocked(true);
+              setFormatMenuOpen(true);
               const url = await promptDialog({ title: "Inserir link", description: "Cole o endereço do link", placeholder: "https://", required: true });
-              setMenuLocked(false);
+              setFormatMenuOpen(false);
               const clean = url?.trim();
               if (clean) editor.chain().focus().setLink({ href: clean }).run();
             }}
@@ -264,7 +265,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
 
         <div className="w-px h-4 bg-border mx-0.5" />
 
-        <DropdownMenu onOpenChange={setMenuLocked}>
+        <DropdownMenu onOpenChange={setFormatMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2 hover:bg-accent">
               <Type className="h-3.5 w-3.5" />
