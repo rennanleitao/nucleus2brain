@@ -79,6 +79,8 @@ export interface RichTextEditorHandle {
   getSelectionText: () => string;
   getDocText: () => string;
   insertHtml: (html: string) => void;
+  appendHtmlAtEnd: (html: string) => void;
+
   replaceSelectionWithHtml: (html: string) => void;
   setHtml: (html: string) => void;
   insertDateEntry: (date: string) => void;
