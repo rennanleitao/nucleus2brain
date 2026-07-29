@@ -3,6 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
 import { TextSelection } from "@tiptap/pm/state";
+import TextAlign from "@tiptap/extension-text-align";
 
 // Extend the Highlight mark so it can carry a stable topic id. When a user
 // marks a snippet as a "topic", we attach `data-topic="topic-…"` (also
@@ -161,7 +162,13 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         heading: false,
         bulletList: { keepMarks: true },
         orderedList: { keepMarks: true },
+        link: {
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: { class: "note-link", rel: "noopener noreferrer", target: "_blank" },
+        },
       }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
       DateHeading.configure({ levels: [1, 2, 3] }),
       Placeholder.configure({ placeholder }),
       TopicHighlight.configure({ multicolor: false }),
@@ -281,55 +288,6 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         return true;
       },
       handleKeyDown: (view, event) => {
-        const isPlainArrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)
-          && !event.shiftKey
-          && !event.metaKey
-          && !event.ctrlKey
-          && !event.altKey
-          && !event.isComposing;
-
-        // Chromium can occasionally receive arrow-key events inside this
-        // ProseMirror surface without moving the caret, especially after our
-        // custom date-block interactions. Move the text selection ourselves so
-        // the blinking cursor always follows keyboard navigation.
-        if (isPlainArrow && view.state.selection.empty) {
-          const moveCaret = (pos: number, bias: -1 | 1) => {
-            const boundedPos = Math.max(0, Math.min(pos, view.state.doc.content.size));
-            const selection = TextSelection.near(view.state.doc.resolve(boundedPos), bias);
-            view.dispatch(view.state.tr.setSelection(selection).scrollIntoView());
-            view.focus();
-          };
-
-          if (event.key === "ArrowLeft") {
-            event.preventDefault();
-            moveCaret(view.state.selection.from - 1, -1);
-            return true;
-          }
-
-          if (event.key === "ArrowRight") {
-            event.preventDefault();
-            moveCaret(view.state.selection.from + 1, 1);
-            return true;
-          }
-
-          const currentCoords = view.coordsAtPos(view.state.selection.from);
-          const parent = view.domAtPos(view.state.selection.from).node.parentElement;
-          const lineHeight = parent ? Number.parseFloat(getComputedStyle(parent).lineHeight) : 0;
-          const verticalStep = Number.isFinite(lineHeight) && lineHeight > 0 ? lineHeight : 24;
-          const target = view.posAtCoords({
-            left: (currentCoords.left + currentCoords.right) / 2,
-            top: event.key === "ArrowUp" ? currentCoords.top - verticalStep : currentCoords.bottom + verticalStep,
-          });
-
-          event.preventDefault();
-          if (target) {
-            moveCaret(target.pos, event.key === "ArrowUp" ? -1 : 1);
-          } else {
-            moveCaret(event.key === "ArrowUp" ? 0 : view.state.doc.content.size, event.key === "ArrowUp" ? -1 : 1);
-          }
-          return true;
-        }
-
         if (event.key !== "Enter" || event.shiftKey || event.isComposing) return false;
         const { $from, empty } = view.state.selection;
         if (!empty) return false;
@@ -386,7 +344,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           .run();
         return true;
       },
-      handleClick: (view, _pos, event) => {
+      handleClick: (_view, _pos, event) => {
         // Handle note mention clicks
         const target = event.target as HTMLElement;
         const mention = target.closest("[data-mention]") || (target.hasAttribute("data-mention") ? target : null);
@@ -418,33 +376,6 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           }
         }
 
-        // Keep normal single-click editing reliable. Some custom overlays/drag
-        // affordances around note blocks can leave Chromium's native contenteditable
-        // caret at the previous/end position, so explicitly place it at the click.
-        // IMPORTANT: never override when the user is extending a selection
-        // (shift+click) or when a drag-selection just produced a non-empty range,
-        // otherwise the selection would collapse to a caret.
-        if (event.detail === 1 && event.button === 0 && !event.shiftKey) {
-          const isInteractive = target.closest(
-            'a, button, input, textarea, select, label, [contenteditable="false"]',
-          );
-          if (!isInteractive) {
-            const { clientX, clientY } = event;
-            requestAnimationFrame(() => {
-              if (!view.state.selection.empty) return;
-              const domSel = window.getSelection();
-              if (domSel && !domSel.isCollapsed && (domSel.toString() ?? "").length > 0) return;
-              const hit = view.posAtCoords({ left: clientX, top: clientY });
-              if (!hit) return;
-              try {
-                const $pos = view.state.doc.resolve(hit.pos);
-                const tr = view.state.tr.setSelection(TextSelection.near($pos));
-                view.dispatch(tr);
-                view.focus();
-              } catch { /* keep native behavior if ProseMirror cannot resolve */ }
-            });
-          }
-        }
         return false;
       },
     },
@@ -637,7 +568,8 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       const heading = findHeading(e.target);
       if (!heading) return;
       const rect = heading.getBoundingClientRect();
-      const inDragGutter = e.clientX <= rect.left + 28;
+      // Narrow gutter so click-dragging over the heading text still selects text.
+      const inDragGutter = e.clientX <= rect.left + 12;
       if (inDragGutter) heading.setAttribute("draggable", "true");
     };
 

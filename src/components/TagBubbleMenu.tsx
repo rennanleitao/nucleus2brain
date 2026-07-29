@@ -3,7 +3,8 @@ import ReactMarkdown from "react-markdown";
 import { marked } from "marked";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
-import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw, ListTodo, Sparkles } from "lucide-react";
+import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw, ListTodo, Sparkles,
+  Bold, Italic, Underline, Strikethrough, Highlighter, Link2, Heading1, Heading2, Heading3, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Type, Eraser } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,23 @@ import { newTopicId } from "@/lib/noteEntries";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
+import { promptDialog } from "@/components/ui/dialog-service";
+
+function FormatButton({ onClick, active, title, children }: { onClick: () => void; active?: boolean; title: string; children: React.ReactNode }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      title={title}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className={`h-7 w-7 ${active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+    >
+      {children}
+    </Button>
+  );
+}
 
 interface TagBubbleMenuProps {
   editor: Editor;
@@ -44,7 +62,8 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
   // Keep the bubble menu visible/positioned while any sub-menu (dropdown/popover)
   // is open — otherwise Tiptap's default shouldShow hides the menu when the
   // editor loses focus, and Radix's portal ends up anchored at (0,0).
-  const menuLocked = tagOpen || aiOpen;
+  const [formatMenuOpen, setFormatMenuOpen] = useState(false);
+  const menuLocked = tagOpen || aiOpen || formatMenuOpen;
 
   // Fetch all user tags when tag popover opens
   useEffect(() => {
@@ -208,6 +227,87 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
         }}
         className="flex items-center gap-0.5 bg-popover border border-border rounded-lg shadow-elevated px-1 py-0.5"
       >
+        {/* Google-Docs-like inline formatting */}
+        <div className="flex items-center gap-0.5">
+          <FormatButton title="Negrito (Cmd+B)" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+            <Bold className="h-3.5 w-3.5" />
+          </FormatButton>
+          <FormatButton title="Itálico (Cmd+I)" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+            <Italic className="h-3.5 w-3.5" />
+          </FormatButton>
+          <FormatButton title="Sublinhado (Cmd+U)" active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+            <Underline className="h-3.5 w-3.5" />
+          </FormatButton>
+          <FormatButton title="Tachado" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
+            <Strikethrough className="h-3.5 w-3.5" />
+          </FormatButton>
+          <FormatButton title="Marca-texto" active={editor.isActive("highlight")} onClick={() => editor.chain().focus().toggleHighlight().run()}>
+            <Highlighter className="h-3.5 w-3.5" />
+          </FormatButton>
+          <FormatButton
+            title="Link"
+            active={editor.isActive("link")}
+            onClick={async () => {
+              if (editor.isActive("link")) {
+                editor.chain().focus().unsetLink().run();
+                return;
+              }
+              setFormatMenuOpen(true);
+              const url = await promptDialog({ title: "Inserir link", description: "Cole o endereço do link", placeholder: "https://", required: true });
+              setFormatMenuOpen(false);
+              const clean = url?.trim();
+              if (clean) editor.chain().focus().setLink({ href: clean }).run();
+            }}
+          >
+            <Link2 className="h-3.5 w-3.5" />
+          </FormatButton>
+        </div>
+
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        <DropdownMenu onOpenChange={setFormatMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2 hover:bg-accent">
+              <Type className="h-3.5 w-3.5" />
+              <ChevronDown className="h-2.5 w-2.5 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().setParagraph().run()}>
+              <Type className="h-3 w-3" /> Texto normal
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
+              <Heading1 className="h-3 w-3" /> Título 1
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+              <Heading2 className="h-3 w-3" /> Título 2
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+              <Heading3 className="h-3 w-3" /> Título 3
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().toggleBulletList().run()}>
+              <List className="h-3 w-3" /> Lista
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+              <ListOrdered className="h-3 w-3" /> Lista numerada
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().setTextAlign("left").run()}>
+              <AlignLeft className="h-3 w-3" /> Alinhar à esquerda
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().setTextAlign("center").run()}>
+              <AlignCenter className="h-3 w-3" /> Centralizar
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().setTextAlign("right").run()}>
+              <AlignRight className="h-3 w-3" /> Alinhar à direita
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>
+              <Eraser className="h-3 w-3" /> Limpar formatação
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <div className="w-px h-4 bg-border mx-0.5" />
+
         {/* Tag button */}
         <Popover open={tagOpen} onOpenChange={setTagOpen}>
           <PopoverTrigger asChild>
