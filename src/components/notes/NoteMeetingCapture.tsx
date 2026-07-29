@@ -81,10 +81,7 @@ export function NoteMeetingCapture({ noteTitle, onAppend, disabled }: NoteMeetin
 
   useEffect(() => {
     if (status !== "recording") return;
-    const id = window.setInterval(() => {
-      const started = startedAtRef.current ?? Date.now();
-      setSeconds((prev) => prev + Math.max(0, Math.round((Date.now() - started) / 1000)) - Math.max(0, Math.round((Date.now() - started) / 1000)) + 1);
-    }, 1000);
+    const id = window.setInterval(() => setSeconds((prev) => prev + 1), 1000);
     return () => window.clearInterval(id);
   }, [status]);
 
