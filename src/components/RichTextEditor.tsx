@@ -344,7 +344,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           .run();
         return true;
       },
-      handleClick: (view, _pos, event) => {
+      handleClick: (_view, _pos, event) => {
         // Handle note mention clicks
         const target = event.target as HTMLElement;
         const mention = target.closest("[data-mention]") || (target.hasAttribute("data-mention") ? target : null);
@@ -568,7 +568,8 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       const heading = findHeading(e.target);
       if (!heading) return;
       const rect = heading.getBoundingClientRect();
-      const inDragGutter = e.clientX <= rect.left + 28;
+      // Narrow gutter so click-dragging over the heading text still selects text.
+      const inDragGutter = e.clientX <= rect.left + 12;
       if (inDragGutter) heading.setAttribute("draggable", "true");
     };
 
