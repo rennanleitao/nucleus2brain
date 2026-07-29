@@ -13,7 +13,7 @@ import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
 import { NoteMeetingCapture } from "@/components/notes/NoteMeetingCapture";
-import { RichTextEditor } from "@/components/RichTextEditor";
+import { RichTextEditor, type RichTextEditorHandle } from "@/components/RichTextEditor";
 import { ShareSpaceDialog } from "@/components/ShareSpaceDialog";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
 import { NoteAIChat } from "@/components/NoteAIChat";
@@ -36,6 +36,7 @@ export default function SpaceDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const noteEditorRef = useRef<RichTextEditorHandle>(null);
   const { setOpen: setAppSidebarOpen } = useSidebar();
   const isMobile = useIsMobile();
   const sidebarWasOpenRef = useRef(false);
