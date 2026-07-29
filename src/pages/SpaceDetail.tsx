@@ -12,6 +12,7 @@ import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { EditSpaceDialog } from "@/components/EditSpaceDialog";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { CompletionCommentDialog } from "@/components/CompletionCommentDialog";
+import { NoteMeetingCapture } from "@/components/notes/NoteMeetingCapture";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ShareSpaceDialog } from "@/components/ShareSpaceDialog";
 import { ShareNoteDialog } from "@/components/ShareNoteDialog";
@@ -366,7 +367,14 @@ export default function SpaceDetail() {
                   <span className="text-[11px] text-muted-foreground">Use #tag no texto para criar tags</span>
                 )}
               </div>
+              <div className="flex items-center justify-end">
+                <NoteMeetingCapture
+                  noteTitle={editNoteTitle}
+                  onAppend={(html) => { noteEditorRef.current?.appendHtmlAtEnd(html); setNoteDirty(true); }}
+                />
+              </div>
               <RichTextEditor
+                ref={noteEditorRef}
                 content={editNoteContent}
                 onChange={(html) => { setEditNoteContent(html); setNoteDirty(true); }}
                 onTagsDetected={(tags) => {
