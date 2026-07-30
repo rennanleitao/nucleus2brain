@@ -50,6 +50,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { createNoteMentionSuggestion } from "@/components/editor/NoteMention";
 import { DateHeading } from "@/components/editor/DateHeadingExtension";
+import { Participants } from "@/components/editor/ParticipantsExtension";
 import { buildDateEntryHtml, entryIdForDate, extractDateFromLabel, parseFlexibleDate, reorderNoteEntries } from "@/lib/noteEntries";
 import { promptDialog } from "@/components/ui/dialog-service";
 
@@ -176,6 +177,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, allowBase64: true }),
       Iframe,
+      Participants,
       Table.configure({ resizable: false, HTMLAttributes: { class: "note-table" } }),
       TableRow,
       TableHeader,
