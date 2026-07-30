@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon, Pencil, Users, Save, Share2, Sparkles, Image as ImageIcon,
+  ArrowLeft, CheckSquare, FileText, Link2, Paperclip, Plus, Trash2, ExternalLink, Upload, X, Tag, ArrowLeftIcon, Pencil, Users, Save, Share2, Sparkles, Image as ImageIcon, Search as SearchIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
