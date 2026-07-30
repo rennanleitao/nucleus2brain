@@ -19,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical, ListTodo, PanelLeftClose, PanelLeftOpen,
-  Mic, Square, Download, Brain, Wand2,
+  Mic, Square, Download, Brain, Wand2, Sparkles,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
@@ -82,6 +82,7 @@ export default function Notes() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [renamingTitle, setRenamingTitle] = useState(false);
+  const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editSpaceId, setEditSpaceId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -535,6 +536,38 @@ export default function Notes() {
     }
   }, []);
 
+  const handleAiRenameNote = async (note: any) => {
+    const plain = stripHtml(note.content || "").trim();
+    if (!plain) {
+      toast.info("Esta nota está vazia");
+      return;
+    }
+    setRenamingNoteId(note.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("improve-text", {
+        body: { text: plain.slice(0, 6000), mode: "title" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const suggested = (data?.improved || "").trim().replace(/^["'\u201c\u201d]|["'\u201c\u201d]$/g, "").replace(/\.$/, "");
+      if (!suggested) throw new Error("Resposta vazia da IA");
+      const ok = await confirmDialog({
+        title: "Renomear nota",
+        description: `Usar o título sugerido "${suggested}"?`,
+        confirmLabel: "Renomear",
+      });
+      if (!ok) return;
+      await updateNote(note.id, { title: suggested });
+      if (selectedNote?.id === note.id) setEditTitle(suggested);
+      await load();
+      toast.success("Título atualizado");
+    } catch (err: any) {
+      toast.error(getEdgeFunctionErrorMessage(err, "Erro ao sugerir título"));
+    } finally {
+      setRenamingNoteId(null);
+    }
+  };
+
   const handleSuggestTitle = async () => {
     const plain = (editorRef.current?.getDocText?.() || editContent.replace(/<[^>]+>/g, " ")).trim();
     if (!plain) {
@@ -781,6 +814,16 @@ export default function Notes() {
                                     >
                                       {note.title}
                                     </span>
+                                    <button
+                                      type="button"
+                                      title="Renomear com IA"
+                                      aria-label={`Renomear nota ${note.title} com IA`}
+                                      disabled={renamingNoteId === note.id}
+                                      onClick={(e) => { e.stopPropagation(); handleAiRenameNote(note); }}
+                                      className="hidden md:inline-flex absolute top-1/2 -translate-y-1/2 right-7 h-5 w-5 items-center justify-center rounded-full text-muted-foreground/50 hover:text-primary hover:bg-primary/10 opacity-0 group-hover/swipe:opacity-100 focus:opacity-100 transition-opacity"
+                                    >
+                                      <Sparkles className={`h-3 w-3 ${renamingNoteId === note.id ? "animate-pulse" : ""}`} />
+                                    </button>
                                     {(note.tags || []).slice(0, 1).map((tag: string) => (
                                       <span
                                         key={tag}
