@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { SwipeToDeleteRow } from "@/components/notes/SwipeToDeleteRow";
+import { AskNotesDialog } from "@/components/notes/AskNotesDialog";
+import { searchNote } from "@/lib/noteSearch";
 import { confirmDialog } from "@/components/ui/dialog-service";
 import { getBrtToday } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
