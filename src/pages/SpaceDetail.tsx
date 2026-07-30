@@ -407,14 +407,27 @@ export default function SpaceDetail() {
           ) : (
             /* Note list */
             <>
-              <div className="flex justify-end">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70" />
+                  <input
+                    type="text"
+                    value={noteSearch}
+                    onChange={(e) => setNoteSearch(e.target.value)}
+                    placeholder="Buscar por título, trecho, participante ou tag"
+                    className="w-full bg-muted/50 border border-transparent rounded-md pl-9 pr-3 py-2 text-[12.5px] outline-none focus:bg-background focus:border-border transition-colors placeholder:text-muted-foreground/60"
+                  />
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setAskNotesOpen(true)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1" /> Perguntar
+                </Button>
                 <Button size="sm" className="gradient-primary text-primary-foreground border-0" onClick={handleCreateNewNote}>
                   <Plus className="h-4 w-4 mr-1" /> Nova Nota
                 </Button>
               </div>
-              {notes.length > 0 ? (
+              {filteredSpaceNotes.length > 0 ? (
                 <div className="space-y-2">
-                  {[...notes].sort((a, b) => a.title.localeCompare(b.title)).map(note => (
+                  {[...filteredSpaceNotes].sort((a, b) => a.title.localeCompare(b.title)).map(note => (
                     <button
                       key={note.id}
                       onClick={() => openNoteEditor(note)}
