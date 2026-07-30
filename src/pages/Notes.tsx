@@ -838,7 +838,7 @@ export default function Notes() {
                       <ul className={isMobile ? "p-1 space-y-0.5" : "p-1.5 space-y-0.5"}>
                         {group.notes.map(note => {
                           const isSelected = selectedNote?.id === note.id;
-                          const preview = stripHtml(note.content || "").replace(/\n+/g, " ");
+                          const preview = searchSnippets.get(note.id) || stripHtml(note.content || "").replace(/\n+/g, " ");
                           return (
                             <li key={note.id}>
                               <SwipeToDeleteRow
