@@ -749,10 +749,19 @@ export default function Notes() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70" />
                 <input
-                  type="text" placeholder="Buscar notas" value={search} onChange={e => setSearch(e.target.value)}
+                  type="text" placeholder="Buscar por título, trecho, participante ou tag" value={search} onChange={e => setSearch(e.target.value)}
                   className="w-full bg-muted/50 border border-transparent rounded-md pl-9 pr-3 py-2 text-[12.5px] outline-none focus:bg-background focus:border-border transition-colors placeholder:text-muted-foreground/60"
                 />
               </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 flex-shrink-0"
+                onClick={() => setAskOpen(true)}
+                title="Perguntar às notas"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+              </Button>
               {allTags.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
