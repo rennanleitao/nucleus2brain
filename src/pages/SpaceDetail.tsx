@@ -647,6 +647,16 @@ export default function SpaceDetail() {
         <FollowUpDialog completedTask={followUpTask} spaces={[{ id: space.id, name: space.name }]}
           open={!!followUpTask} onOpenChange={(open) => !open && setFollowUpTask(null)} onCreated={load} />
       )}
+      <AskNotesDialog
+        open={askNotesOpen}
+        onOpenChange={setAskNotesOpen}
+        notes={notes.map((n: any) => ({ id: n.id, title: n.title, content: n.content }))}
+        scopeLabel={space?.name ? `notas do space ${space.name}` : "notas deste space"}
+        onOpenNote={(id) => {
+          const n = notes.find((x: any) => x.id === id);
+          if (n) openNoteEditor(n);
+        }}
+      />
     </div>
   );
 }
