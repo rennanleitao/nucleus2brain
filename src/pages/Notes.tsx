@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchNotes, fetchSpaces, createNote, updateNote, deleteNote, createTask, updateTask, deleteTask, fetchTasks, fetchAllTags } from "@/lib/api";
 import { SwipeToDeleteRow } from "@/components/notes/SwipeToDeleteRow";
+import { AskNotesDialog } from "@/components/notes/AskNotesDialog";
+import { searchNote } from "@/lib/noteSearch";
 import { confirmDialog } from "@/components/ui/dialog-service";
 import { getBrtToday } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +62,7 @@ export default function Notes() {
   const [loading, setLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [search, setSearch] = useState("");
+  const [askOpen, setAskOpen] = useState(false);
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const NO_SPACE_KEY = "__none__";
   const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(() => {
@@ -249,12 +252,18 @@ export default function Notes() {
     fetchAllTags().then(setAllTags).catch(() => {});
   }, [notes]);
 
-  const filteredNotes = notes.filter(n => {
-    const matchSearch = !search || n.title.toLowerCase().includes(search.toLowerCase()) ||
-      (n.content || "").toLowerCase().includes(search.toLowerCase());
-    const matchTag = !filterTag || (n.tags || []).includes(filterTag);
-    return matchSearch && matchTag;
-  });
+  // Full-text search: title, body text, tags and participants.
+  const [filteredNotes, searchSnippets] = useMemo(() => {
+    const snippets = new Map<string, string>();
+    const list = notes.filter(n => {
+      const matchTag = !filterTag || (n.tags || []).includes(filterTag);
+      if (!matchTag) return false;
+      const res = searchNote(n, search);
+      if (res.matched && res.snippet) snippets.set(n.id, res.snippet);
+      return res.matched;
+    });
+    return [list, snippets] as const;
+  }, [notes, search, filterTag]);
 
   // Group filtered notes by space, preserving `spaces` display order and
   // pushing "Sem space" to the end. Empty groups are omitted.
@@ -740,10 +749,19 @@ export default function Notes() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70" />
                 <input
-                  type="text" placeholder="Buscar notas" value={search} onChange={e => setSearch(e.target.value)}
+                  type="text" placeholder="Buscar por título, trecho, participante ou tag" value={search} onChange={e => setSearch(e.target.value)}
                   className="w-full bg-muted/50 border border-transparent rounded-md pl-9 pr-3 py-2 text-[12.5px] outline-none focus:bg-background focus:border-border transition-colors placeholder:text-muted-foreground/60"
                 />
               </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 flex-shrink-0"
+                onClick={() => setAskOpen(true)}
+                title="Perguntar às notas"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+              </Button>
               {allTags.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -820,7 +838,7 @@ export default function Notes() {
                       <ul className={isMobile ? "p-1 space-y-0.5" : "p-1.5 space-y-0.5"}>
                         {group.notes.map(note => {
                           const isSelected = selectedNote?.id === note.id;
-                          const preview = stripHtml(note.content || "").replace(/\n+/g, " ");
+                          const preview = searchSnippets.get(note.id) || stripHtml(note.content || "").replace(/\n+/g, " ");
                           return (
                             <li key={note.id}>
                               <SwipeToDeleteRow
@@ -1299,6 +1317,16 @@ export default function Notes() {
           )}
         </div>
       )}
+      <AskNotesDialog
+        open={askOpen}
+        onOpenChange={setAskOpen}
+        notes={notes.map((n: any) => ({ id: n.id, title: n.title, content: n.content }))}
+        scopeLabel="todas as suas notas"
+        onOpenNote={(id) => {
+          const n = notes.find((x: any) => x.id === id);
+          if (n) selectNote(n);
+        }}
+      />
     </div>
   );
 }
