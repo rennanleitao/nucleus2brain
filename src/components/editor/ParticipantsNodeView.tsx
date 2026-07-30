@@ -18,9 +18,9 @@ export function ParticipantsNodeView({ node, updateAttributes, editor }: NodeVie
   // Freshly inserted block (still empty) → focus the name field so the user can
   // just keep typing the participants right after writing "participantes:".
   useEffect(() => {
-    if (editable && names.length === 0 && editor.isFocused) {
-      inputRef.current?.focus();
-    }
+    if (!editable || names.length > 0 || !editor.isFocused) return;
+    const id = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
