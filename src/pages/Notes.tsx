@@ -138,6 +138,19 @@ export default function Notes() {
     if (contentFlushTimerRef.current) clearTimeout(contentFlushTimerRef.current);
   }, []);
 
+  // After a snippet is moved out of the current note: persist the removal
+  // immediately (no waiting for autosave) and refresh the notes list so the
+  // destination note appears right away.
+  const handleSnippetMoved = useCallback(() => {
+    const html = editorRef.current?.getHtml?.();
+    if (html !== undefined) {
+      liveContentRef.current = html;
+      setEditContent(html);
+    }
+    setDirty(true);
+    setTimeout(() => { void handleSaveRef.current?.(); void load(); }, 50);
+  }, []);
+
   const load = async () => {
     try {
       const [n, s] = await Promise.all([fetchNotes(), fetchSpaces()]);
@@ -318,6 +331,8 @@ export default function Notes() {
     }
   };
 
+  const handleSaveRef = useRef<(() => Promise<void>) | null>(null);
+
   const handleSave = async () => {
     if (!selectedNote || !editTitle.trim()) return;
     setSaving(true);
@@ -353,6 +368,8 @@ export default function Notes() {
       setSaving(false);
     }
   };
+
+  handleSaveRef.current = handleSave;
 
   const handleDelete = async (noteId: string) => {
     try {
@@ -1127,6 +1144,7 @@ export default function Notes() {
                       ref={editorRef}
                       content={editContent}
                       onChange={handleEditorChange}
+                      onSnippetMoved={handleSnippetMoved}
                       onTagsDetected={handleTagsDetected}
                       onTaskItemClick={(taskTitle) => {
                         const task = linkedTasks.find(t => t.title === taskTitle);

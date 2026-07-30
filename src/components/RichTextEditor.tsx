@@ -71,6 +71,7 @@ interface RichTextEditorProps {
   onCreateSubNote?: (title: string) => void;
   onLinkNote?: () => void;
   onSelectionChange?: (hasSelection: boolean) => void;
+  onSnippetMoved?: () => void;
   toolbarExtra?: React.ReactNode;
 }
 
@@ -93,7 +94,7 @@ export interface RichTextEditorHandle {
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   content, onChange, placeholder = "Comece a escrever...", editable = true, className = "", onTagsDetected, noteId = null, existingTags = [], onTaskItemClick, spaceId = null, onTaskCreated,
-  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote, onSelectionChange, toolbarExtra,
+  allNotes = [], onNoteLinkClick, onCreateSubNote, onLinkNote, onSelectionChange, toolbarExtra, onSnippetMoved,
 }, ref) {
   const editorRef = useRef<ReturnType<typeof useEditor>>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -792,7 +793,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
       {/* Bubble Menu for tagging selections */}
       {editable && (
-        <TagBubbleMenu editor={editor} noteId={noteId} existingTags={existingTags} spaceId={spaceId} onTaskCreated={onTaskCreated} />
+        <TagBubbleMenu editor={editor} noteId={noteId} existingTags={existingTags} spaceId={spaceId} onTaskCreated={onTaskCreated} onSnippetMoved={onSnippetMoved} />
       )}
 
       {/* Editor */}
