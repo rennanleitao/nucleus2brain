@@ -689,35 +689,30 @@ export default function Notes() {
                 return (
                   <section key={group.key} className={`${groupIdx > 0 ? (isMobile ? "mt-2.5" : "mt-4") : ""} rounded-xl border border-border/60 bg-card overflow-hidden`}>
                     <div
-                      className={`w-full flex items-center gap-2 ${isMobile ? "px-2.5 py-1.5" : "px-3 py-2"} bg-muted border-b border-border/60 group/hdr transition-colors`}
+                      onClick={() => toggleSpaceCollapsed(group.key)}
+                      className={`w-full flex items-center gap-2 ${isMobile ? "px-2.5 py-1.5" : "px-3 py-2"} bg-muted border-b border-border/60 group/hdr transition-colors cursor-pointer`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => toggleSpaceCollapsed(group.key)}
-                        className="flex-1 flex items-center gap-2 min-w-0 text-left"
-                      >
-                        {group.icon && group.key !== NO_SPACE_KEY && (
-                          <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/70" />
-                        )}
-                        <h3 className={`${isMobile ? "text-[9.5px]" : "text-[10.5px]"} font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate`}>
-                          {group.label}
-                        </h3>
-                        {group.key !== NO_SPACE_KEY && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleCreateNote(group.key); }}
-                            title={`Nova nota em ${group.label}`}
-                            className="p-1 rounded-md hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                          >
-                            <Plus className={`${isMobile ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
-                          </button>
-                        )}
-                        <span className="flex-1" />
-                        <span className={`${isMobile ? "text-[9.5px]" : "text-[10.5px]"} tabular-nums text-muted-foreground/60 font-medium`}>
-                          {group.notes.length}
-                        </span>
-                        <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
-                      </button>
+                      {group.icon && group.key !== NO_SPACE_KEY && (
+                        <SpaceIcon iconKey={group.icon} className="h-3 w-3 text-muted-foreground/70" />
+                      )}
+                      <h3 className={`${isMobile ? "text-[9.5px]" : "text-[10.5px]"} font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate`}>
+                        {group.label}
+                      </h3>
+                      {group.key !== NO_SPACE_KEY && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleCreateNote(group.key); }}
+                          title={`Nova nota em ${group.label}`}
+                          className="p-1 rounded-md hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                        >
+                          <Plus className={`${isMobile ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
+                        </button>
+                      )}
+                      <span className="flex-1" />
+                      <span className={`${isMobile ? "text-[9.5px]" : "text-[10.5px]"} tabular-nums text-muted-foreground/60 font-medium`}>
+                        {group.notes.length}
+                      </span>
+                      <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
                     </div>
 
                     {!isCollapsed && (
