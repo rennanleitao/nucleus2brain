@@ -249,12 +249,18 @@ export default function Notes() {
     fetchAllTags().then(setAllTags).catch(() => {});
   }, [notes]);
 
-  const filteredNotes = notes.filter(n => {
-    const matchSearch = !search || n.title.toLowerCase().includes(search.toLowerCase()) ||
-      (n.content || "").toLowerCase().includes(search.toLowerCase());
-    const matchTag = !filterTag || (n.tags || []).includes(filterTag);
-    return matchSearch && matchTag;
-  });
+  // Full-text search: title, body text, tags and participants.
+  const [filteredNotes, searchSnippets] = useMemo(() => {
+    const snippets = new Map<string, string>();
+    const list = notes.filter(n => {
+      const matchTag = !filterTag || (n.tags || []).includes(filterTag);
+      if (!matchTag) return false;
+      const res = searchNote(n, search);
+      if (res.matched && res.snippet) snippets.set(n.id, res.snippet);
+      return res.matched;
+    });
+    return [list, snippets] as const;
+  }, [notes, search, filterTag]);
 
   // Group filtered notes by space, preserving `spaces` display order and
   // pushing "Sem space" to the end. Empty groups are omitted.
