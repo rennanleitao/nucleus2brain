@@ -62,6 +62,7 @@ export default function Notes() {
   const [loading, setLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [search, setSearch] = useState("");
+  const [askOpen, setAskOpen] = useState(false);
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const NO_SPACE_KEY = "__none__";
   const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(() => {
