@@ -1317,6 +1317,16 @@ export default function Notes() {
           )}
         </div>
       )}
+      <AskNotesDialog
+        open={askOpen}
+        onOpenChange={setAskOpen}
+        notes={notes.map((n: any) => ({ id: n.id, title: n.title, content: n.content }))}
+        scopeLabel="todas as suas notas"
+        onOpenNote={(id) => {
+          const n = notes.find((x: any) => x.id === id);
+          if (n) selectNote(n);
+        }}
+      />
     </div>
   );
 }
