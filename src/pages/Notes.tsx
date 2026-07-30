@@ -278,9 +278,14 @@ export default function Notes() {
     editorRef.current?.scrollToEntry(date);
   };
 
-  const handleCreateNote = async () => {
+  const handleCreateNote = async (spaceId?: string) => {
     try {
-      const newNote = await createNote({ title: "Nova nota", content: "", tags: [] });
+      const newNote = await createNote({
+        title: "Nova nota",
+        content: "",
+        tags: [],
+        space_id: spaceId || null,
+      });
       await load();
       clearAudioCapture();
       setSelectedNote(newNote);
