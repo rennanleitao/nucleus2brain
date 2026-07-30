@@ -560,7 +560,7 @@ export default function Notes() {
       setDirty(true);
       toast.success("Título atualizado");
     } catch (err: any) {
-      toast.error(getEdgeFunctionErrorMessage(err) || "Erro ao sugerir título");
+      toast.error(getEdgeFunctionErrorMessage(err, "Erro ao sugerir título"));
     } finally {
       setRenamingTitle(false);
     }
