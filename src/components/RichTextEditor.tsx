@@ -531,6 +531,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     // and prevents clicking/arrow-key cursor placement.
     if (editor.isFocused) return;
     if (content === editor.getHTML()) return;
+    console.log("[dbg] setContent sync", content.length, editor.isFocused);
     editor.commands.setContent(content, { emitUpdate: false });
   }, [content, editor]);
 
