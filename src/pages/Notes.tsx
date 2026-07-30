@@ -626,7 +626,7 @@ export default function Notes() {
                   size="icon"
                   variant="ghost"
                   className={`${isMobile ? "h-7 w-7" : "h-8 w-8"} text-foreground hover:bg-muted`}
-                  onClick={handleCreateNote}
+                  onClick={() => handleCreateNote()}
                   title="Nova nota"
                 >
                   <Plus className={isMobile ? "h-3.5 w-3.5" : "h-4 w-4"} />
@@ -1160,7 +1160,7 @@ export default function Notes() {
               <div className="text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-small text-muted-foreground mb-3">Selecione uma nota ou crie uma nova</p>
-                <Button onClick={handleCreateNote} className="gradient-primary text-primary-foreground border-0">
+                <Button onClick={() => handleCreateNote()} className="gradient-primary text-primary-foreground border-0">
                   <Plus className="h-4 w-4 mr-1" /> Nova Nota
                 </Button>
               </div>
