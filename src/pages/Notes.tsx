@@ -702,22 +702,22 @@ export default function Notes() {
                         <h3 className={`${isMobile ? "text-[9.5px]" : "text-[10.5px]"} font-semibold uppercase tracking-[0.12em] text-muted-foreground group-hover/hdr:text-foreground transition-colors truncate`}>
                           {group.label}
                         </h3>
+                        {group.key !== NO_SPACE_KEY && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleCreateNote(group.key); }}
+                            title={`Nova nota em ${group.label}`}
+                            className="p-1 rounded-md hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                          >
+                            <Plus className={`${isMobile ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
+                          </button>
+                        )}
+                        <span className="flex-1" />
                         <span className={`${isMobile ? "text-[9.5px]" : "text-[10.5px]"} tabular-nums text-muted-foreground/60 font-medium`}>
                           {group.notes.length}
                         </span>
-                        <span className="flex-1" />
                         <ChevronDown className={`h-3 w-3 text-muted-foreground/50 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
                       </button>
-                      {group.key !== NO_SPACE_KEY && (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleCreateNote(group.key); }}
-                          title={`Nova nota em ${group.label}`}
-                          className="p-1 rounded-md hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                        >
-                          <Plus className={`${isMobile ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
-                        </button>
-                      )}
                     </div>
 
                     {!isCollapsed && (
