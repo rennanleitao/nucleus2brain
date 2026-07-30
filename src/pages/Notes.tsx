@@ -121,6 +121,22 @@ export default function Notes() {
     });
   };
   const editorScrollRef = useRef<HTMLDivElement>(null);
+  // Live editor HTML. Kept in a ref so every keystroke does NOT re-render the
+  // whole Notes page (note list, date sidebar, dialogs) — that re-render storm
+  // is what made the caret feel stuck on long notes with bullets/numbered lists.
+  const liveContentRef = useRef<string>("");
+  const contentFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleEditorChange = useCallback((html: string) => {
+    liveContentRef.current = html;
+    setDirty(true);
+    if (contentFlushTimerRef.current) clearTimeout(contentFlushTimerRef.current);
+    contentFlushTimerRef.current = setTimeout(() => setEditContent(html), 400);
+  }, []);
+
+  useEffect(() => () => {
+    if (contentFlushTimerRef.current) clearTimeout(contentFlushTimerRef.current);
+  }, []);
 
   const load = async () => {
     try {
@@ -197,6 +213,7 @@ export default function Notes() {
   selectedNoteRef.current = selectedNote;
   editTitleRef.current = editTitle;
   editContentRef.current = editContent;
+  if (!dirty) liveContentRef.current = editContent;
   editTagsRef.current = editTags;
   editSpaceIdRef.current = editSpaceId;
 
@@ -319,9 +336,11 @@ export default function Notes() {
         }
       }
 
+      const latestContent = editorRef.current?.getHtml?.() ?? liveContentRef.current ?? editContent;
+      setEditContent(latestContent);
       await updateNote(selectedNote.id, {
         title: editTitle.trim(),
-        content: editContent,
+        content: latestContent,
         tags: editTags,
         space_id: editSpaceId || null,
       });
@@ -1107,7 +1126,7 @@ export default function Notes() {
                     <RichTextEditor
                       ref={editorRef}
                       content={editContent}
-                      onChange={(html) => { setEditContent(html); setDirty(true); }}
+                      onChange={handleEditorChange}
                       onTagsDetected={handleTagsDetected}
                       onTaskItemClick={(taskTitle) => {
                         const task = linkedTasks.find(t => t.title === taskTitle);
