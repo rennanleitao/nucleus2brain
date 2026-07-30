@@ -80,6 +80,7 @@ export interface RichTextEditorHandle {
   isEmpty: () => boolean;
   getSelectionText: () => string;
   getDocText: () => string;
+  getHtml: () => string;
   insertHtml: (html: string) => void;
   appendHtmlAtEnd: (html: string) => void;
 
@@ -384,6 +385,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   });
 
   useImperativeHandle(ref, () => ({
+    getHtml: () => editor?.getHTML() ?? "",
     processTaskPatterns: () => {
       if (!editor) return [];
       const text = editor.getText();
@@ -530,6 +532,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     // Don't reset content while user is actively editing — it wipes the selection
     // and prevents clicking/arrow-key cursor placement.
     if (editor.isFocused) return;
+    // Also bail out when the caret lives inside the editor DOM but ProseMirror
+    // hasn't flagged focus yet (happens right after a click on a list item):
+    // replacing the doc there destroys the caret and the click "does nothing".
+    const active = typeof document !== "undefined" ? document.activeElement : null;
+    if (active && editor.view.dom.contains(active)) return;
     if (content === editor.getHTML()) return;
     editor.commands.setContent(content, { emitUpdate: false });
   }, [content, editor]);
