@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, FileText, FilePlus, Loader2 } from "lucide-react";
-import { createNote, updateNote, fetchNotes, fetchNotesBySpace } from "@/lib/api";
+import { createNote, updateNote, fetchNotes } from "@/lib/api";
 import { toast } from "sonner";
 
 interface MoveSnippetDialogProps {
@@ -40,13 +40,15 @@ export function MoveSnippetDialog({
     setNewTitle(firstLine.length > 60 ? firstLine.slice(0, 60) + "…" : firstLine);
     (async () => {
       try {
-        const n = spaceId ? await fetchNotesBySpace(spaceId) : await fetchNotes();
+        // Always search across every note — the target note frequently lives
+        // in a different space than the one being edited.
+        const n = await fetchNotes();
         setNotes(n || []);
       } catch {
         setNotes([]);
       }
     })();
-  }, [open, spaceId, text]);
+  }, [open, text]);
 
   const filtered = useMemo(
     () =>
@@ -60,7 +62,8 @@ export function MoveSnippetDialog({
   const handleExisting = async (note: any) => {
     setSaving(true);
     try {
-      await updateNote(note.id, { content: `${note.content || ""}${html}` });
+      const separator = (note.content || "").trim() ? "" : "";
+      await updateNote(note.id, { content: `${note.content || ""}${separator}${html}` });
       toast.success(`Trecho movido para "${note.title}"`);
       onOpenChange(false);
       onMoved();

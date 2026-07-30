@@ -44,6 +44,8 @@ interface TagBubbleMenuProps {
   existingTags: string[];
   spaceId?: string | null;
   onTaskCreated?: () => void;
+  /** Fired after a snippet was moved out of this note (content changed). */
+  onSnippetMoved?: () => void;
 }
 
 const AI_MODES = [
@@ -54,7 +56,7 @@ const AI_MODES = [
   { key: "meeting", label: "Organizar Meeting Notes", Icon: ClipboardList },
 ] as const;
 
-export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCreated }: TagBubbleMenuProps) {
+export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCreated, onSnippetMoved }: TagBubbleMenuProps) {
   const [tagOpen, setTagOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -557,6 +559,9 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
           }
           setMoveRange(null);
           setFormatMenuOpen(false);
+          // Persist the removal right away and refresh the note list so the
+          // destination note shows up without a page reload.
+          onSnippetMoved?.();
         }}
       />
 
