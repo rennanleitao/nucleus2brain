@@ -47,6 +47,12 @@ export default function SpaceDetail() {
   const [space, setSpace] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
+  const [noteSearch, setNoteSearch] = useState("");
+  const [askNotesOpen, setAskNotesOpen] = useState(false);
+  const filteredSpaceNotes = useMemo(
+    () => notes.filter((n) => searchNote(n, noteSearch).matched),
+    [notes, noteSearch],
+  );
   const [links, setLinks] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
