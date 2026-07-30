@@ -1,4 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { AskNotesDialog } from "@/components/notes/AskNotesDialog";
+import { searchNote } from "@/lib/noteSearch";
 import { useAuth } from "@/hooks/useAuth";
 import { useParams, useNavigate } from "react-router-dom";
 import {
