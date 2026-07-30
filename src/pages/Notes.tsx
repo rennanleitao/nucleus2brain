@@ -19,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical, ListTodo, PanelLeftClose, PanelLeftOpen,
-  Mic, Square, Download, Brain,
+  Mic, Square, Download, Brain, Wand2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
@@ -81,6 +81,7 @@ export default function Notes() {
   // Editor state
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [renamingTitle, setRenamingTitle] = useState(false);
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editSpaceId, setEditSpaceId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -534,6 +535,37 @@ export default function Notes() {
     }
   }, []);
 
+  const handleSuggestTitle = async () => {
+    const plain = (editorRef.current?.getDocText?.() || editContent.replace(/<[^>]+>/g, " ")).trim();
+    if (!plain) {
+      toast.info("Escreva algo na nota antes de renomear");
+      return;
+    }
+    setRenamingTitle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("improve-text", {
+        body: { text: plain.slice(0, 6000), mode: "title" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const suggested = (data?.improved || "").trim().replace(/^["'“”]|["'“”]$/g, "").replace(/\.$/, "");
+      if (!suggested) throw new Error("Resposta vazia da IA");
+      const ok = await confirmDialog({
+        title: "Renomear nota",
+        description: `Usar o título sugerido "${suggested}"?`,
+        confirmLabel: "Renomear",
+      });
+      if (!ok) return;
+      setEditTitle(suggested);
+      setDirty(true);
+      toast.success("Título atualizado");
+    } catch (err: any) {
+      toast.error(getEdgeFunctionErrorMessage(err) || "Erro ao sugerir título");
+    } finally {
+      setRenamingTitle(false);
+    }
+  };
+
   const handleApplyTemplate = async (template: NoteTemplate, action: "insert" | "organize") => {
     if (!selectedNote) return;
     const editor = editorRef.current;
@@ -815,6 +847,16 @@ export default function Notes() {
                   />
 
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      title="Renomear com base no conteúdo"
+                      disabled={renamingTitle}
+                      onClick={handleSuggestTitle}
+                    >
+                      <Wand2 className={`h-4 w-4 ${renamingTitle ? "animate-pulse" : ""}`} />
+                    </Button>
                     <NoteDatePicker onPick={handleInsertDate} compact />
                     <div className="flex items-center gap-1.5 mr-1">
                       <Save className="h-3 w-3 text-muted-foreground" />
