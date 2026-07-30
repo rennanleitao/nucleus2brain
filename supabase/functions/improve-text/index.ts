@@ -28,6 +28,17 @@ serve(async (req) => {
       simplify: `Simplifique o texto a seguir, usando linguagem mais direta e fácil de entender. Mantenha o mesmo idioma. ${plainTextRule}Retorne APENAS o texto simplificado, sem explicações ou aspas:\n\n${text}`,
       expand: `Expanda o texto a seguir, adicionando mais detalhes e contexto sem alterar o sentido original. Mantenha o mesmo idioma. ${plainTextRule}Retorne APENAS o texto expandido, sem explicações ou aspas:\n\n${text}`,
       formal: `Reescreva o texto a seguir em tom mais formal e profissional. Mantenha o mesmo idioma. ${plainTextRule}Retorne APENAS o texto reescrito, sem explicações ou aspas:\n\n${text}`,
+      title: `Você é um especialista em nomear documentos. Leia o conteúdo abaixo e proponha um TÍTULO curto para a nota, que comunique claramente do que se trata o conteúdo.
+
+Regras obrigatórias:
+- Máximo de 60 caracteres.
+- Mesmo idioma do conteúdo.
+- Sem aspas, sem ponto final, sem markdown, sem prefixos como "Título:".
+- Específico e informativo (inclua tema, projeto ou pessoa quando relevante), nunca genérico como "Notas" ou "Reunião".
+
+Retorne APENAS o título:
+
+${text}`,
       meeting: `Você é um especialista em organizar notas de reunião. Analise o texto abaixo e reorganize-o em formato estruturado usando o mesmo idioma do texto original. Use formatação Markdown.
 
 A estrutura DEVE conter estas seções, SEPARADAS POR LINHAS HORIZONTAIS (---):
