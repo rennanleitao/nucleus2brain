@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import { Users, X, Plus } from "lucide-react";
 
@@ -13,6 +13,16 @@ export function ParticipantsNodeView({ node, updateAttributes, editor }: NodeVie
   const names: string[] = Array.isArray(node.attrs.names) ? node.attrs.names : [];
   const [input, setInput] = useState("");
   const editable = editor.isEditable;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Freshly inserted block (still empty) → focus the name field so the user can
+  // just keep typing the participants right after writing "participantes:".
+  useEffect(() => {
+    if (editable && names.length === 0 && editor.isFocused) {
+      inputRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const add = (raw: string) => {
     const parts = raw
@@ -66,6 +76,7 @@ export function ParticipantsNodeView({ node, updateAttributes, editor }: NodeVie
             <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-1">
               <Plus className="h-3 w-3 text-muted-foreground" />
               <input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {

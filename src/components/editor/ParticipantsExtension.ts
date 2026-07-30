@@ -67,7 +67,7 @@ export const Participants = Node.create({
     return [
       nodeInputRule({
         // "participantes" / "participants" at the start of a line, followed by ":" or space
-        find: /^(participantes|participants)\s*[:\s]$/i,
+        find: /^(participantes|participants)\s*:\s?$/i,
         type: this.type,
         getAttributes: () => ({ names: [] }),
       }),
