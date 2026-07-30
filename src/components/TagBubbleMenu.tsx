@@ -4,7 +4,7 @@ import { marked } from "marked";
 import { BubbleMenu } from "@tiptap/react/menus";
 import type { Editor } from "@tiptap/react";
 import { Tag, Plus, Loader2, ChevronDown, Check, X, Wand2, FileText, BookOpen, BriefcaseBusiness, ClipboardList, RefreshCw, ListTodo, Sparkles,
-  Bold, Italic, Underline, Strikethrough, Highlighter, Link2, Heading1, Heading2, Heading3, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Type, Eraser } from "lucide-react";
+  Scissors, Bold, Italic, Underline, Strikethrough, Highlighter, Link2, Heading1, Heading2, Heading3, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Type, Eraser } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { promptDialog } from "@/components/ui/dialog-service";
+import { MoveSnippetDialog } from "@/components/notes/MoveSnippetDialog";
+import { DOMSerializer } from "@tiptap/pm/model";
 
 function FormatButton({ onClick, active, title, children }: { onClick: () => void; active?: boolean; title: string; children: React.ReactNode }) {
   return (
@@ -216,6 +218,28 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
     setTaskDialogOpen(true);
   };
 
+  // Quick capture: move the selected snippet out of this note
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveHtml, setMoveHtml] = useState("");
+  const [moveText, setMoveText] = useState("");
+  const [moveRange, setMoveRange] = useState<{ from: number; to: number } | null>(null);
+
+  const handleOpenMove = () => {
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+    const slice = editor.state.doc.slice(from, to);
+    const fragment = DOMSerializer.fromSchema(editor.schema).serializeFragment(slice.content);
+    const div = document.createElement("div");
+    div.appendChild(fragment);
+    const text = editor.state.doc.textBetween(from, to, "\n");
+    if (!text.trim()) return;
+    setMoveHtml(div.innerHTML);
+    setMoveText(text);
+    setMoveRange({ from, to });
+    setFormatMenuOpen(true);
+    setMoveOpen(true);
+  };
+
   return (
     <>
       <BubbleMenu
@@ -408,6 +432,21 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
         {/* Divider */}
         <div className="w-px h-4 bg-border mx-0.5" />
 
+        {/* Move snippet to another note (quick capture) */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1.5 text-xs px-2 hover:bg-accent"
+          title="Mover trecho para outra nota"
+          onClick={handleOpenMove}
+        >
+          <Scissors className="h-3 w-3" />
+          Mover
+        </Button>
+
+        {/* Divider */}
+        <div className="w-px h-4 bg-border mx-0.5" />
+
         {/* Mark as topic button */}
         <Button
           variant="ghost"
@@ -501,6 +540,25 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
         </DialogContent>
       </Dialog>
 
+
+      <MoveSnippetDialog
+        open={moveOpen}
+        onOpenChange={(o) => {
+          setMoveOpen(o);
+          if (!o) setFormatMenuOpen(false);
+        }}
+        html={moveHtml}
+        text={moveText}
+        currentNoteId={noteId}
+        spaceId={spaceId}
+        onMoved={() => {
+          if (moveRange) {
+            editor.chain().focus().deleteRange(moveRange).run();
+          }
+          setMoveRange(null);
+          setFormatMenuOpen(false);
+        }}
+      />
 
       {/* Create Task Dialog */}
       <CreateTaskDialog
