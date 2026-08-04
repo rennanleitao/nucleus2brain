@@ -292,36 +292,58 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         return true;
       },
       handleKeyDown: (view, event) => {
-        // Chromium occasionally leaves a collapsed ProseMirror selection stuck
-        // at the first/last visual line of list items and around atom nodes.
-        // Let the browser move it first; if nothing changed, cross the current
-        // textblock boundary explicitly. This keeps normal vertical movement
-        // (including Shift+Arrow selection) completely native.
-        if ((event.key === "ArrowUp" || event.key === "ArrowDown") && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
+        // Keep all four arrow keys reliable around nested lists, atom node
+        // views and date headings. The browser gets the first chance to move
+        // the caret; only when it remains stuck do we place it ourselves.
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
           const initialSelection = view.state.selection;
           if (initialSelection.empty) {
             const initialAnchor = initialSelection.anchor;
-            const direction = event.key === "ArrowUp" ? -1 : 1;
-            const atVisualBoundary = view.endOfTextblock(direction < 0 ? "up" : "down");
-            if (atVisualBoundary) {
-              requestAnimationFrame(() => {
-                if (view.isDestroyed || !view.hasFocus()) return;
-                const current = view.state.selection;
-                if (!current.empty || current.anchor !== initialAnchor) return;
-
-                const { $from } = current;
-                let boundary: number;
-                try {
-                  boundary = direction < 0 ? $from.before($from.depth) : $from.after($from.depth);
-                } catch {
-                  return;
-                }
-                const resolved = view.state.doc.resolve(Math.max(0, Math.min(boundary, view.state.doc.content.size)));
-                const next = Selection.findFrom(resolved, direction, true);
-                if (!next || next.anchor === current.anchor) return;
-                view.dispatch(view.state.tr.setSelection(next).scrollIntoView().setMeta("addToHistory", false));
-              });
+            const vertical = event.key === "ArrowUp" || event.key === "ArrowDown";
+            const direction = event.key === "ArrowUp" || event.key === "ArrowLeft" ? -1 : 1;
+            let caretCoords: { left: number; top: number; bottom: number } | null = null;
+            if (vertical) {
+              try {
+                caretCoords = view.coordsAtPos(initialAnchor);
+              } catch {
+                caretCoords = null;
+              }
             }
+
+            requestAnimationFrame(() => {
+              if (view.isDestroyed || !view.hasFocus()) return;
+              const current = view.state.selection;
+              if (!current.empty || current.anchor !== initialAnchor) return;
+
+              let next: Selection | null = null;
+              if (vertical && caretCoords) {
+                const lineHeight = Math.max(18, caretCoords.bottom - caretCoords.top);
+                // Probe successive lines because list indentation and block
+                // margins can leave empty vertical space between caret rows.
+                for (let step = 1; step <= 5; step += 1) {
+                  const y = direction < 0
+                    ? caretCoords.top - lineHeight * step
+                    : caretCoords.bottom + lineHeight * step;
+                  const hit = view.posAtCoords({ left: caretCoords.left, top: y });
+                  if (!hit || hit.pos === initialAnchor) continue;
+                  next = TextSelection.near(view.state.doc.resolve(hit.pos), direction);
+                  if (next.anchor !== initialAnchor) break;
+                  next = null;
+                }
+              } else if (!vertical) {
+                const target = Math.max(0, Math.min(initialAnchor + direction, view.state.doc.content.size));
+                next = TextSelection.near(view.state.doc.resolve(target), direction);
+              }
+
+              // Final structural fallback crosses the current list item,
+              // heading or atom block when coordinate lookup has no result.
+              if (!next || next.anchor === initialAnchor) {
+                const resolved = view.state.doc.resolve(initialAnchor);
+                next = Selection.findFrom(resolved, direction, true);
+              }
+              if (!next || next.anchor === initialAnchor) return;
+              view.dispatch(view.state.tr.setSelection(next).scrollIntoView().setMeta("addToHistory", false));
+            });
           }
           return false;
         }
