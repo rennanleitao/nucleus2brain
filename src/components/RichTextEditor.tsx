@@ -2,7 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
-import { TextSelection } from "@tiptap/pm/state";
+import { Selection, TextSelection } from "@tiptap/pm/state";
 import TextAlign from "@tiptap/extension-text-align";
 
 // Extend the Highlight mark so it can carry a stable topic id. When a user
@@ -292,6 +292,40 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         return true;
       },
       handleKeyDown: (view, event) => {
+        // Chromium occasionally leaves a collapsed ProseMirror selection stuck
+        // at the first/last visual line of list items and around atom nodes.
+        // Let the browser move it first; if nothing changed, cross the current
+        // textblock boundary explicitly. This keeps normal vertical movement
+        // (including Shift+Arrow selection) completely native.
+        if ((event.key === "ArrowUp" || event.key === "ArrowDown") && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
+          const initialSelection = view.state.selection;
+          if (initialSelection.empty) {
+            const initialAnchor = initialSelection.anchor;
+            const direction = event.key === "ArrowUp" ? -1 : 1;
+            const atVisualBoundary = view.endOfTextblock(direction < 0 ? "up" : "down");
+            if (atVisualBoundary) {
+              requestAnimationFrame(() => {
+                if (view.isDestroyed || !view.hasFocus()) return;
+                const current = view.state.selection;
+                if (!current.empty || current.anchor !== initialAnchor) return;
+
+                const { $from } = current;
+                let boundary: number;
+                try {
+                  boundary = direction < 0 ? $from.before($from.depth) : $from.after($from.depth);
+                } catch {
+                  return;
+                }
+                const resolved = view.state.doc.resolve(Math.max(0, Math.min(boundary, view.state.doc.content.size)));
+                const next = Selection.findFrom(resolved, direction, true);
+                if (!next || next.anchor === current.anchor) return;
+                view.dispatch(view.state.tr.setSelection(next).scrollIntoView().setMeta("addToHistory", false));
+              });
+            }
+          }
+          return false;
+        }
+
         if (event.key !== "Enter" || event.shiftKey || event.isComposing) return false;
         const { $from, empty } = view.state.selection;
         if (!empty) return false;
@@ -348,7 +382,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           .run();
         return true;
       },
-      handleClick: (_view, _pos, event) => {
+      handleClick: (view, pos, event) => {
         // Handle note mention clicks
         const target = event.target as HTMLElement;
         const mention = target.closest("[data-mention]") || (target.hasAttribute("data-mention") ? target : null);
@@ -378,6 +412,30 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
               return true;
             }
           }
+        }
+
+        // Fallback for clicks that ProseMirror/Chromium occasionally fails to
+        // translate into a caret position (most visible inside nested lists).
+        // Run after the native click handling and never interfere with drag
+        // selection or interactive node-view controls.
+        if (
+          event.detail === 1 &&
+          !event.shiftKey &&
+          !event.altKey &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !target.closest("button, input, textarea, select, [contenteditable='false']")
+        ) {
+          requestAnimationFrame(() => {
+            if (view.isDestroyed) return;
+            const current = view.state.selection;
+            if (!current.empty || current.anchor === pos) return;
+            const safePos = Math.max(0, Math.min(pos, view.state.doc.content.size));
+            const next = TextSelection.near(view.state.doc.resolve(safePos));
+            if (next.anchor === current.anchor) return;
+            view.focus();
+            view.dispatch(view.state.tr.setSelection(next).scrollIntoView().setMeta("addToHistory", false));
+          });
         }
 
         return false;
