@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { FocusCheckInDialog } from "@/components/FocusCheckInDialog";
 import { Search } from "lucide-react";
 
 interface AppLayoutProps {
