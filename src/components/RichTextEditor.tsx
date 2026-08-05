@@ -256,6 +256,46 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         class: "notes-editor focus:outline-none min-h-[240px] px-4 py-5 sm:px-6 sm:py-8 md:px-10 md:py-10",
       },
 
+      // Click-and-drag text selection fallback: some node views / list
+      // structures swallow the native drag, leaving the selection collapsed.
+      handleDOMEvents: {
+        mousedown: (view, event) => {
+          const mouseEvent = event as MouseEvent;
+          if (mouseEvent.button !== 0 || mouseEvent.shiftKey) return false;
+          const target = mouseEvent.target as HTMLElement | null;
+          if (target?.closest("button, input, textarea, select, [draggable='true']")) return false;
+          const startHit = view.posAtCoords({ left: mouseEvent.clientX, top: mouseEvent.clientY });
+          if (!startHit) return false;
+          const startPos = startHit.pos;
+          let moved = false;
+
+          const onMove = (moveEvent: MouseEvent) => {
+            if (Math.abs(moveEvent.clientX - mouseEvent.clientX) < 4 && Math.abs(moveEvent.clientY - mouseEvent.clientY) < 4) return;
+            moved = true;
+            const hit = view.posAtCoords({ left: moveEvent.clientX, top: moveEvent.clientY });
+            if (!hit || hit.pos === startPos) return;
+            const current = view.state.selection;
+            if (current.anchor === startPos && current.head === hit.pos) return;
+            try {
+              const selection = TextSelection.create(view.state.doc, startPos, hit.pos);
+              view.dispatch(view.state.tr.setSelection(selection).setMeta("addToHistory", false));
+            } catch {
+              /* position not selectable */
+            }
+          };
+
+          const onUp = () => {
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            if (moved && !view.hasFocus()) view.focus();
+          };
+
+          document.addEventListener("mousemove", onMove);
+          document.addEventListener("mouseup", onUp);
+          return false;
+        },
+      },
+
       handlePaste: (_view, event) => {
         const text = event.clipboardData?.getData("text/plain")?.trim();
         if (text) {
@@ -292,10 +332,64 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         return true;
       },
       handleKeyDown: (view, event) => {
+        // Shift + arrows must extend the selection even when the browser
+        // fails to move the head across list items, headings or atom nodes.
+        if (
+          ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) &&
+          event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey
+        ) {
+          const initial = view.state.selection;
+          const anchor = initial.anchor;
+          const head = initial.head;
+          const vertical = event.key === "ArrowUp" || event.key === "ArrowDown";
+          const direction = event.key === "ArrowUp" || event.key === "ArrowLeft" ? -1 : 1;
+          let headCoords: { left: number; top: number; bottom: number } | null = null;
+          if (vertical) {
+            try {
+              headCoords = view.coordsAtPos(head);
+            } catch {
+              headCoords = null;
+            }
+          }
+
+          requestAnimationFrame(() => {
+            if (view.isDestroyed || !view.hasFocus()) return;
+            const current = view.state.selection;
+            if (current.head !== head || current.anchor !== anchor) return;
+
+            let nextHead: number | null = null;
+            if (vertical && headCoords) {
+              const lineHeight = Math.max(18, headCoords.bottom - headCoords.top);
+              for (let step = 1; step <= 5; step += 1) {
+                const y = direction < 0
+                  ? headCoords.top - lineHeight * step
+                  : headCoords.bottom + lineHeight * step;
+                const hit = view.posAtCoords({ left: headCoords.left, top: y });
+                if (!hit || hit.pos === head) continue;
+                nextHead = hit.pos;
+                break;
+              }
+            } else if (!vertical) {
+              nextHead = Math.max(0, Math.min(head + direction, view.state.doc.content.size));
+            }
+
+            if (nextHead === null || nextHead === head) {
+              const found = Selection.findFrom(view.state.doc.resolve(head), direction, true);
+              if (!found) return;
+              nextHead = found.head;
+            }
+            if (nextHead === head) return;
+            const selection = TextSelection.create(view.state.doc, anchor, nextHead);
+            view.dispatch(view.state.tr.setSelection(selection).scrollIntoView().setMeta("addToHistory", false));
+          });
+          return false;
+        }
+
         // Keep all four arrow keys reliable around nested lists, atom node
         // views and date headings. The browser gets the first chance to move
         // the caret; only when it remains stuck do we place it ourselves.
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
+
           const initialSelection = view.state.selection;
           if (initialSelection.empty) {
             const initialAnchor = initialSelection.anchor;
