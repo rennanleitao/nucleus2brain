@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { useFocusCheckInSettings } from "@/hooks/useFocusCheckIn";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
