@@ -256,6 +256,46 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         class: "notes-editor focus:outline-none min-h-[240px] px-4 py-5 sm:px-6 sm:py-8 md:px-10 md:py-10",
       },
 
+      // Click-and-drag text selection fallback: some node views / list
+      // structures swallow the native drag, leaving the selection collapsed.
+      handleDOMEvents: {
+        mousedown: (view, event) => {
+          const mouseEvent = event as MouseEvent;
+          if (mouseEvent.button !== 0 || mouseEvent.shiftKey) return false;
+          const target = mouseEvent.target as HTMLElement | null;
+          if (target?.closest("button, input, textarea, select, [draggable='true']")) return false;
+          const startHit = view.posAtCoords({ left: mouseEvent.clientX, top: mouseEvent.clientY });
+          if (!startHit) return false;
+          const startPos = startHit.pos;
+          let moved = false;
+
+          const onMove = (moveEvent: MouseEvent) => {
+            if (Math.abs(moveEvent.clientX - mouseEvent.clientX) < 4 && Math.abs(moveEvent.clientY - mouseEvent.clientY) < 4) return;
+            moved = true;
+            const hit = view.posAtCoords({ left: moveEvent.clientX, top: moveEvent.clientY });
+            if (!hit || hit.pos === startPos) return;
+            const current = view.state.selection;
+            if (current.anchor === startPos && current.head === hit.pos) return;
+            try {
+              const selection = TextSelection.create(view.state.doc, startPos, hit.pos);
+              view.dispatch(view.state.tr.setSelection(selection).setMeta("addToHistory", false));
+            } catch {
+              /* position not selectable */
+            }
+          };
+
+          const onUp = () => {
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            if (moved && !view.hasFocus()) view.focus();
+          };
+
+          document.addEventListener("mousemove", onMove);
+          document.addEventListener("mouseup", onUp);
+          return false;
+        },
+      },
+
       handlePaste: (_view, event) => {
         const text = event.clipboardData?.getData("text/plain")?.trim();
         if (text) {
