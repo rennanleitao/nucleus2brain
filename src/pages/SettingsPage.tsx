@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { useFocusCheckInSettings } from "@/hooks/useFocusCheckIn";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1127,6 +1129,7 @@ export default function SettingsPage() {
               O sistema verifica lembretes pendentes periodicamente enquanto o app estiver aberto.
             </p>
           </div>
+          <FocusCheckInSettings />
         </TabsContent>
 
         {/* IMPORT TAB */}
@@ -1353,6 +1356,67 @@ function DefaultLandingSettings() {
           ))}
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+function FocusCheckInSettings() {
+  const { settings, update } = useFocusCheckInSettings();
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-semibold">Check-in de foco</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            De tempos em tempos o Nucleus pergunta o que você está fazendo e verifica se está
+            alinhado com o plano do dia.
+          </p>
+        </div>
+        <Switch checked={settings.enabled} onCheckedChange={(v) => update({ enabled: v })} />
+      </div>
+
+      {settings.enabled && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <div className="space-y-1">
+            <label className="text-[11px] text-muted-foreground">Intervalo (min)</label>
+            <Input
+              type="number"
+              min={10}
+              max={480}
+              value={settings.intervalMinutes}
+              onChange={(e) => update({ intervalMinutes: Math.max(5, Number(e.target.value) || 60) })}
+              className="h-9 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-muted-foreground">Início (h)</label>
+            <Input
+              type="number"
+              min={0}
+              max={23}
+              value={settings.startHour}
+              onChange={(e) => update({ startHour: Math.min(23, Math.max(0, Number(e.target.value) || 0)) })}
+              className="h-9 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-muted-foreground">Fim (h)</label>
+            <Input
+              type="number"
+              min={1}
+              max={24}
+              value={settings.endHour}
+              onChange={(e) => update({ endHour: Math.min(24, Math.max(1, Number(e.target.value) || 24)) })}
+              className="h-9 text-sm"
+            />
+          </div>
+          <div className="sm:col-span-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Também notificar no navegador</span>
+            <Switch checked={settings.notify} onCheckedChange={(v) => update({ notify: v })} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
