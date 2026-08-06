@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export function FocusCheckInDialog() {
   const { user } = useAuth();
-  const { due, dismiss, snooze } = useFocusCheckIn();
+  const { due, dismiss, snooze, settings } = useFocusCheckIn();
   const [tasks, setTasks] = useState<any[]>([]);
   const [other, setOther] = useState("");
   const [offPlan, setOffPlan] = useState<string | null>(null);
@@ -78,11 +78,12 @@ export function FocusCheckInDialog() {
     }
   };
 
-  if (!user) return null;
+  if (!user || !settings.enabled) return null;
 
   return (
     <Dialog open={due} onOpenChange={(open) => { if (!open) close(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] overflow-hidden">
+
         <DialogHeader>
           <DialogTitle className="text-base">O que você está fazendo agora?</DialogTitle>
           <DialogDescription className="text-xs">
@@ -122,14 +123,14 @@ export function FocusCheckInDialog() {
                     key={t.id}
                     disabled={busy}
                     onClick={() => pickTask(t)}
-                    className="w-full text-left flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/60 transition-colors disabled:opacity-50"
+                    className="w-full min-w-0 text-left flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/60 transition-colors disabled:opacity-50"
                   >
                     {t.status === "in_progress" ? (
                       <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                     ) : (
                       <Circle className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                     )}
-                    <span className="truncate">{t.title}</span>
+                    <span className="min-w-0 flex-1 truncate">{t.title}</span>
                   </button>
                 ))
               ) : (
