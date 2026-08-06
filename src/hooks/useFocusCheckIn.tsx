@@ -57,12 +57,25 @@ export function appendFocusLog(entry: FocusCheckInEntry) {
   }
 }
 
+const SNOOZE_KEY = "focus_checkin_snooze_until_v1";
+
 function markChecked() {
   try {
     localStorage.setItem(LAST_KEY, String(Date.now()));
+    localStorage.removeItem(SNOOZE_KEY);
   } catch {
     // ignore
   }
+}
+
+function snoozedUntil(): number {
+  try {
+    const raw = localStorage.getItem(SNOOZE_KEY);
+    if (raw) return Number(raw) || 0;
+  } catch {
+    // ignore
+  }
+  return 0;
 }
 
 function lastCheckedAt(): number {
