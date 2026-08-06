@@ -78,11 +78,12 @@ export function FocusCheckInDialog() {
     }
   };
 
-  if (!user) return null;
+  if (!user || !settings.enabled) return null;
 
   return (
     <Dialog open={due} onOpenChange={(open) => { if (!open) close(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] overflow-hidden">
+
         <DialogHeader>
           <DialogTitle className="text-base">O que você está fazendo agora?</DialogTitle>
           <DialogDescription className="text-xs">
