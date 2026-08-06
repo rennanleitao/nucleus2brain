@@ -123,14 +123,14 @@ export function FocusCheckInDialog() {
                     key={t.id}
                     disabled={busy}
                     onClick={() => pickTask(t)}
-                    className="w-full text-left flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/60 transition-colors disabled:opacity-50"
+                    className="w-full min-w-0 text-left flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/60 transition-colors disabled:opacity-50"
                   >
                     {t.status === "in_progress" ? (
                       <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                     ) : (
                       <Circle className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                     )}
-                    <span className="truncate">{t.title}</span>
+                    <span className="min-w-0 flex-1 truncate">{t.title}</span>
                   </button>
                 ))
               ) : (
