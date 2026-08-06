@@ -179,9 +179,11 @@ export function useFocusCheckIn() {
 
   const snooze = useCallback((minutes: number) => {
     try {
-      // Reset the interval clock AND hold off for the snooze window.
-      localStorage.setItem(LAST_KEY, String(Date.now()));
-      localStorage.setItem(SNOOZE_KEY, String(Date.now() + minutes * 60_000));
+      const interval = readFocusSettings().intervalMinutes * 60_000;
+      const target = Date.now() + minutes * 60_000;
+      // Make the next check-in fall exactly at the snooze target.
+      localStorage.setItem(LAST_KEY, String(target - interval));
+      localStorage.setItem(SNOOZE_KEY, String(target));
     } catch {
       // ignore
     }
