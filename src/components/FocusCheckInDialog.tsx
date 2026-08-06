@@ -82,7 +82,7 @@ export function FocusCheckInDialog() {
 
   return (
     <Dialog open={due} onOpenChange={(open) => { if (!open) close(); }}>
-      <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] grid-cols-1 overflow-hidden [&>*]:min-w-0 [&>*]:max-w-full">
 
         <DialogHeader>
           <DialogTitle className="text-base">O que você está fazendo agora?</DialogTitle>
@@ -142,13 +142,13 @@ export function FocusCheckInDialog() {
 
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Está em outra coisa?</p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 min-w-0">
                 <Input
                   value={other}
                   onChange={(e) => setOther(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") submitOther(); }}
                   placeholder="Descreva rapidamente..."
-                  className="text-sm"
+                  className="text-sm min-w-0 flex-1"
                 />
                 <Button variant="outline" onClick={submitOther} disabled={!other.trim()}>
                   Ok
