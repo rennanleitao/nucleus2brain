@@ -128,6 +128,13 @@ export function useFocusCheckIn() {
     }
 
     const tick = () => {
+      // Re-read from storage so a toggle in another tab/view takes effect immediately.
+      const current = readFocusSettings();
+      if (!current.enabled) {
+        setDue(false);
+        return;
+      }
+
       const now = new Date();
       const hour = Number(
         new Intl.DateTimeFormat("pt-BR", {
@@ -136,14 +143,16 @@ export function useFocusCheckIn() {
           hour12: false,
         }).format(now),
       );
-      if (hour < settings.startHour || hour >= settings.endHour) return;
+      if (hour < current.startHour || hour >= current.endHour) return;
       if (document.hidden) return;
 
+      if (Date.now() < snoozedUntil()) return;
+
       const elapsed = Date.now() - lastCheckedAt();
-      if (elapsed < settings.intervalMinutes * 60_000) return;
+      if (elapsed < current.intervalMinutes * 60_000) return;
 
       setDue(true);
-      if (settings.notify && "Notification" in window && Notification.permission === "granted") {
+      if (current.notify && "Notification" in window && Notification.permission === "granted") {
         try {
           new Notification("Nucleus", {
             body: "O que você está fazendo agora? Isso está no plano do dia?",
@@ -155,7 +164,7 @@ export function useFocusCheckIn() {
       }
     };
 
-    const id = setInterval(tick, 60_000);
+    const id = setInterval(tick, 30_000);
     const initial = setTimeout(tick, 5_000);
     return () => {
       clearInterval(id);
@@ -170,8 +179,9 @@ export function useFocusCheckIn() {
 
   const snooze = useCallback((minutes: number) => {
     try {
-      const shift = (readFocusSettings().intervalMinutes - minutes) * 60_000;
-      localStorage.setItem(LAST_KEY, String(Date.now() + shift));
+      // Reset the interval clock AND hold off for the snooze window.
+      localStorage.setItem(LAST_KEY, String(Date.now()));
+      localStorage.setItem(SNOOZE_KEY, String(Date.now() + minutes * 60_000));
     } catch {
       // ignore
     }
