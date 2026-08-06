@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export function FocusCheckInDialog() {
   const { user } = useAuth();
-  const { due, dismiss, snooze } = useFocusCheckIn();
+  const { due, dismiss, snooze, settings } = useFocusCheckIn();
   const [tasks, setTasks] = useState<any[]>([]);
   const [other, setOther] = useState("");
   const [offPlan, setOffPlan] = useState<string | null>(null);
