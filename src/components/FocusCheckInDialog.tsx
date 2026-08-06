@@ -142,13 +142,13 @@ export function FocusCheckInDialog() {
 
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Está em outra coisa?</p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 min-w-0">
                 <Input
                   value={other}
                   onChange={(e) => setOther(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") submitOther(); }}
                   placeholder="Descreva rapidamente..."
-                  className="text-sm"
+                  className="text-sm min-w-0 flex-1"
                 />
                 <Button variant="outline" onClick={submitOther} disabled={!other.trim()}>
                   Ok
