@@ -82,7 +82,7 @@ export function FocusCheckInDialog() {
 
   return (
     <Dialog open={due} onOpenChange={(open) => { if (!open) close(); }}>
-      <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] grid-cols-1 overflow-hidden [&>*]:min-w-0 [&>*]:max-w-full">
 
         <DialogHeader>
           <DialogTitle className="text-base">O que você está fazendo agora?</DialogTitle>
