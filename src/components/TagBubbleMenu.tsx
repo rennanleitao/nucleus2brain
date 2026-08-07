@@ -455,11 +455,23 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
           size="sm"
           className="h-7 gap-1.5 text-xs px-2 hover:bg-accent"
           title="Marcar trecho como tópico importante"
-          onClick={() => {
+          onClick={async () => {
             const { from, to } = editor.state.selection;
             if (from === to) return;
             const id = newTopicId();
-            editor.chain().focus().setMark("highlight", { dataTopic: id }).run();
+            const name = await promptDialog({
+              title: "Nomear tópico (opcional)",
+              description: "Dê um nome curto para identificar este tópico na lateral. Deixe em branco para usar o próprio trecho.",
+              placeholder: "Ex.: Alocação de recursos",
+              confirmText: "Marcar tópico",
+            });
+            if (name === null) return;
+            editor
+              .chain()
+              .focus()
+              .setTextSelection({ from, to })
+              .setMark("highlight", { dataTopic: id, dataTopicLabel: name.trim() || null })
+              .run();
             toast.success("Tópico marcado");
           }}
         >
