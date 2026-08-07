@@ -113,6 +113,7 @@ export default function Notes() {
   const audioClipsRef = useRef<NoteAudioClip[]>([]);
   const discardStoppedAudioRef = useRef(false);
   const canRecordAudio = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+  const [mobileOutlineOpen, setMobileOutlineOpen] = useState(false);
   const [dateSidebarOpen, setDateSidebarOpen] = useState<boolean>(() => {
     try { return localStorage.getItem("notes.dateSidebarOpen") === "true"; } catch { return false; }
   });
