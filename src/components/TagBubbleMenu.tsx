@@ -463,7 +463,7 @@ export function TagBubbleMenu({ editor, noteId, existingTags, spaceId, onTaskCre
               title: "Nomear tópico (opcional)",
               description: "Dê um nome curto para identificar este tópico na lateral. Deixe em branco para usar o próprio trecho.",
               placeholder: "Ex.: Alocação de recursos",
-              confirmText: "Marcar tópico",
+              confirmLabel: "Marcar tópico",
             });
             if (name === null) return;
             editor
