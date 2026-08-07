@@ -18,6 +18,12 @@ const TopicHighlight = Highlight.extend({
         renderHTML: (attrs: { dataTopic?: string | null }) =>
           attrs.dataTopic ? { "data-topic": attrs.dataTopic, id: attrs.dataTopic } : {},
       },
+      dataTopicLabel: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute("data-topic-label"),
+        renderHTML: (attrs: { dataTopicLabel?: string | null }) =>
+          attrs.dataTopicLabel ? { "data-topic-label": attrs.dataTopicLabel } : {},
+      },
     };
   },
 });
