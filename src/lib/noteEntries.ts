@@ -10,6 +10,7 @@ export interface NoteEntry {
 export interface NoteTopic {
   id: string;
   text: string;
+  label?: string;
 }
 
 export interface NoteAttachment {
