@@ -133,12 +133,19 @@ export function NoteDateSidebar({ html, scrollContainer, onJump, onRemoveTopic }
                 <button
                   type="button"
                   onClick={() => jumpToTopic(t.id)}
-                  title={t.text}
+                  title={t.label ? `${t.label} — ${t.text}` : t.text}
                   className="w-full flex items-start gap-2 px-2 py-1.5 pr-7 rounded-md text-left hover:bg-muted/40 transition-colors"
                 >
                   <span className="mt-1 block w-1 h-1 rounded-full bg-primary/70 flex-shrink-0" />
-                  <span className="text-[11.5px] leading-snug text-foreground/85 line-clamp-2">
-                    {t.text}
+                  <span className="min-w-0">
+                    {t.label && (
+                      <span className="block text-[11.5px] font-semibold leading-snug text-foreground truncate">
+                        {t.label}
+                      </span>
+                    )}
+                    <span className="block text-[11.5px] leading-snug text-foreground/85 line-clamp-2">
+                      {t.text}
+                    </span>
                   </span>
                 </button>
                 {onRemoveTopic && (

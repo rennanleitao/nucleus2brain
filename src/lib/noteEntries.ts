@@ -10,6 +10,7 @@ export interface NoteEntry {
 export interface NoteTopic {
   id: string;
   text: string;
+  label?: string;
 }
 
 export interface NoteAttachment {
@@ -71,10 +72,11 @@ export function parseNoteTopics(html: string): NoteTopic[] {
   const topics: NoteTopic[] = [];
   marks.forEach((m) => {
     const id = m.getAttribute("data-topic") || "";
+    const label = (m.getAttribute("data-topic-label") || "").trim();
     const text = (m.textContent || "").replace(/\s+/g, " ").trim();
     if (!id || !text || seen.has(id)) return;
     seen.add(id);
-    topics.push({ id, text: text.slice(0, 120) });
+    topics.push({ id, text: text.slice(0, 120), label: label || undefined });
   });
   return topics;
 }

@@ -113,6 +113,7 @@ export default function Notes() {
   const audioClipsRef = useRef<NoteAudioClip[]>([]);
   const discardStoppedAudioRef = useRef(false);
   const canRecordAudio = typeof window !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia) && typeof MediaRecorder !== "undefined";
+  const [mobileOutlineOpen, setMobileOutlineOpen] = useState(false);
   const [dateSidebarOpen, setDateSidebarOpen] = useState<boolean>(() => {
     try { return localStorage.getItem("notes.dateSidebarOpen") === "true"; } catch { return false; }
   });
@@ -955,6 +956,31 @@ export default function Notes() {
                       <Wand2 className={`h-4 w-4 ${renamingTitle ? "animate-pulse" : ""}`} />
                     </Button>
                     <NoteDatePicker onPick={handleInsertDate} compact />
+                    {isMobile && (
+                      <Sheet open={mobileOutlineOpen} onOpenChange={setMobileOutlineOpen}>
+                        <SheetTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary" title="Datas e tópicos">
+                            <CalendarDays className="h-4 w-4" />
+                          </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-[85vw] sm:max-w-sm p-0 flex flex-col">
+                          <SheetHeader className="px-4 py-3 border-b border-border">
+                            <SheetTitle className="flex items-center gap-2 text-base">
+                              <CalendarDays className="h-4 w-4 text-primary" />
+                              Datas e tópicos
+                            </SheetTitle>
+                          </SheetHeader>
+                          <ScrollArea className="flex-1">
+                            <NoteDateSidebar
+                              html={editContent}
+                              scrollContainer={editorScrollRef.current}
+                              onJump={(date) => { setMobileOutlineOpen(false); setTimeout(() => handleJumpToDate(date), 220); }}
+                              onRemoveTopic={(id) => editorRef.current?.removeTopic(id)}
+                            />
+                          </ScrollArea>
+                        </SheetContent>
+                      </Sheet>
+                    )}
                     <div className="flex items-center gap-1.5 mr-1">
                       <Save className="h-3 w-3 text-muted-foreground" />
                       <span className="text-[10px] text-muted-foreground">Autosave ✓</span>
