@@ -2,22 +2,17 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Prevent PWA service worker from interfering in Lovable preview/iframe contexts
-const isInIframe = (() => {
-  try {
-    return window.self !== window.top;
-  } catch (e) {
-    return true;
-  }
-})();
-
-const isPreviewHost =
-  window.location.hostname.includes("id-preview--") ||
-  window.location.hostname.includes("lovableproject.com");
-
-if (isPreviewHost || isInIframe) {
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((r) => r.unregister());
+// Remove any legacy app service worker: it could intercept/cache requests and
+// break login ("Failed to fetch") in the installed PWA and in preview.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((r) => {
+      const url =
+        r.active?.scriptURL || r.waiting?.scriptURL || r.installing?.scriptURL || "";
+      if (!url || url.includes("/sw.js") || url.includes("/service-worker.js")) {
+        r.unregister();
+      }
+    });
   });
 }
 
