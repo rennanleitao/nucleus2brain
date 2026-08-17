@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
+import { QuickAddTaskBar } from "@/components/QuickAddTaskBar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -95,6 +96,7 @@ export default function Tasks() {
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
   const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [delegateOpen, setDelegateOpen] = useState(false);
+  const [fullTaskOpen, setFullTaskOpen] = useState(false);
   const [filter, _setFilter] = useState<string>(loadFilter);
   const setFilter = (v: string) => {
     _setFilter(v);
