@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Button } from "@/components/ui/button";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
+import { QuickAddTaskBar } from "@/components/QuickAddTaskBar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -95,6 +96,7 @@ export default function Tasks() {
   const [subtasksMap, setSubtasksMap] = useState<Record<string, any[]>>({});
   const [remindersMap, setRemindersMap] = useState<Record<string, any>>({});
   const [delegateOpen, setDelegateOpen] = useState(false);
+  const [fullTaskOpen, setFullTaskOpen] = useState(false);
   const [filter, _setFilter] = useState<string>(loadFilter);
   const setFilter = (v: string) => {
     _setFilter(v);
@@ -742,6 +744,12 @@ export default function Tasks() {
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 animate-fade-in">
+      <QuickAddTaskBar
+        spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+        onCreated={load}
+        onOpenFull={() => setFullTaskOpen(true)}
+      />
+
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -768,11 +776,19 @@ export default function Tasks() {
           spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
           onCreated={load}
           trigger={null}
+          externalOpen={fullTaskOpen}
+          onExternalOpenChange={setFullTaskOpen}
+        />
+        <CreateTaskDialog
+          spaces={spaces.map(s => ({ id: s.id, name: s.name }))}
+          onCreated={load}
+          trigger={null}
           externalOpen={delegateOpen}
           onExternalOpenChange={setDelegateOpen}
           startDelegated
         />
       </div>
+
 
 
       <Tabs value={filter} onValueChange={setFilter}>
