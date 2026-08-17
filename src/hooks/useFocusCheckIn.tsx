@@ -147,10 +147,14 @@ export function useFocusCheckIn() {
       if (hour < current.startHour || hour >= current.endHour) return;
       if (document.hidden) return;
 
-      if (Date.now() < snoozedUntil()) return;
-
-      const elapsed = Date.now() - lastCheckedAt();
-      if (elapsed < current.intervalMinutes * 60_000) return;
+      const snooze = snoozedUntil();
+      if (snooze > 0) {
+        // While snoozed, nothing fires; once it expires, fire immediately.
+        if (Date.now() < snooze) return;
+      } else {
+        const elapsed = Date.now() - lastCheckedAt();
+        if (elapsed < current.intervalMinutes * 60_000) return;
+      }
 
       setDue(true);
       if (current.notify && "Notification" in window && Notification.permission === "granted") {
