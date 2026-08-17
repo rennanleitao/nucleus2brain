@@ -68,6 +68,7 @@ function markChecked() {
   }
 }
 
+
 function snoozedUntil(): number {
   try {
     const raw = localStorage.getItem(SNOOZE_KEY);
@@ -173,16 +174,20 @@ export function useFocusCheckIn() {
   }, [settings.enabled, settings.intervalMinutes, settings.startHour, settings.endHour, settings.notify]);
 
   const dismiss = useCallback(() => {
+    // A pending snooze wins: closing the dialog must not shorten the snooze.
+    if (Date.now() < snoozedUntil()) {
+      setDue(false);
+      return;
+    }
     markChecked();
     setDue(false);
   }, []);
 
   const snooze = useCallback((minutes: number) => {
     try {
-      const interval = readFocusSettings().intervalMinutes * 60_000;
       const target = Date.now() + minutes * 60_000;
-      // Make the next check-in fall exactly at the snooze target.
-      localStorage.setItem(LAST_KEY, String(target - interval));
+      // Baseline the interval from now, and hard-block until the snooze target.
+      localStorage.setItem(LAST_KEY, String(Date.now()));
       localStorage.setItem(SNOOZE_KEY, String(target));
     } catch {
       // ignore
