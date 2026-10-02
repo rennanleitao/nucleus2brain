@@ -16,12 +16,13 @@ import { EditTaskDialog } from "@/components/EditTaskDialog";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   FileText, Plus, Trash2, Search, ArrowLeft, Tag, X, CheckSquare, ChevronDown, ChevronUp, Save, Share2, FolderInput, Copy, MoreVertical, ListTodo, PanelLeftClose, PanelLeftOpen,
-  Mic, Square, Download, Brain, Wand2, Sparkles,
+  Mic, Square, Download, Brain, Wand2, Sparkles, Check,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoveNoteDialog } from "@/components/MoveNoteDialog";
@@ -34,7 +35,6 @@ import { NoteDatePicker } from "@/components/NoteDatePicker";
 import { getLastEntryDate, buildDateEntryHtml } from "@/lib/noteEntries";
 import { CalendarDays } from "lucide-react";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpaceIcon } from "@/components/SpaceIconPicker";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -88,6 +88,8 @@ export default function Notes() {
   const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editSpaceId, setEditSpaceId] = useState("");
+  const [spacePickerOpen, setSpacePickerOpen] = useState(false);
+  const [spaceQuery, setSpaceQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
@@ -1101,22 +1103,47 @@ export default function Notes() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Select value={editSpaceId || "none"} onValueChange={v => { setEditSpaceId(v === "none" ? "" : v); setDirty(true); }}>
-                    <SelectTrigger className="w-auto h-7 text-xs gap-1.5 px-2">
-                      <SelectValue placeholder="Sem espaço" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem espaço</SelectItem>
-                      {spaces.map(s => (
-                        <SelectItem key={s.id} value={s.id}>
-                          <span className="flex items-center gap-2">
-                            <SpaceIcon iconKey={s.icon} className="h-4 w-4" />
-                            {s.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={spacePickerOpen} onOpenChange={open => { setSpacePickerOpen(open); if (!open) setSpaceQuery(""); }}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" className="h-7 max-w-[200px] gap-1.5 px-2 text-xs font-normal" aria-label="Selecionar Space">
+                        {editSpaceId && spaces.find(s => s.id === editSpaceId)?.icon && (
+                          <SpaceIcon iconKey={spaces.find(s => s.id === editSpaceId)?.icon} className="h-4 w-4 shrink-0" />
+                        )}
+                        <span className="truncate">{spaces.find(s => s.id === editSpaceId)?.name || "Sem espaço"}</span>
+                        <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[min(280px,calc(100vw-24px))] p-0">
+                      <div className="flex items-center gap-2 border-b border-border px-3">
+                        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <input
+                          autoFocus
+                          aria-label="Buscar Space"
+                          placeholder="Buscar Space..."
+                          value={spaceQuery}
+                          onChange={e => setSpaceQuery(e.target.value)}
+                          className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        />
+                      </div>
+                      <div className="max-h-60 overflow-y-auto p-1">
+                        {(!spaceQuery.trim() || "sem espaço".includes(spaceQuery.trim().toLocaleLowerCase())) && (
+                          <Button type="button" variant="ghost" size="sm" className="h-9 w-full justify-start text-sm font-normal" onClick={() => { setEditSpaceId(""); setDirty(true); setSpacePickerOpen(false); setSpaceQuery(""); }}>
+                            Sem espaço {!editSpaceId && <Check className="ml-auto h-4 w-4" />}
+                          </Button>
+                        )}
+                        {spaces.filter(s => s.name.toLocaleLowerCase().includes(spaceQuery.trim().toLocaleLowerCase())).map(s => (
+                          <Button key={s.id} type="button" variant="ghost" size="sm" className="h-9 w-full justify-start gap-2 text-sm font-normal" onClick={() => { setEditSpaceId(s.id); setDirty(true); setSpacePickerOpen(false); setSpaceQuery(""); }}>
+                            <SpaceIcon iconKey={s.icon} className="h-4 w-4 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate text-left">{s.name}</span>
+                            {editSpaceId === s.id && <Check className="h-4 w-4 shrink-0" />}
+                          </Button>
+                        ))}
+                        {spaces.every(s => !s.name.toLocaleLowerCase().includes(spaceQuery.trim().toLocaleLowerCase())) && spaceQuery.trim() && !"sem espaço".includes(spaceQuery.trim().toLocaleLowerCase()) && (
+                          <p className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhum Space encontrado</p>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
 
                   <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
                     <Tag className="h-3 w-3 text-muted-foreground flex-shrink-0" />
