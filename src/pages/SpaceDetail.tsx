@@ -8,6 +8,8 @@ import {
   fetchAttachments, uploadAttachment, deleteAttachment, getAttachmentUrl,
   createTask, createNote, createLink, deleteLink, updateTask, updateNote, deleteTask, restoreTask, deleteNote,
 } from "@/lib/api";
+import { SpaceContextTimeline } from "@/components/SpaceContextTimeline";
+import { History } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/EditTaskDialog";
@@ -298,6 +300,7 @@ export default function SpaceDetail() {
       <Tabs defaultValue="tasks" className="space-y-4">
         <TabsList className="bg-muted">
           <TabsTrigger value="tasks" className="text-xs gap-1"><CheckSquare className="h-3 w-3" /> Tasks</TabsTrigger>
+          <TabsTrigger value="context" className="text-xs gap-1"><History className="h-3 w-3" /> Contexto</TabsTrigger>
           <TabsTrigger value="notes" className="text-xs gap-1"><FileText className="h-3 w-3" /> Notas</TabsTrigger>
           <TabsTrigger value="topics" className="text-xs gap-1"><Sparkles className="h-3 w-3" /> Tópicos</TabsTrigger>
           <TabsTrigger value="links" className="text-xs gap-1"><Link2 className="h-3 w-3" /> Links</TabsTrigger>
@@ -627,6 +630,10 @@ export default function SpaceDetail() {
               <p className="text-sm text-muted-foreground">Nenhum anexo neste espaço</p>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="context" className="space-y-3">
+          <SpaceContextTimeline spaceId={space.id} />
         </TabsContent>
       </Tabs>
 
