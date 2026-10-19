@@ -1151,7 +1151,7 @@ export default function Tasks() {
             </>
           )}
         </div>
-      ) : listDimensions.length > 0 ? (
+      ) : listDimensions.length > 0 && !(filter === "planner" && plannerView !== "list") ? (
         filter === "planner" ? (
           (() => {
             return filtered.length === 0 ? (
