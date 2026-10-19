@@ -815,6 +815,50 @@ export type Database = {
         }
         Relationships: []
       }
+      space_context_entries: {
+        Row: {
+          content: string | null
+          created_at: string
+          entry_date: string
+          id: string
+          space_id: string
+          theme: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          space_id: string
+          theme?: string
+          title: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          space_id?: string
+          theme?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_context_entries_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       space_invites: {
         Row: {
           accepted: boolean
