@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Button } from "@/components/ui/button";
+import { shouldRenderTaskGroups } from "@/lib/taskThemes";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { QuickAddTaskBar } from "@/components/QuickAddTaskBar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,9 +44,10 @@ const PLANNER_VIEW_KEY = "nucleus.tasks.plannerView";
 const HIDDEN_PLANNER_VIEWS_KEY = "nucleus.tasks.hiddenPlannerViews";
 const LIST_DIMENSIONS_KEY = "nucleus.tasks.listDimensions";
 
-type ListDimension = "space" | "complexity" | "shift" | "owner" | "date";
+type ListDimension = "space" | "theme" | "complexity" | "shift" | "owner" | "date";
 const LIST_DIMENSIONS: { value: ListDimension; label: string }[] = [
   { value: "space", label: "Space" },
+  { value: "theme", label: "Tema" },
   { value: "complexity", label: "Complexidade" },
   { value: "shift", label: "Turno" },
   { value: "owner", label: "Responsável" },
@@ -148,7 +150,7 @@ export default function Tasks() {
     });
   };
   const isPlannerViewVisible = (v: PlannerView) => {
-    if (v === "list" || v === "kanban" || v === "timeline") return true;
+    if (v === "list" || v === "kanban" || v === "timeline" || v === "owner") return true;
     return !hiddenPlannerViews.includes(v);
   };
   const [aiScheduleOpen, setAiScheduleOpen] = useState(false);
@@ -582,6 +584,17 @@ export default function Tasks() {
   // ===== Multi-dimensional cumulative grouping =====
   type Bucket = { key: string; label: string; sublabel?: string; patch: Partial<Record<string, any>>; sortOrder: number };
   const bucketsForDimension = (dim: ListDimension, tasksIn: any[]): Bucket[] => {
+    if (dim === "theme") {
+      const seen = new Map<string, Bucket>();
+      for (const t of tasksIn) {
+        const names: string[] = t.themes?.length ? t.themes : [""];
+        for (const name of names) {
+          const key = name ? JSON.stringify([t.space_id, name]) : "__none__";
+          if (!seen.has(key)) seen.set(key, { key, label: name || "Sem Tema", sublabel: name ? t.spaces?.name : undefined, patch: name ? { space_id: t.space_id, themeTarget: name } : { themeTarget: null }, sortOrder: name ? 0 : 999 });
+        }
+      }
+      return [...seen.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
+    }
     if (dim === "space") {
       const seen = new Map<string, Bucket>();
       for (const t of tasksIn) {
@@ -644,6 +657,7 @@ export default function Tasks() {
     return [];
   };
   const taskMatchesBucket = (t: any, dim: ListDimension, bucket: Bucket): boolean => {
+    if (dim === "theme") return bucket.key === "__none__" ? !t.themes?.length : (t.themes || []).some((name: string) => JSON.stringify([t.space_id, name]) === bucket.key);
     if (dim === "space") return (t.space_id || "__none__") === bucket.key;
     if (dim === "complexity") return (t.execution_complexity || "medium") === bucket.key;
     if (dim === "shift") return (t.shift || "__none__") === bucket.key;
@@ -675,7 +689,13 @@ export default function Tasks() {
     const t = tasks.find(x => x.id === taskId);
     if (!t) return;
     const patch: Record<string, any> = {};
+    if ("themeTarget" in mergedPatch) {
+      const targetSpace = mergedPatch.space_id ?? t.space_id;
+      const base = targetSpace === t.space_id ? (t.themes || []) : [];
+      patch.themes = mergedPatch.themeTarget ? [...new Set([...base, mergedPatch.themeTarget])] : [];
+    } else if ("space_id" in mergedPatch && mergedPatch.space_id !== t.space_id) patch.themes = [];
     for (const [k, v] of Object.entries(mergedPatch)) {
+      if (k === "themeTarget") continue;
       const current = k === "execution_complexity" ? (t[k] || "medium") : (t[k] ?? null);
       const target = v ?? null;
       if (current !== target) patch[k] = target;
@@ -873,10 +893,11 @@ export default function Tasks() {
                   </button>
                 )}
                 {isPlannerViewVisible("owner") && (
-                  <button onClick={() => setPlannerView("owner")} title="Por responsável (mim / outros)"
-                    className={`p-2 h-10 sm:h-8 transition-colors ${plannerView === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
+                  <Button variant="ghost" onClick={() => setPlannerView("owner")} title="Por responsável (mim / outros)" aria-label="Por responsável (mim / outros)"
+                    className={`px-2 h-10 sm:h-8 rounded-none transition-colors ${plannerView === "owner" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}>
                     <Users className="h-4 w-4" />
-                  </button>
+                    <span className="hidden sm:inline text-xs">Responsável</span>
+                  </Button>
                 )}
               </div>
               <Popover>
@@ -893,7 +914,7 @@ export default function Tasks() {
                   <p className="text-micro text-muted-foreground px-2 pb-1.5">Visões disponíveis</p>
                   <div className="space-y-0.5">
                     {OPTIONAL_PLANNER_VIEWS.map(v => {
-                      const checked = !hiddenPlannerViews.includes(v.value);
+                      const checked = v.value === "owner" || !hiddenPlannerViews.includes(v.value);
                       return (
                         <label
                           key={v.value}
@@ -901,6 +922,7 @@ export default function Tasks() {
                         >
                           <Checkbox
                             checked={checked}
+                            disabled={v.value === "owner"}
                             onCheckedChange={() => toggleHiddenPlannerView(v.value)}
                           />
                           <span className="flex-1">{v.label}</span>
@@ -1151,7 +1173,7 @@ export default function Tasks() {
             </>
           )}
         </div>
-      ) : listDimensions.length > 0 && !(filter === "planner" && plannerView !== "list") ? (
+      ) : shouldRenderTaskGroups(filter, plannerView, viewMode, listDimensions) ? (
         filter === "planner" ? (
           (() => {
             return filtered.length === 0 ? (

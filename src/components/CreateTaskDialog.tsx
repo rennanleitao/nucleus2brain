@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Plus, Tag, X, ChevronDown, LinkIcon, ExternalLink, AlertTriangle, Loader2, Sparkles, Check, FileText, CalendarClock, FolderOpen, ListChecks, Repeat, UserPlus, Send } from "lucide-react";
 import { DelegateCommDialog } from "@/components/DelegateCommDialog";
+import { TaskThemePicker } from "@/components/TaskThemePicker";
 import { createTask, createSpace, createSubtask, createTaskMaterial, fetchAllTags } from "@/lib/api";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -148,6 +149,8 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [executionComplexity, setExecutionComplexity] = useState<TaskExecutionComplexity>("medium");
   const [spaceId, setSpaceId] = useState<string>(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : ""));
+  const [themes, setThemes] = useState<string[]>([]);
+  const changeSpace = (id: string) => { setSpaceId(id); setThemes([]); };
   const [dueDate, setDueDate] = useState("");
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
   const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly" | "yearly">("weekly");
@@ -214,7 +217,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
     setCreatingSpace(true);
     try {
       const space = await createSpace({ name: name.trim(), icon: "folder" });
-      setSpaceId(space.id);
+      changeSpace(space.id);
       toast.success("Space criado!");
       onCreated();
     } catch (err: any) {
@@ -321,6 +324,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
         execution_complexity: executionComplexity,
         status: autoStatus,
         space_id: spaceId || null,
+        themes,
         due_date: dueDate || null,
         tag: tag || null,
         note_id: defaultNoteId || null,
@@ -383,6 +387,7 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
 
 
   const resetForm = () => {
+    setThemes([]);
     setTitle(""); setDescription(""); setPriority("medium"); setExecutionComplexity("medium"); setSpaceId(defaultSpaceId || (spaces.length === 1 ? spaces[0].id : "")); setDueDate(""); setTag(""); setTagInput(""); setEstimatedMinutes("");
     setRecurrenceEnabled(false); setRecurrence("weekly");
     setPendingSubtasks([]); setSubtaskTitle(""); setSubtaskDate("");
@@ -532,10 +537,12 @@ export function CreateTaskDialog({ spaces, onCreated, defaultSpaceId, trigger, e
             <SpaceCombobox
               spaces={spaces}
               spaceId={spaceId}
-              onSelect={setSpaceId}
+              onSelect={changeSpace}
               creatingSpace={creatingSpace}
               onCreateSpace={handleCreateSpace}
             />
+
+            <TaskThemePicker spaceId={spaceId} value={themes} onChange={setThemes} />
 
             <div>
               <label className="field-label flex items-center gap-1.5">

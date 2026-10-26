@@ -935,6 +935,35 @@ export type Database = {
           },
         ]
       }
+      space_task_themes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          space_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          space_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_task_themes_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spaces: {
         Row: {
           category_id: string | null
@@ -1347,6 +1376,7 @@ export type Database = {
           space_id: string | null
           status: Database["public"]["Enums"]["task_status"]
           tag: string | null
+          themes: string[]
           title: string
           user_id: string
         }
@@ -1371,6 +1401,7 @@ export type Database = {
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tag?: string | null
+          themes?: string[]
           title: string
           user_id: string
         }
@@ -1395,6 +1426,7 @@ export type Database = {
           space_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tag?: string | null
+          themes?: string[]
           title?: string
           user_id?: string
         }
