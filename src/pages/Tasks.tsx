@@ -732,8 +732,11 @@ export default function Tasks() {
     }
     const [dim, ...rest] = dims;
     const buckets = bucketsForDimension(dim, tasksIn).filter(b => tasksIn.some(t => taskMatchesBucket(t, dim, b)));
+    const loose = tasksIn.filter(t => !buckets.some(b => taskMatchesBucket(t, dim, b)));
     const headingSizes = ["text-h2", "text-h3", "text-small font-semibold", "text-small font-medium"];
     const HeadingClass = headingSizes[Math.min(depth, headingSizes.length - 1)];
+    const looseKey = `${path}/${dim}:__loose__`;
+    const loosePatch = dim === "theme" ? { ...accPatch, themeTarget: null } : accPatch;
     return (
       <div className={depth === 0 ? "space-y-6" : "space-y-4"}>
         {buckets.map(bucket => {
@@ -753,6 +756,25 @@ export default function Tasks() {
             </section>
           );
         })}
+        {loose.length > 0 && (rest.length > 0 ? (
+          <div className={depth > 0 ? "pl-2 border-l border-border/40" : ""}>
+            {renderGroupedRecursive(loose, rest, loosePatch, looseKey, depth + 1)}
+          </div>
+        ) : (
+          <div
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move"; if (dragOverGroupPath !== looseKey) setDragOverGroupPath(looseKey); }}
+            onDragLeave={(e) => { e.stopPropagation(); if (dragOverGroupPath === looseKey) setDragOverGroupPath(null); }}
+            onDrop={(e) => {
+              e.preventDefault(); e.stopPropagation();
+              const id = draggedTaskId || e.dataTransfer.getData("text/plain");
+              setDragOverGroupPath(null); setDraggedTaskId(null);
+              if (id) handleGroupedDrop(id, loosePatch);
+            }}
+            className={`rounded-xl border border-transparent p-1 transition-colors ${dragOverGroupPath === looseKey ? "border-primary bg-primary/5" : ""}`}
+          >
+            {renderTaskList(loose, loosePatch.space_id !== undefined)}
+          </div>
+        ))}
       </div>
     );
   };
