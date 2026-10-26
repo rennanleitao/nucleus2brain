@@ -1,0 +1,3 @@
+- [ ] Corrigir a visão Por Responsável em todas as abas de tarefas.
+- [ ] Criar Temas por Space, selecionáveis e criados nas atividades, com múltipla associação.
+- [ ] Adicionar agrupamento por Tema e validar regras e fluxo completo.
