@@ -1,3 +1,4 @@
 - [x] Corrigir a visão Por Responsável em todas as abas de tarefas.
 - [x] Criar Temas por Space, selecionáveis e criados nas atividades, com múltipla associação.
 - [x] Adicionar agrupamento por Tema e validar regras e fluxo completo.
+- [x] Atividades sem Tema aparecem soltas, sem grupo "Sem Tema", e a lista agrupa por Tema por padrão.
