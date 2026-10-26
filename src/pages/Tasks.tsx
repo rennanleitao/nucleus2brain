@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 import { TasksByOwnerView } from "@/components/TasksByOwnerView";
 import { Button } from "@/components/ui/button";
-import { shouldRenderTaskGroups } from "@/lib/taskThemes";
+import { buildTaskThemeBuckets, shouldRenderTaskGroups, taskMatchesThemeBucket } from "@/lib/taskThemes";
 import { VoiceTaskDialog } from "@/components/VoiceTaskDialog";
 import { QuickAddTaskBar } from "@/components/QuickAddTaskBar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -56,9 +56,14 @@ const LIST_DIMENSIONS: { value: ListDimension; label: string }[] = [
 const loadListDimensions = (): ListDimension[] => {
   try {
     const raw = localStorage.getItem(LIST_DIMENSIONS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const stored = JSON.parse(raw) as ListDimension[];
+      // The legacy default grouped by Space; Theme is now the organizing layer.
+      if (stored.length === 1 && stored[0] === "space") return ["theme"];
+      return stored;
+    }
   } catch {}
-  return ["space"];
+  return ["theme"];
 };
 
 const loadHiddenTabs = (): string[] => {
@@ -585,15 +590,7 @@ export default function Tasks() {
   type Bucket = { key: string; label: string; sublabel?: string; patch: Partial<Record<string, any>>; sortOrder: number };
   const bucketsForDimension = (dim: ListDimension, tasksIn: any[]): Bucket[] => {
     if (dim === "theme") {
-      const seen = new Map<string, Bucket>();
-      for (const t of tasksIn) {
-        const names: string[] = t.themes?.length ? t.themes : [""];
-        for (const name of names) {
-          const key = name ? JSON.stringify([t.space_id, name]) : "__none__";
-          if (!seen.has(key)) seen.set(key, { key, label: name || "Sem Tema", sublabel: name ? t.spaces?.name : undefined, patch: name ? { space_id: t.space_id, themeTarget: name } : { themeTarget: null }, sortOrder: name ? 0 : 999 });
-        }
-      }
-      return [...seen.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
+      return buildTaskThemeBuckets(tasksIn);
     }
     if (dim === "space") {
       const seen = new Map<string, Bucket>();
@@ -657,7 +654,7 @@ export default function Tasks() {
     return [];
   };
   const taskMatchesBucket = (t: any, dim: ListDimension, bucket: Bucket): boolean => {
-    if (dim === "theme") return bucket.key === "__none__" ? !t.themes?.length : (t.themes || []).some((name: string) => JSON.stringify([t.space_id, name]) === bucket.key);
+    if (dim === "theme") return taskMatchesThemeBucket(t, bucket.key);
     if (dim === "space") return (t.space_id || "__none__") === bucket.key;
     if (dim === "complexity") return (t.execution_complexity || "medium") === bucket.key;
     if (dim === "shift") return (t.shift || "__none__") === bucket.key;
