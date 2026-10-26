@@ -46,6 +46,7 @@ interface TaskCardProps {
     notes?: { title: string } | null;
     note_id?: string | null;
     tag?: string | null;
+    themes?: string[];
     execution_complexity?: TaskExecutionComplexity | null;
     estimated_minutes?: number | null;
     recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
@@ -551,6 +552,7 @@ export const TaskCard = forwardRef<HTMLDivElement, TaskCardProps>(({
             <p className="text-micro text-muted-foreground mt-0.5 line-clamp-2">{descriptionPreview}</p>
           )}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {task.themes?.map(theme => <Badge key={theme} variant="outline" className="text-[10px] max-w-full whitespace-normal break-words">{theme}</Badge>)}
             {!compact && !hideSpace && task.spaces?.name && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-accent/40 bg-accent/15 text-foreground">
                 📁 {task.spaces.name}

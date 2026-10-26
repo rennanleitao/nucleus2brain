@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Bell, Tag, X, Search, ChevronDown, Plus, CheckCircle2, Circle, CalendarDays, Link2, LinkIcon, ExternalLink, Sparkles, Loader2, AlertTriangle, Check, Repeat, UserPlus, Send } from "lucide-react";
 import { DelegateCommDialog } from "@/components/DelegateCommDialog";
+import { TaskThemePicker } from "@/components/TaskThemePicker";
 import { generateNextRecurrence } from "@/lib/api";
 import { LinkTaskDialog } from "@/components/LinkTaskDialog";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,7 @@ interface EditTaskDialogProps {
     estimated_minutes?: number | null;
     recurrence?: "daily" | "weekly" | "monthly" | "yearly" | null;
     delegated_to?: string | null;
+    themes?: string[];
   };
   spaces: { id: string; name: string }[];
   open: boolean;
@@ -98,6 +100,8 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
   const [status, setStatus] = useState(task.status);
   const [dueDate, setDueDate] = useState(task.due_date || "");
   const [spaceId, setSpaceId] = useState(task.space_id || "");
+  const [themes, setThemes] = useState<string[]>(task.themes || []);
+  const changeSpace = (id: string) => { if (id !== spaceId) setThemes([]); setSpaceId(id); };
   const [tag, setTag] = useState(task.tag || "");
   const [tagInput, setTagInput] = useState("");
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -303,6 +307,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
         status,
         due_date: dueDate || null,
         space_id: spaceId || null,
+        themes,
         completed_at: status === "completed" ? new Date().toISOString() : null,
         tag: tag || null,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
@@ -497,7 +502,7 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
             </div>
             <div>
               <label className="field-label">Space</label>
-              <SpaceComboboxEdit spaces={spaces} spaceId={spaceId} onSelect={setSpaceId} />
+              <SpaceComboboxEdit spaces={spaces} spaceId={spaceId} onSelect={changeSpace} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -517,6 +522,8 @@ export function EditTaskDialog({ task, spaces, open, onOpenChange, onUpdated }: 
               </div>
             </div>
           </div>
+
+          <TaskThemePicker spaceId={spaceId} value={themes} onChange={setThemes} />
 
           {/* Recurrence (optional) */}
           <div className="field-section">

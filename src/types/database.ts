@@ -22,15 +22,15 @@ export interface Database {
           status: "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
           priority: "low" | "medium" | "high";
           execution_complexity: "easy" | "medium" | "hard";
-          due_date: string | null; created_at: string; completed_at: string | null;
+          due_date: string | null; created_at: string; completed_at: string | null; themes: string[];
         };
         Insert: {
-          id?: string; user_id?: string; space_id?: string | null; title: string; description?: string | null;
+          id?: string; user_id?: string; space_id?: string | null; title: string; description?: string | null; themes?: string[];
           status?: "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
           priority?: "low" | "medium" | "high"; execution_complexity?: "easy" | "medium" | "hard"; due_date?: string | null;
         };
         Update: {
-          title?: string; description?: string | null; space_id?: string | null;
+          title?: string; description?: string | null; space_id?: string | null; themes?: string[];
           status?: "todo" | "in_progress" | "waiting" | "completed" | "cancelled";
           priority?: "low" | "medium" | "high"; execution_complexity?: "easy" | "medium" | "hard"; due_date?: string | null; completed_at?: string | null;
         };
