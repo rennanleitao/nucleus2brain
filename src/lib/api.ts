@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/types/database";
+import { normalizeTaskThemes } from "@/lib/taskThemes";
 
 // ---- FILE UPLOAD ----
 export async function uploadAttachment(spaceId: string, file: File) {
@@ -120,7 +121,7 @@ export async function duplicateTask(taskId: string) {
 export async function createTask(task: Omit<TaskInsert, "user_id">) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
-  const payload = { ...task, user_id: user.id };
+  const payload = { ...task, themes: normalizeTaskThemes(task.space_id, task.themes || []), user_id: user.id };
   const { data, error } = await supabase
     .from("tasks")
     .insert(payload)
@@ -131,6 +132,9 @@ export async function createTask(task: Omit<TaskInsert, "user_id">) {
 }
 
 export async function updateTask(id: string, updates: TaskUpdate) {
+  if (updates.themes && "space_id" in updates) {
+    updates = { ...updates, themes: normalizeTaskThemes(updates.space_id, updates.themes) };
+  }
   const { data, error } = await supabase
     .from("tasks")
     .update(updates)
